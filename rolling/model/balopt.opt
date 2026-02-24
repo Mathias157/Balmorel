@@ -19,7 +19,7 @@
 * Hence, if calculation time is an issue, it is recommended as default to not use them,
 * and then, if the solver declares the problem infeasible, use them and resolve.
 * Information of ... in the .log file?
-$setglobal vqdebug
+$setglobal vqdebug yes
 *!option yes
 
 *Reduce number of infeasibility variables. By default, infeasibility variables are added to many equations, which is not always required.
@@ -84,7 +84,7 @@ $setglobal bb4 yes
 *-------- Seasonal rolling horizon  ---------
 * Optimize seasons with a rolling horizon approach instead of all together.
 *NOTE: This option is supposed to be combined with the option "import_results", which must contain information for all S and at least the first element in T
-$setglobal RollingSeasons
+$setglobal RollingSeasons yes
 *!option yes
 
 SCALAR ROLLINGSEASONSNUMBER 'Number of seasons to be optimized at a time in each rolling season optimization';
@@ -104,7 +104,7 @@ $setglobal NETDEMAND yes
 *---- Generation investments options----
 
 * Permit investments in generation and storage capacity:
-$setglobal TechInvest   yes
+$setglobal TechInvest  
 *!option yes
 
 SCALAR GINVESTSTART 'Year from which endogenous decisions in generation capacities are allowed' ;
@@ -130,7 +130,7 @@ GROWTH_YEAR = 2030;
 *---- Transmission investments options----
 
 * Permit investments in transmission capacity:
-$setglobal TransInvest YES
+$setglobal TransInvest 
 *!option yes
 
 SCALAR XINVESTSTART 'Year from which endogenous decisions in transmission capacities are allowed' ;
@@ -222,7 +222,7 @@ $setglobal EV_INTERSEASONAL yes
 * EV timeseries will be normalized (relevant if less than all time steps in TTT are used).
 * NOTE: Normalizing each time step, by the time steps not used in the simulation.
 * Recommend to use if the terms are not 24 consecutive hours, as the profiles have hourly seasonality.
-$setglobal EV_normalization yes
+$setglobal EV_normalization 
 *!option yes
 
 * If not S01 is used, then it will calculate available EVs for the first season in the simulation.
@@ -235,7 +235,7 @@ $setglobal EV_season_calc yes
 * The reason is that the EV addon is highly affected by input data.
 * Note: The value of the parameter PENALTQ should be in line with the cost assumptions in the model to obtain meaninful results
 * Note: Rule of thumb, if this is needed, something is probably wrong with the data used.
-$setglobal EV_infeas
+$setglobal EV_infeas yes
 *!option yes
 
 * Scenario where every EV return to charger after each trip. Needs specific profile as well (profile3 or profile4).
@@ -344,7 +344,7 @@ $Setglobal HYDROGEN YES
 *!option yes
 
 * Allows investments in hydrogen transport
-$Setglobal H2TransInvest YES
+$Setglobal H2TransInvest 
 *!option yes
 
 SCALAR XH2INVESTSTART 'Year from which endogenous decisions in H2 transmission capacities are allowed' ;
@@ -450,7 +450,7 @@ $setglobal bypass yes
 
 *-----------------------TECHNOLOGY DECOMMISSIONING--------------------------------------------------------
 * overall control variable DECOM must be 'yes' if any of the other decommissioning controls are.
-$setglobal DECOM yes
+$setglobal DECOM 
 *!option yes
 
 *-------ENDOGENOUS CAPACITIES----------
@@ -640,7 +640,7 @@ $label endofMSNTrelpaths
 * e.g. one model output serving as input to another model.
 
 * Overall control to export results so they can be used in future runs :
-$Setglobal export_results yes
+$Setglobal export_results
 *!option yes
 
 *--------------------------------------------
@@ -649,7 +649,7 @@ $Setglobal export_results yes
 * Overall control to import results so they can be used in future runs:
 *NOTE: In order for results to work fine, the set S used in the runs should be contained in the import results.
 *NOTE: In order for results to work fine, the first element in set T of the import results should match the one used in the current run.
-$Setglobal import_results
+$Setglobal import_results yes
 *!option yes
 
 *------------ IMPORT OPTIONS ----------------
@@ -663,7 +663,7 @@ $setglobal ADDENERGYDISPATCH
 
 * ------------------HYDRO---------------------------------
 * For this model run it is possible to use values found from previuos solutions to specify use of hydro power
-$setglobal HYRSBB123 none
+$setglobal HYRSBB123 cont
 *!option quant         !Text "Use seasonal quantities of hydro generation (from HYRSG.gdx??) in this run ('primal decomposition')(not implemented in BB4)"
 *!option price         !Text "Use seasonal prices for hydro generation (from WATERVAL.gdx) in this run ('dual decomposition')"
 *!option quantprice    !Text "Use seasonal quantities and prices for hydro generation (from HYRSG.gdx?? and WATERVAL.gdx) in in this run (not implemented in BB4)"
@@ -673,43 +673,43 @@ $setglobal HYRSBB123 none
 
 *--------------------INTERSEASONAL STORAGE-----------------------------------------------------------
 *Import inter-seasonal electricity storage data from previous runs
-$Setglobal ADDESTOVOLTS none
+$Setglobal ADDESTOVOLTS cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition')"
 *!option price         !Text "Import electricity storage contents at beginning of time segment (ESTOVOLTS.gdx) for the first element in set T and S, and puts a price to use with ESTOVOLTSVAL.gdx from previous runs. "
 *!option none          !Text "Do not not use this addon"
 
 *Import inter-seasonal heat storage data from previous runs
-$Setglobal ADDHSTOVOLTS  none
+$Setglobal ADDHSTOVOLTS  cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition')"
 *!option price         !Text "Import Heat storage contents at beginning of time segment (HSTOVOLTS.gdx) for the first element in set T and S, and puts a price to use with HSTOVOLTSVAL.gdx from previous runs."
 *!option none          !Text "Do not not use this addon"
 
 *Import intra-seasonal electricity storage data from previous runs
-$Setglobal ADDESTOVOLT none
+$Setglobal ADDESTOVOLT cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition')"
 *!option price         !Text "(to be finished) Import electricity storage contents at beginning of time segment (ESTOVOLT.gdx) for the first element in set T and S, and puts a price to generation (ESTOVOLTVAL) from previous runs."
 *!option none          !Text "Do not not use this addon"
 
 *Import intra-seasonal heat storage data from previous runs
-$Setglobal ADDHSTOVOLT  none
+$Setglobal ADDHSTOVOLT  cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition')"
 *!option price         !Text "(to be finished) Import Heat storage contents at beginning of time segment (HSTOVOLT.gdx) for the first element in set T and S,  and puts a price to generation (HSTOVOLTVAL) from previous runs"
 *!option none          !Text "Do not not use this addon"
 
 *Import inter-seasonal hydrogen storage data from previous runs  (requires HYDROGEN addon)
-$Setglobal ADDH2STOVOLTS  none
+$Setglobal ADDH2STOVOLTS  cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition')"
 *!option price         !Text "Import hydrogen storage contents at beginning of time segment (H2STOVOLTS.gdx) for the first element in set T and S, and puts a price to use with H2STOVOLTSVAL.gdx from previous runs."
 *!option none          !Text "Do not not use this addon"
 
 *Import inter-seasonal biomethane storage data from previous runs  (requires HYDROGEN addon)
-$Setglobal ADDBIOMETHSTOVOLTS  none
+$Setglobal ADDBIOMETHSTOVOLTS  cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition')"
 *!option price         !Text "Import biomethane storage contents at beginning of time segment (BIOMETHSTOVOLTS.gdx) for the first element in set T and S, and puts a price to use with BIOMETHSTOVOLTSVAL.gdx from previous runs."
 *!option none          !Text "Do not not use this addon"
 
 *Import EV state of charge from previous runs  (requires EV addon)
-$Setglobal ADDEVSTOS  none
+$Setglobal ADDEVSTOS  cont
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition') (only works if EV_INTERSEASONAL is activated)"
 *!option netcharging   !Text "Use seasonal net charging of EV in this run ('primal decomposition') (only works if EV_INTERSEASONAL is NOT activated)"
 *!option none          !Text "Do not not use this addon"
@@ -722,23 +722,23 @@ $Setglobal ADDEVSTOS  none
 *NOTE: The set Y should be the same in the optimization should be the same as the one in the import results.
 
 *Import generation and storage technology capacity development from previous runs
-$setglobal ADDTECHDEV
+$setglobal ADDTECHDEV yes
 *!option yes
 
 *Add expensive to operate backup generation technologies (electricity, heat, ...). It often occurs that the investment optimization underestimates the need for power.
-$setglobal ADDBACKUPGEN
+$setglobal ADDBACKUPGEN yes
 *!option yes
 
 *Import transmission development from previous runs
-$setglobal ADDTRANSDEV
+$setglobal ADDTRANSDEV yes
 *!option yes
 
 *Import heat transmission development from previous runs
-$setglobal ADDHEATTRANSDEV
+$setglobal ADDHEATTRANSDEV yes
 *!option yes
 
 *Import H2 transmission development from previous runs
-$setglobal ADDH2TRANSDEV
+$setglobal ADDH2TRANSDEV yes
 *!option yes
 *--------------------END OF INVESTMENTS AND DECOMMISSIONING-----------------------------------------------------------
 

@@ -1,3 +1,4 @@
+* Fullyear
 * This file holds options that are used to control model functionality,
 * including extentions in the form of addons, and interplay between models.
 
@@ -19,7 +20,7 @@
 * Hence, if calculation time is an issue, it is recommended as default to not use them,
 * and then, if the solver declares the problem infeasible, use them and resolve.
 * Information of ... in the .log file?
-$setglobal vqdebug
+$setglobal vqdebug yes
 *!option yes
 
 *Reduce number of infeasibility variables. By default, infeasibility variables are added to many equations, which is not always required.
@@ -84,7 +85,7 @@ $setglobal bb4 yes
 *-------- Seasonal rolling horizon  ---------
 * Optimize seasons with a rolling horizon approach instead of all together.
 *NOTE: This option is supposed to be combined with the option "import_results", which must contain information for all S and at least the first element in T
-$setglobal RollingSeasons
+$setglobal RollingSeasons 
 *!option yes
 
 SCALAR ROLLINGSEASONSNUMBER 'Number of seasons to be optimized at a time in each rolling season optimization';
@@ -104,7 +105,7 @@ $setglobal NETDEMAND yes
 *---- Generation investments options----
 
 * Permit investments in generation and storage capacity:
-$setglobal TechInvest   yes
+$setglobal TechInvest  
 *!option yes
 
 SCALAR GINVESTSTART 'Year from which endogenous decisions in generation capacities are allowed' ;
@@ -130,7 +131,7 @@ GROWTH_YEAR = 2030;
 *---- Transmission investments options----
 
 * Permit investments in transmission capacity:
-$setglobal TransInvest YES
+$setglobal TransInvest 
 *!option yes
 
 SCALAR XINVESTSTART 'Year from which endogenous decisions in transmission capacities are allowed' ;
@@ -235,7 +236,7 @@ $setglobal EV_season_calc yes
 * The reason is that the EV addon is highly affected by input data.
 * Note: The value of the parameter PENALTQ should be in line with the cost assumptions in the model to obtain meaninful results
 * Note: Rule of thumb, if this is needed, something is probably wrong with the data used.
-$setglobal EV_infeas
+$setglobal EV_infeas yes
 *!option yes
 
 * Scenario where every EV return to charger after each trip. Needs specific profile as well (profile3 or profile4).
@@ -344,7 +345,7 @@ $Setglobal HYDROGEN YES
 *!option yes
 
 * Allows investments in hydrogen transport
-$Setglobal H2TransInvest YES
+$Setglobal H2TransInvest 
 *!option yes
 
 SCALAR XH2INVESTSTART 'Year from which endogenous decisions in H2 transmission capacities are allowed' ;
@@ -450,7 +451,7 @@ $setglobal bypass yes
 
 *-----------------------TECHNOLOGY DECOMMISSIONING--------------------------------------------------------
 * overall control variable DECOM must be 'yes' if any of the other decommissioning controls are.
-$setglobal DECOM yes
+$setglobal DECOM 
 *!option yes
 
 *-------ENDOGENOUS CAPACITIES----------
@@ -520,7 +521,7 @@ $setglobal STEPWISE_RAMPING_UC  ramp_const
 *!option ramp_const  !Text "With ramping constraints but without ramping costs"
 *!option no_ramping  !Text "Neither ramping constraints nor ramping costs"
 * Adds optimisation of planned maintenance of the generation and storage technologies
-$setglobal PLANNED_MAINTENANCE
+$setglobal PLANNED_MAINTENANCE 
 *!option yes
 
 * Seasonal link is on for all UC options activated. This means that past seasons will influence future seasons.
@@ -649,7 +650,7 @@ $Setglobal export_results yes
 * Overall control to import results so they can be used in future runs:
 *NOTE: In order for results to work fine, the set S used in the runs should be contained in the import results.
 *NOTE: In order for results to work fine, the first element in set T of the import results should match the one used in the current run.
-$Setglobal import_results
+$Setglobal import_results yes
 *!option yes
 
 *------------ IMPORT OPTIONS ----------------
@@ -722,23 +723,23 @@ $Setglobal ADDEVSTOS  none
 *NOTE: The set Y should be the same in the optimization should be the same as the one in the import results.
 
 *Import generation and storage technology capacity development from previous runs
-$setglobal ADDTECHDEV
+$setglobal ADDTECHDEV yes
 *!option yes
 
 *Add expensive to operate backup generation technologies (electricity, heat, ...). It often occurs that the investment optimization underestimates the need for power.
-$setglobal ADDBACKUPGEN
+$setglobal ADDBACKUPGEN yes
 *!option yes
 
 *Import transmission development from previous runs
-$setglobal ADDTRANSDEV
+$setglobal ADDTRANSDEV yes
 *!option yes
 
 *Import heat transmission development from previous runs
-$setglobal ADDHEATTRANSDEV
+$setglobal ADDHEATTRANSDEV yes
 *!option yes
 
 *Import H2 transmission development from previous runs
-$setglobal ADDH2TRANSDEV
+$setglobal ADDH2TRANSDEV yes
 *!option yes
 *--------------------END OF INVESTMENTS AND DECOMMISSIONING-----------------------------------------------------------
 
@@ -975,7 +976,7 @@ putclose fileMERGEWITHBASEbat;
 
 * The model type has implications for the solver type.
 * Classical model types are LP (Linear Programming), QP (Quadratic Programming), MIP (Mixed Integer Programming).
-$setglobal SOLVETYPE LP
+$setglobal SOLVETYPE RMIP
 *!option LP      "Linear Programming"
 *!option RMIP    "Relaxed Mixed Integer Programming"
 *!option MIP     "Mixed Integer Programming"
