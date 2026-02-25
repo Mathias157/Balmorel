@@ -1,0 +1,16 @@
+[workspace]
+authors = ["mathias157 <mathiasros@proton.me>"]
+channels = ["conda-forge"]
+name = "BALMOREL"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.14.3,<3.15"
+premailer = ">=3.10.0,<4"
+click = ">=8.3.1,<9"
+
+[pypi-dependencies]
+pybalmorel = ">=0.5.8, <0.6"

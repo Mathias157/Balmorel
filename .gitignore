@@ -28,4 +28,6 @@ base/data/README.md
 *.log~2
 *.log~3
 build
-%batfileMERGEWITHBASE%
+%batfileMERGEWITHBASE%# pixi environments
+.pixi/*
+!.pixi/config.toml

@@ -3,3 +3,5 @@ $ cat .gitattributes
 *.INC linguist-language=GAMS
 *.mss linguist-language=GAMS
 *.opt linguist-language=GAMS
+# SCM syntax highlighting & preventing 3-way merges
+pixi.lock merge=binary linguist-language=YAML linguist-generated=true -diff
