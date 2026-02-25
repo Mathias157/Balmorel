@@ -31,3 +31,7 @@ build
 %batfileMERGEWITHBASE%# pixi environments
 .pixi/*
 !.pixi/config.toml
+analysis/plots/
+analysis/files/
+.env
+__pycache__
