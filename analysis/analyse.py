@@ -31,9 +31,11 @@ from pybalmorel.formatting import balmorel_colours
 import pickle
 from pathlib import Path
 import os
+from decouple import config
 
 # Some formatting
 balmorel_colours['SYNFUELPRODUCER'] = '#E8C3A8'
+balmorel_colours['BIOGASUPGRADING'] = '#E8C3A8'
 balmorel_colours['FUEL_TRANSPORT'] = balmorel_colours['WIND-ON']
 balmorel_colours['H2_TRANSMISSION_CAPITAL_COSTS'] = '#A8D9E8'
 balmorel_colours['H2_TRANSMISSION_OPERATIONAL_COSTS'] = '#D3EBF2'
@@ -59,7 +61,7 @@ marker_cycle = itertools.cycle(markers)
 @click.option('--dark-style', is_flag=True, required=False, help='Dark plot style')
 @click.option('--plot-ext', type=str, required=False, default='.pdf', help='The extension of the plots, defaults to ".pdf"')
 @click.option('--path', type=str, required=False, default='.', help='Path to top level of Balmorel folders, defaults to "."')
-@click.option('--gams-sysdir', type=str, required=False, default='/appl/gams/47.6.0', help='Path to GAMS system directory')
+@click.option('--gams-sysdir', type=str, required=False, default=config('LD_LIBRARY_PATH'), help='Path to GAMS system directory. If none, will look for it in LD_LIBRARY_PATH, which can be set in an .env file')
 @click.option('--large-plot', is_flag=True, required=False, default=False, help='Makes the plots large or small')
 @click.pass_context
 def CLI(ctx, overwrite: bool, dark_style: bool, plot_ext: str, path: str,
@@ -83,6 +85,7 @@ def CLI(ctx, overwrite: bool, dark_style: bool, plot_ext: str, path: str,
                     'ptes-and-adequacy']) and not is_help:
 
         # Locate results
+        print('GAMS system directory: ', gams_sysdir)
         model = Balmorel(path, gams_system_directory=gams_sysdir)
         model.locate_results() 
         ctx.obj['Balmorel'] = model # Find Balmorel folder
@@ -167,7 +170,7 @@ def all_maps(ctx, year: int):
 @click.option('--filters', type=str, default='', required=False, help='Filters for df.query(...)')
 @click.option('--include-backup', is_flag=True, default=False, help="Include interpreted backup capacities from the @adequacy function in this plot")
 @click.option('--backup-nth-max', type=int, default=3, help="The nth-max value used for the @adequacy function, if backup capacities should be included")
-@click.option('--drop-hydro', is_flag=True, default=True, help="Include hydro-run-of-river in generation capacity plot?")
+@click.option('--drop-hydro', is_flag=True, default=False, help="Include hydro-run-of-river in generation capacity plot?")
 @click.option('--get-df', is_flag=True, default=False, help="Dont plot, just get the dataframe")
 @click.option('--filename', type=str, default='capacity', required=False, help="The filename")
 def cap(gen: bool, sto: bool, filters: str, include_backup: bool,
@@ -186,7 +189,6 @@ def cap(gen: bool, sto: bool, filters: str, include_backup: bool,
                 collect_results('G_CAP_YCRAF')
                 .query('Technology != "H2-STORAGE" and not Technology.str.contains("INTERSEASONAL") and not Technology.str.contains("INTRASEASONAL") and not Generation.str.contains("BACKUP")')
             ) 
-            print(df.query('Technology == "SYNFUELPRODUCER" and Commodity=="SYNFUEL" and %s'%filters).pivot_table(index='Scenario', columns='Generation', values='Value', aggfunc='sum'))
             ax.set_ylabel('Generation Capacity [GW]')
         else:
             df = (
@@ -200,7 +202,7 @@ def cap(gen: bool, sto: bool, filters: str, include_backup: bool,
         if filters != '':
             df = df.query(filters)
 
-        # Sort scenarios, e.g. so N2 comes before N10
+        # Sort scenarios
         df = sort_scenarios(df).pivot_table(index=['Scenario'], columns='Technology', 
                                             values='Value', aggfunc='sum')
         
@@ -214,7 +216,7 @@ def cap(gen: bool, sto: bool, filters: str, include_backup: bool,
             if 'Technology' not in filters:
                 cols = df.columns
                 cols = cols[(cols != 'WIND-OFF') & (cols != 'SYNFUELPRODUCER') & (cols != 'ELECTROLYZER')]
-                cols = list(cols) + ['WIND-OFF', 'ELECTROLYZER', 'SYNFUELPRODUCER']
+                cols = list(cols) + ['WIND-OFF', 'ELECTROLYZER']
             else:
                 cols = list(df.columns)
             
