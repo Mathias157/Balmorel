@@ -194,8 +194,8 @@ def all(ctx, scenario):
     """
 
     ctx.invoke(all_bars, scenario=scenario)
-    ctx.invoke(all_profiles, scenario=scenario)
     ctx.invoke(all_maps, scenario=scenario)
+    ctx.invoke(all_profiles, scenario=scenario)
 
 
 @CLI.command()
@@ -210,11 +210,26 @@ def all_bars(ctx, scenario):
     """
     Generate all bar charts for a specific scenario
     """
-    ctx.invoke(cap, gen=True, sto=True, filters=f'Scenario == "{scenario}"')
-    ctx.invoke(fuel, filters=f'Scenario == "{scenario}"')
-    ctx.invoke(costs, filters=f'Scenario == "{scenario}"')
+    ctx.invoke(cap, 
+               gen=True, 
+               sto=True, 
+               filters=f'Scenario == "{scenario}"',
+               filename=f'capacities_{scenario}'
+    )
+    ctx.invoke(fuel, 
+               filters=f'Scenario == "{scenario}"',
+               filename=f'fuelconsumption_{scenario}'
+    )
+    ctx.invoke(costs, 
+               filters=f'Scenario == "{scenario}"',
+               filename=f'systemcosts_{scenario}'
+    )
     for commodity in ["electricity", "heat", "hydrogen"]:
-        ctx.invoke(dem, commodity=commodity, filters=f'Scenario == "{scenario}"')
+        ctx.invoke(dem, 
+                   commodity=commodity, 
+                   filters=f'Scenario == "{scenario}"',
+                   filename=f'demand_{scenario}'
+        )
 
 
 @CLI.command()
@@ -239,7 +254,11 @@ def all_profiles(ctx, year, scenario):
     m = ctx.obj["Balmorel"]
 
     for commodity in ["electricity", "heat", "hydrogen"]:
-        ctx.invoke(profile, commodity=commodity, scenario=scenario, year=year)
+        ctx.invoke(profile, 
+                   commodity=commodity, 
+                   scenario=scenario, 
+                   year=year
+        )
 
 
 @CLI.command()
@@ -347,7 +366,7 @@ def cap(
 
         # Sort scenarios
         df = sort_scenarios(df).pivot_table(
-            index=["Scenario"], columns="Technology", values="Value", aggfunc="sum"
+            index=["Scenario", "Year"], columns="Technology", values="Value", aggfunc="sum"
         )
 
         if key == "generation":
@@ -415,7 +434,7 @@ def cap(
 @click.option(
     "--get-df", is_flag=True, default=False, help="Dont plot, just get the dataframe"
 )
-def fuel(filters: str, get_df: bool):
+def fuel(filters: str, get_df: bool, filename: str = "fuelconsumption"):
     """
     Plot fuel consumption
     """
@@ -429,7 +448,7 @@ def fuel(filters: str, get_df: bool):
         collect_results("F_CONS_YCRA")
         .pipe(lambda x: x.query(filters) if filters != None else x)
         .pipe(sort_scenarios)
-        .pivot_table(index="Scenario", columns="Fuel", values="Value", aggfunc="sum")
+        .pivot_table(index=["Scenario", "Year"], columns="Fuel", values="Value", aggfunc="sum")
     )
 
     if get_df:
@@ -437,7 +456,7 @@ def fuel(filters: str, get_df: bool):
 
     df.plot(ax=ax, kind="bar", stacked=True)
 
-    fig, ax = plot_style(fig, ax, "fuelconsumption")
+    fig, ax = plot_style(fig, ax, filename)
 
 
 @CLI.command()
@@ -449,7 +468,7 @@ def fuel(filters: str, get_df: bool):
     default=None,
     help="Query input for filtering",
 )
-def dem(commodity: str, filters):
+def dem(commodity: str, filters: str, filename: str = "demand"):
     """
     Plot fuel consumption
     """
@@ -472,11 +491,11 @@ def dem(commodity: str, filters):
 
     (
         df.pivot_table(
-            index="Scenario", columns="Category", values="Value", aggfunc="sum"
+            index=["Scenario", "Year"], columns="Category", values="Value", aggfunc="sum"
         ).plot(ax=ax, kind="bar", stacked=True)
     )
 
-    fig, ax = plot_style(fig, ax, "%s_demand" % commodity.lower())
+    fig, ax = plot_style(fig, ax, f"{commodity.lower()}_{filename}")
 
 
 @CLI.command()
@@ -511,7 +530,7 @@ def costs(filters: str, get_df: bool, filename: str):
         df = df.query(filters)
 
     df = sort_scenarios(df).pivot_table(
-        index="Scenario",
+        index=["Scenario", "Year"],
         columns="Category",
         values="Value",
         aggfunc=lambda x: np.sum(x) / 1e3,
@@ -805,8 +824,8 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
 @click.argument("commodity", type=str)
 @click.argument("scenario", type=str)
 @click.argument("year", type=int, default=2050)
-@click.argument("geofile", type=str, default="analysis/geofiles/municipalities.gpkg")
-@click.argument("geofile_region_column", type=str, default="Name")
+@click.argument("geofile", type=str, default=None)
+@click.argument("geofile_region_column", type=str, default="id")
 @click.argument("lon-lims", type=list, default=[7.8, 13])
 @click.argument("lat-lims", type=list, default=[54.4, 58])
 @click.option("--lines", type=str, default="UtilizationYear")
@@ -852,7 +871,7 @@ def map(
         scenario,
         year,
         commodity.capitalize(),
-        path_to_geofile=os.path.abspath(geofile),
+        path_to_geofile=geofile,
         geo_file_region_column=geofile_region_column,
         lines=lines,
         generation=generation,
@@ -863,16 +882,10 @@ def map(
         regions_ext_color="lightgray",
         **{"generation_show": generation_show},
     )
-    ax.set_xlim(lon_lims)
-    ax.set_ylim(lat_lims)
+    # ax.set_xlim(lon_lims)
+    # ax.set_ylim(lat_lims)
 
-    if not invoked:
-        fig, ax = plot_style(
-            fig,
-            ax,
-            "map_%s" % (commodity + "-" + str(year) + "-" + scenario),
-            legend=False,
-        )
+    fig.savefig("analysis/plots/map_%s%s" % (commodity + "-" + str(year) + "-" + scenario, ctx.obj['plot_ext']))
 
     return fig, ax
 
