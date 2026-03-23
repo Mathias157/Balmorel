@@ -13,6 +13,7 @@ Created on 20.03.2026
 
 from pathlib import Path
 from pybalmorel import MainResults
+import pandas as pd
 
 # ------------------------------- #
 #          1. Functions           #
@@ -44,6 +45,20 @@ def find_result(sc_folder: str, scenario: str = ''):
 
     return res
 
+def collect_adequacy_results():
+    """Collect all adeq files in analysis/output"""
+
+    path=Path('analysis/output')
+    df=pd.DataFrame()
+    for p in path.iterdir():
+        if '_adeq' in str(p) and p.name != 'adeq_collected.csv':
+            temp=pd.read_csv(p)
+            temp['Scenario']=p.name.split('_adeq')[0]
+            df=pd.concat((df, temp), 
+                         ignore_index=True)
+
+    df.to_csv('analysis/output/adeq_collected.csv',
+              index=False)
 
 # ------------------------------- #
 #            2. Main              #
@@ -51,5 +66,5 @@ def find_result(sc_folder: str, scenario: str = ''):
 
 
 if __name__ == '__main__':
-    pass
+    collect_adequacy_results()
 
