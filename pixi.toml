@@ -8,9 +8,14 @@ version = "0.1.0"
 [tasks]
 analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
-sync-down = "rsync -avz --filter=':- .gitignore' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
-sync-up = "rsync -avz --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
-sync-plots = "rsync -avz mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
+sync-down = "rsync -avzu --filter=':- .gitignore' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
+sync-up = "rsync -avzu --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
+sync-plots = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
+sync-scenario = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
+
+[tasks.sync-mainresult]
+args = ["scenario", {arg="suffix", default="*"}]
+cmd = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/{{ scenario }}/model/MainResults{{ suffix }}.gdx' {{ scenario }}/model/"
 
 [dependencies]
 premailer = ">=3.10.0,<4"
