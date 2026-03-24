@@ -8,7 +8,7 @@ version = "0.1.0"
 [tasks]
 analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
-sync-down = "rsync -avz --filter=':- .gitignore' --exclude='.git/' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
+sync-down = "rsync -avz --filter=':- .gitignore' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
 sync-up = "rsync -avz --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
 sync-plots = "rsync -avz mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
 
