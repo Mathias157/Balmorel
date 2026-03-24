@@ -33,10 +33,16 @@ source jobs/functions.sh
 # Get scenario choice and run name from jobs/scenario_choice.sh
 source jobs/scenario_choice.sh
 
-for runtype in INV R2030 R2040 R2050; do
-  for scenario in APS_base_S8T24CD_INV APS_base_S8T24MM APS_base_S8T24MD APS_base; do
+for runtype in INV; do
+  for scenario in APS_base_S8T24MM APS_base_S8T24MD; do
     # This will fail if the scenario name is incorrect, e.g. if it's named after the scenario folder instead of MainResults suffix!
     generate_plots "${scenario}_${runtype}"
-    pdfunite analysis/plots/*${scenario}_${runtype}.pdf analysis/plots/collected_plots_${scenario}_${runtype}.pdf
+
+    # Remove old collected pdf to ensure no corruption errors in next colleciton
+    collected_pdf=analysis/plots/collected_plots_${scenario}_${runtype}.pdf
+    if [[ -f "$collected_pdf" ]]; then
+      rm analysis/plots/collected_plots_${scenario}_${runtype}.pdf
+    fi
+    pdfunite analysis/plots/*${scenario}_${runtype}.pdf $collected_pdf
   done
 done

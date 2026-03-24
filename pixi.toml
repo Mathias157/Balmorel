@@ -9,7 +9,8 @@ version = "0.1.0"
 analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
 sync-down = "rsync -avz --filter=':- .gitignore' --exclude='.git/' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
-sync-up = "rsync -avz --filter=':- .gitignore' --exclude='.git/' ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
+sync-up = "rsync -avz --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
+sync-plots = "rsync -avz mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
 
 [dependencies]
 premailer = ">=3.10.0,<4"
@@ -18,12 +19,9 @@ python-decouple = ">=3.8,<4"
 python = ">=3.14.3,<3.15"
 matplotlib = ">=3.10.8,<4"
 pandas = ">=3.0.1,<4"
-numpy = ">=1.22.4,<2.4.2"
-
-[activation.env]
-GAMS_SYSTEM_DIR = "/appl/gams/50.4.1"
+numpy = ">=2.4.3,<3"
 
 [pypi-dependencies]
-pybalmorel = ">=1.1.0, <2"
-tsam = ">=3.1.2, <4"
+pybalmorel = ">=1.1.2, <2"
+tsam = ">=2.3.9, <3"
 ripgrepy = ">=2.2.0, <3"

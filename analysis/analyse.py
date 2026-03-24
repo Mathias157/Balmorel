@@ -144,7 +144,7 @@ def CLI(
         # Locate results
         print("GAMS system directory: ", gams_sysdir)
         model = Balmorel(path, gams_system_directory=gams_sysdir)
-        model.locate_results()
+        model.locate_results(suffix_naming_only=True)
         ctx.obj["Balmorel"] = model  # Find Balmorel folder
 
     else:
@@ -1784,7 +1784,7 @@ def collect_results(ctx, symbol: str):
     else:
         print("\nCollecting results to %s..\n" % file_path, flush=True)
         m = ctx.obj["Balmorel"]
-        m.collect_results()
+        m.collect_results(suffix_naming_only=True)
 
         df = m.results.get_result(symbol)
 
