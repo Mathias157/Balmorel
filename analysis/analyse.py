@@ -24,7 +24,7 @@ from premailer import transform
 import itertools
 from matplotlib.patches import Wedge as WedgePatch
 from functions.pit_storage import get_storage_profiles, polygon_with_point
-from functions import find_result
+from functions import collect_adequacy_results, find_result
 from pybalmorel import Balmorel, MainResults
 from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
@@ -1418,6 +1418,44 @@ def adequacy(ctx, scenario: str, nth_max: int):
     df_out = pd.DataFrame({"ENS_TWh": ENS.sum() / 1e6, "LOLE_h": ENS.count()})
 
     df_out.to_csv("analysis/output/%s_adeq.csv" % scenario.replace("_operun", ""))
+
+@CLI.command()
+@click.pass_context
+def adequacy_table(ctx):
+    
+    collect_adequacy_results()
+    df=pd.read_csv('analysis/output/adeq_collected.csv') 
+
+    # Get method, resolution, year and runtype
+    pattern = r'([FR]20[345]0)' # pattern that matches R or F and then 2030, 2040 or 2050
+    year=df.Scenario.str.extract(pattern, expand=False)
+    df['Runtype']=year.str[0]
+    df['Year']=year.str[1:]
+    pattern = r'([MC][MD])' # pattern that matches M or C and then M or D
+    df['Method']=df.Scenario.str.extract(pattern, expand=False).fillna('ST')
+    pattern = r'(S\d+T\d+)' # pattern that matches S and any number and T and any number
+    df['Resolution']=df.Scenario.str.extract(pattern, expand=False).fillna('ST')
+
+    # Pivot 
+    test = df.pivot_table(
+            index=['Scenario', 'Resolution', 'Runtype', 'Year', 'Commodity'],
+            columns='Method',
+            values=['LOLE_h', 'ENS_TWh'],
+            aggfunc='sum'
+    )
+    final = df.pivot_table(
+            index=['Resolution', 'Runtype', 'Year', 'Commodity'],
+            columns='Method',
+            values=['LOLE_h', 'ENS_TWh'],
+            aggfunc='mean'
+    )
+
+    # Test if sum is the same, if not, final df actually did averaging across scenarios
+    assert test.sum().sum()==final.sum().sum(), "ERROR: Some scenarios were summed!"
+
+    unique_scenarios = list(df.Scenario.unique())
+    print(f'{len(unique_scenarios)} unique scenarios:\n', unique_scenarios)
+    print(final.round())
 
 
 @CLI.command()

@@ -10,8 +10,8 @@ analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
 sync-down = "rsync -avzu --filter=':- .gitignore' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
 sync-up = "rsync -avzu --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
-sync-plots = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
-sync-scenario = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/collected*.pdf' analysis/plots/"
+sync-plots = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/*' analysis/plots/"
+sync-output = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/output/*' analysis/output/"
 
 [tasks.sync-mainresult]
 args = ["scenario", {arg="suffix", default="*"}]
