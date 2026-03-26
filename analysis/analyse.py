@@ -1414,6 +1414,8 @@ def adequacy(ctx, scenario: str, nth_max: int):
     ENS = df.pivot_table(
         index=["Season", "Time", "Region"], columns="Commodity", values="Value", aggfunc="sum"
     )
+    ENS.to_csv("analysis/output/%s_hourlybackup.csv"%scenario)
+
     LOLE = ENS.pivot_table(index='Region', aggfunc='count')
     LOLE.columns = pd.MultiIndex.from_product((['LOLE (h)'], LOLE.columns))
     ENS = ENS.pivot_table(index='Region', aggfunc='sum') / 1e6
@@ -1421,7 +1423,7 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
     df_out = ENS.join(LOLE).fillna(0) # Fill NaNs with zero, as it means no backup was used
 
-    df_out.to_csv("analysis/output/%s_adeq.csv" % scenario.replace("_operun", ""))
+    df_out.to_csv("analysis/output/%s_adeq.csv")
 
 @CLI.command()
 @click.pass_context
