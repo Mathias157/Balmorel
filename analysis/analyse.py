@@ -1371,8 +1371,8 @@ def get(ctx, symbol: str, pars, filters: str, diff: bool):
     "--nth-max",
     type=int,
     required=False,
-    default=3,
-    help="Which nth maximum backup production to interpret as required backup capacity Default is 3, as it could be interpreted as a LOLE = 3 h condition.",
+    default=1,
+    help="Which nth maximum backup production to interpret as required backup capacity, default is 1.",
 )
 def adequacy(ctx, scenario: str, nth_max: int):
     "Quantify the adequacy in terms of LOLE (h) and energy not supplied (TWh)"
@@ -1412,10 +1412,14 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
     ## Get energy not served
     ENS = df.pivot_table(
-        index=["Season", "Time"], columns="Commodity", values="Value", aggfunc="sum"
+        index=["Season", "Time", "Region"], columns="Commodity", values="Value", aggfunc="sum"
     )
+    LOLE = ENS.pivot_table(index='Region', aggfunc='count')
+    LOLE.columns = pd.MultiIndex.from_product((['LOLE (h)'], LOLE.columns))
+    ENS = ENS.pivot_table(index='Region', aggfunc='sum') / 1e6
+    ENS.columns = pd.MultiIndex.from_product((['ENS (TWh)'], ENS.columns))
 
-    df_out = pd.DataFrame({"ENS_TWh": ENS.sum() / 1e6, "LOLE_h": ENS.count()})
+    df_out = ENS.join(LOLE).fillna(0) # Fill NaNs with zero, as it means no backup was used
 
     df_out.to_csv("analysis/output/%s_adeq.csv" % scenario.replace("_operun", ""))
 
