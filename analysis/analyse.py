@@ -1435,22 +1435,22 @@ def adequacy_table(ctx):
     year=df.Scenario.str.extract(pattern, expand=False)
     df['Runtype']=year.str[0]
     df['Year']=year.str[1:]
-    pattern = r'([MC][MD])' # pattern that matches M or C and then M or D
+    pattern = r'([MCS][MDT][A-Za-z]*)' # pattern that matches M, C or S and then M, D or T
     df['Method']=df.Scenario.str.extract(pattern, expand=False).fillna('ST')
     pattern = r'(S\d+T\d+)' # pattern that matches S and any number and T and any number
     df['Resolution']=df.Scenario.str.extract(pattern, expand=False).fillna('ST')
 
     # Pivot 
     test = df.pivot_table(
-            index=['Scenario', 'Resolution', 'Runtype', 'Year', 'Commodity'],
-            columns='Method',
-            values=['LOLE_h', 'ENS_TWh'],
+            index=['Scenario', 'Region', 'Resolution', 'Runtype', 'Year', 'Commodity'],
+            columns=['Method', 'Parameter'],
+            values='Value',
             aggfunc='sum'
     )
     final = df.pivot_table(
-            index=['Resolution', 'Runtype', 'Year', 'Commodity'],
-            columns='Method',
-            values=['LOLE_h', 'ENS_TWh'],
+            index=['Region', 'Resolution', 'Runtype', 'Year', 'Commodity'],
+            columns=['Method', 'Parameter'],
+            values='Value',
             aggfunc='mean'
     )
 
@@ -1459,7 +1459,12 @@ def adequacy_table(ctx):
 
     unique_scenarios = list(df.Scenario.unique())
     print(f'{len(unique_scenarios)} unique scenarios:\n', unique_scenarios)
+    print('-'*80, '\nAll regions:','\n'+'-'*80)
     print(final.round())
+    print('-'*80, '\nAverage across regions:','\n'+'-'*80)
+    print(final.pivot_table(index=['Resolution', 'Runtype', 'Year', 'Commodity'],
+                            aggfunc='mean').round())
+    print('-'*80)
 
 
 @CLI.command()
