@@ -34,7 +34,7 @@ base/data/README.md
 *.log~3
 build
 %batfileMERGEWITHBASE%# pixi environments
-.pixi/*
+.pixi
 !.pixi/config.toml
 analysis/plots/
 analysis/files/
@@ -44,3 +44,15 @@ __pycache__
 
 O20*/model/balopt.opt
 O20*/data/T.inc
+jobs/*_b.sh
+jobs/*_a.sh
+jobs/*0a.sh
+jobs/*0b.sh
+O20*a
+O20*b
+base_*
+**/*.pkl
+**/model/GDATA.csv
+**/model/Balmorel_ReadData.gms
+**/model/Balmorelbb4_ReadData.inc
+base/evprofiles

@@ -13,7 +13,7 @@
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
 #BSUB -M 4.5GB
 ### -- set walltime limit: hh:mm --
-#BSUB -W 1:00
+#BSUB -W 2:00
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
 # if you want to receive e-mail notifications on a non-default address
@@ -33,8 +33,15 @@ source jobs/functions.sh
 # Get scenario choice and run name from jobs/scenario_choice.sh
 source jobs/scenario_choice.sh
 
+# Make exceptions (e.g.: failed runs or runs not finished)
+allowed_runs=("APS_base_S8T24MMF1_R2050" "APS_base_S8T24MMF1FLH_R2050" "APS_base_S10T42ST_R2040")
+
 # Get adequacies
-for operun in F2030 F2040 F2050 R2030 R2040 R2050; do
-  pixi run analyse adequacy "${run_name}_${operun}"
+for run_name in APS_base_S12T42ST APS_base_S10T42ST APS_base_S8T24MMF1FLH; do
+  for operun in R2030 R2040 R2050; do
+    if [[ ! " ${allowed_runs[*]} " =~ " ${run_name}_${operun} " ]]; then
+      pixi run analyse adequacy "${run_name}_${operun}"
+    fi
+  done
 done
 

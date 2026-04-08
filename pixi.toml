@@ -8,14 +8,15 @@ version = "0.1.0"
 [tasks]
 analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
-sync-down = "rsync -avzu --filter=':- .gitignore' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ ."
-sync-up = "rsync -avzu --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel"
-sync-plots = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/*' analysis/plots/"
-sync-output = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/output/*' analysis/output/"
+sync-down = { cmd = "rsync -avzu --filter=':- .gitignore' mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel/ .", description = "Syncs repository to local, including .git folder, but without gitignored files" }
+sync-up = { cmd = "rsync -avzu --filter=':- .gitignore'  ./ mberos@transfer.gbar.dtu.dk:/work3/mberos/Balmorel", description = "Syncs repository to remote, including .git folder, but without gitignored files" }
+sync-plots = { cmd = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/*' analysis/plots/", description = "Download everything from analysis/plots"}
+sync-output = { cmd = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/analysis/output/*' analysis/output/", description = "Download everything from analysis/output"}
 
-[tasks.sync-mainresult]
+[tasks.sync-mainresults]
 args = ["scenario", {arg="suffix", default="*"}]
 cmd = "rsync -avzu mberos@transfer.gbar.dtu.dk:'/work3/mberos/Balmorel/{{ scenario }}/model/MainResults{{ suffix }}.gdx' {{ scenario }}/model/"
+description = "Get MainResults from a scenario folder (first arg) with a certain suffix (second arg, defaults to *)"
 
 [dependencies]
 premailer = ">=3.10.0,<4"
