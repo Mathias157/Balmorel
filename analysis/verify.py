@@ -16,6 +16,7 @@ from pybalmorel.utils import symbol_to_df
 from gams import GamsWorkspace
 from functions import find_result
 import click
+import warnings
 
 # ------------------------------- #
 #          1. Functions           #
@@ -62,7 +63,16 @@ def debug_vars(ctx):
 
     for var in ['VQHEQ', 'VQHYRSMINVOL', 'VQHYRSSEQ']:
         df=symbol_to_df(db, var)
-        print(df)
+        if len(df.columns) != 0:
+            stats = df.Value.min(), df.Value.mean(), df.Value.max()
+            if stats[2] > 1:
+                warnings.warn(f"{var} DEBUG VARIABLE ABOVE 1!")
+            print(f"{var} debug variable statistics:")
+            print(f"Min: {stats[0]}")
+            print(f"Mean: {stats[1]}")
+            print(f"Max: {stats[2]}")
+        else:
+            print(f"{var} debug variable not used")
 
 @main.command()
 @click.pass_context

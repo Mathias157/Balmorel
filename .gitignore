@@ -56,3 +56,4 @@ base_*
 **/model/Balmorel_ReadData.gms
 **/model/Balmorelbb4_ReadData.inc
 base/evprofiles
+jobs/userfunctions.sh

@@ -42,3 +42,7 @@ gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --s
 cd ../../
 
 optimality_check $LSB_JOBID 52
+if [ -f jobs/userfunctions.sh ]; then
+    . jobs/userfunctions.sh
+    verifications O2040
+fi
