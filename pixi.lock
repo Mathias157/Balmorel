@@ -5,6 +5,8 @@ environments:
     - url: https://conda.anaconda.org/conda-forge/
     indexes:
     - https://pypi.org/simple
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -180,7 +182,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/84/03/0d3ce49e2505ae70cf43bc5bb3033955d2fc9f932163e84dc0779cc47f48/prompt_toolkit-3.0.52-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/22/a6/858897256d0deac81a172289110f31629fc4cee19b6f01283303e18c8db3/ptyprocess-0.7.0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/6e/70/6d10b91f8668322eb977b04d53976b83a030febabc85125cf28948781263/pybalmorel-1.1.2-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/df/67/a2e14434c7ee7931ecc09a90d4c292b795897ff621c0259e10f0ee1ee415/pybalmorel-1.1.6-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d1/68/cc07320a63f9c2586e60bf11d148b00e12d0e707673bffe609bbdcb7e754/pyogrio-0.12.1-cp314-cp314-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/52/48/8bdf61ee998f65e2e00d65778e2a4cfe41129953a6b0ba72e7a5f5cefdc6/pyomo-6.10.0-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
@@ -2029,10 +2031,10 @@ packages:
   sha256: 1db8e35b67b3d218d818ae653e27f06c3aa420901fa7b081ca98cbedc874e0d0
   requires_dist:
   - pytest ; extra == 'tests'
-- pypi: https://files.pythonhosted.org/packages/6e/70/6d10b91f8668322eb977b04d53976b83a030febabc85125cf28948781263/pybalmorel-1.1.2-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/df/67/a2e14434c7ee7931ecc09a90d4c292b795897ff621c0259e10f0ee1ee415/pybalmorel-1.1.6-py3-none-any.whl
   name: pybalmorel
-  version: 1.1.2
-  sha256: 6bc2e5f755c876753d81eb67e849747531f2cd0a98fbd1d08c8bf78c1d3667a9
+  version: 1.1.6
+  sha256: 8689bcd80497f9280962a9df20a5f5738dc5618cc1e178ac45e9a293e344ef20
   requires_dist:
   - pandas>=2.1.4
   - matplotlib>=3.9.0
