@@ -802,7 +802,7 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
         system_directory=ctx.obj["gams_system_directory"],
     )
 
-    fig, ax = res.plot_profile(
+    figs, axes = res.plot_profiles(
         commodity,
         year,
         scenario,
@@ -814,9 +814,10 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
     if node != "all":
         scenario += "_" + node
 
-    fig, ax = plot_style(
-        fig, ax, "profile_%s" % (commodity + "-" + str(year) + "-" + scenario)
-    )
+    for idx, fig in enumerate(figs):
+        plot_style(
+            figs[idx], axes[idx], f"profile_{commodity + "-" + str(year) + "-" + scenario + '-' + str(idx)}" 
+        )
 
 
 @CLI.command()

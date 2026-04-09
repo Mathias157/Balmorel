@@ -30,11 +30,14 @@
 # Load error handling and GAMS paths
 source jobs/functions.sh
 
+# Load user functions (generate_plots)
+source jobs/userfunctions.sh
+
 # Get scenario choice and run name from jobs/scenario_choice.sh
 source jobs/scenario_choice.sh
 
-for runtype in INV; do
-  for scenario in APS_base_S8T24MM APS_base_S8T24MD; do
+for scenario in APS_base_allflex; do
+  for runtype in R2030 R2040 R2050; do
     # This will fail if the scenario name is incorrect, e.g. if it's named after the scenario folder instead of MainResults suffix!
     generate_plots "${scenario}_${runtype}"
 
