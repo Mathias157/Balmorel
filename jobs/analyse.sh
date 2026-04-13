@@ -39,7 +39,9 @@ source jobs/scenario_choice.sh
 for scenario in APS_base_allflex; do
   for runtype in R2030 R2040 R2050; do
     # This will fail if the scenario name is incorrect, e.g. if it's named after the scenario folder instead of MainResults suffix!
-    generate_plots "${scenario}_${runtype}"
+    year=$(echo $runtype | tail -c 5)
+    echo "Plotting year ${year} for run ${scenario}_${runtype}.."
+    generate_plots "${scenario}_${runtype}" $year
 
     # Remove old collected pdf to ensure no corruption errors in next colleciton
     collected_pdf=analysis/plots/collected_plots_${scenario}_${runtype}.pdf

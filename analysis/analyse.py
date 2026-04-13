@@ -188,14 +188,21 @@ def CLI(
     default='', 
     help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string"
 )
-def all(ctx, scenario):
+@click.option(
+    "--year",
+    type=int,
+    required=False,
+    default=2050,
+    help="Which year to plot results",
+)
+def all(ctx, scenario, year):
     """
     Generate all plots for a specific scenario
     """
 
     ctx.invoke(all_bars, scenario=scenario)
-    ctx.invoke(all_maps, scenario=scenario)
-    ctx.invoke(all_profiles, scenario=scenario)
+    ctx.invoke(all_maps, scenario=scenario, year=year)
+    ctx.invoke(all_profiles, scenario=scenario, year=year)
 
 
 @CLI.command()
@@ -264,19 +271,19 @@ def all_profiles(ctx, year, scenario):
 @CLI.command()
 @click.pass_context
 @click.option(
-    "--year",
-    type=int,
-    required=False,
-    default=2050,
-    help="Which year to plot profiles from",
-)
-@click.option(
     '--scenario', 
     type=str, 
     default='', 
     help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string"
 )
-def all_maps(ctx, year, scenario):
+@click.option(
+    "--year",
+    type=int,
+    required=False,
+    default=2050,
+    help="Which year to plot results",
+)
+def all_maps(ctx, scenario, year):
     """
     Generate all maps for a year (2050 default) for a specific scenario
     """
