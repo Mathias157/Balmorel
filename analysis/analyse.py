@@ -816,7 +816,7 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
 
     for idx, fig in enumerate(figs):
         plot_style(
-            figs[idx], axes[idx], f"profile_{commodity + "-" + str(year) + "-" + scenario + '-' + str(idx)}" 
+            figs[idx], axes[idx], f"profile_{commodity + "-" + str(year) + '-' + str(idx) + "-" + scenario}" 
         )
 
 
@@ -1424,7 +1424,7 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
     df_out = ENS.join(LOLE).fillna(0) # Fill NaNs with zero, as it means no backup was used
 
-    df_out.to_csv("analysis/output/%s_adeq.csv")
+    df_out.to_csv(f"analysis/output/{scenario}_adeq.csv")
 
 @CLI.command()
 @click.pass_context
