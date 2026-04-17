@@ -49,8 +49,8 @@ balmorel_colours["GENERATION_FUEL_COSTS"] = "#747474"
 balmorel_colours["GENERATION_OPERATIONAL_COSTS"] = "#E5D8D8"
 balmorel_colours["ELECTRICITY"] = "#FFD700"
 balmorel_colours["HEAT"] = "#BA4E00"
-balmorel_colours["GENERATION_CO2_TAX"]="#141414"
-balmorel_colours["GENERATION_CO2_TRANSPORT"]="#292929"
+balmorel_colours["GENERATION_CO2_TAX"] = "#141414"
+balmorel_colours["GENERATION_CO2_TRANSPORT"] = "#292929"
 
 # Define color and marker options
 colors = ["b", "r", "g", "c", "m", "y", "k", "orange", "purple", "brown"]
@@ -162,8 +162,8 @@ def CLI(
         Path(ctx.obj["path"] + "/analysis/output").mkdir()
 
     # Make plot path if it doesn't exist
-    if not (ctx.obj['plot_path'].exists()):
-        ctx.obj['plot_path'].mkdir()
+    if not (ctx.obj["plot_path"].exists()):
+        ctx.obj["plot_path"].mkdir()
 
     # Set global style of plot (only true for plots using function in THIS script)
     if dark_style:
@@ -183,10 +183,10 @@ def CLI(
 @CLI.command()
 @click.pass_context
 @click.option(
-    '--scenario', 
-    type=str, 
-    default='', 
-    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string"
+    "--scenario",
+    type=str,
+    default="",
+    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string",
 )
 @click.option(
     "--year",
@@ -208,34 +208,36 @@ def all(ctx, scenario, year):
 @CLI.command()
 @click.pass_context
 @click.option(
-    '--scenario', 
-    type=str, 
-    default='', 
-    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string"
+    "--scenario",
+    type=str,
+    default="",
+    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string",
 )
 def all_bars(ctx, scenario):
     """
     Generate all bar charts for a specific scenario
     """
-    ctx.invoke(cap, 
-               gen=True, 
-               sto=True, 
-               filters=f'Scenario == "{scenario}"',
-               filename=f'capacities_{scenario}'
+    ctx.invoke(
+        cap,
+        gen=True,
+        sto=True,
+        filters=f'Scenario == "{scenario}"',
+        filename=f"capacities_{scenario}",
     )
-    ctx.invoke(fuel, 
-               filters=f'Scenario == "{scenario}"',
-               filename=f'fuelconsumption_{scenario}'
+    ctx.invoke(
+        fuel,
+        filters=f'Scenario == "{scenario}"',
+        filename=f"fuelconsumption_{scenario}",
     )
-    ctx.invoke(costs, 
-               filters=f'Scenario == "{scenario}"',
-               filename=f'systemcosts_{scenario}'
+    ctx.invoke(
+        costs, filters=f'Scenario == "{scenario}"', filename=f"systemcosts_{scenario}"
     )
     for commodity in ["electricity", "heat", "hydrogen"]:
-        ctx.invoke(dem, 
-                   commodity=commodity, 
-                   filters=f'Scenario == "{scenario}"',
-                   filename=f'demand_{scenario}'
+        ctx.invoke(
+            dem,
+            commodity=commodity,
+            filters=f'Scenario == "{scenario}"',
+            filename=f"demand_{scenario}",
         )
 
 
@@ -249,10 +251,10 @@ def all_bars(ctx, scenario):
     help="Which year to plot profiles from",
 )
 @click.option(
-    '--scenario', 
-    type=str, 
-    default='', 
-    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string"
+    "--scenario",
+    type=str,
+    default="",
+    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string",
 )
 def all_profiles(ctx, year, scenario):
     """
@@ -261,20 +263,16 @@ def all_profiles(ctx, year, scenario):
     m = ctx.obj["Balmorel"]
 
     for commodity in ["electricity", "heat", "hydrogen"]:
-        ctx.invoke(profile, 
-                   commodity=commodity, 
-                   scenario=scenario, 
-                   year=year
-        )
+        ctx.invoke(profile, commodity=commodity, scenario=scenario, year=year)
 
 
 @CLI.command()
 @click.pass_context
 @click.option(
-    '--scenario', 
-    type=str, 
-    default='', 
-    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string"
+    "--scenario",
+    type=str,
+    default="",
+    help="Scenario name (suffix to MainResults_*.gdx) - will find most recent if empty string",
 )
 @click.option(
     "--year",
@@ -373,7 +371,10 @@ def cap(
 
         # Sort scenarios
         df = sort_scenarios(df).pivot_table(
-            index=["Scenario", "Year"], columns="Technology", values="Value", aggfunc="sum"
+            index=["Scenario", "Year"],
+            columns="Technology",
+            values="Value",
+            aggfunc="sum",
         )
 
         if key == "generation":
@@ -455,7 +456,9 @@ def fuel(filters: str, get_df: bool, filename: str = "fuelconsumption"):
         collect_results("F_CONS_YCRA")
         .pipe(lambda x: x.query(filters) if filters != None else x)
         .pipe(sort_scenarios)
-        .pivot_table(index=["Scenario", "Year"], columns="Fuel", values="Value", aggfunc="sum")
+        .pivot_table(
+            index=["Scenario", "Year"], columns="Fuel", values="Value", aggfunc="sum"
+        )
     )
 
     if get_df:
@@ -498,11 +501,80 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
 
     (
         df.pivot_table(
-            index=["Scenario", "Year"], columns="Category", values="Value", aggfunc="sum"
+            index=["Scenario", "Year"],
+            columns="Category",
+            values="Value",
+            aggfunc="sum",
         ).plot(ax=ax, kind="bar", stacked=True)
     )
 
     fig, ax = plot_style(fig, ax, f"{commodity.lower()}_{filename}")
+
+
+@CLI.command()
+@click.option(
+    "--filters",
+    type=str,
+    required=False,
+    default=None,
+    help="Query input for filtering",
+)
+@click.option(
+    "--get-df",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Dont plot, just get the dataframe",
+)
+@click.option(
+    "--filename", type=str, default="systemcosts", required=False, help="The filename"
+)
+def production(filters: str, get_df: bool, filename: str):
+    """
+    Plot production
+    """
+    print("\nPlotting system costs..")
+
+    fig, ax = plt.subplots()
+
+    df = collect_results("OBJ_YCR")
+
+    if filters != None:
+        df = df.query(filters)
+
+    df = sort_scenarios(df).pivot_table(
+        index=["Scenario", "Year"],
+        columns="Category",
+        values="Value",
+        aggfunc=lambda x: np.sum(x) / 1e3,
+    )
+
+    if "Scenario in [" in filters:
+        sc_order = (
+            filters.replace(" ", "")
+            .split("Scenarioin[")[1]
+            .split("]")[0]
+            .replace('"', "")
+            .replace("'", "")
+            .split(",")
+        )
+        df = df.loc[sc_order, :]
+
+    (
+        df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
+            "System Costs [B€]"
+        )
+    )
+
+    if get_df:
+        return df
+
+    # Y limits were a bit too tight
+    ylims = ax.get_ylim()
+    ax.set_ylim(ylims[0], ylims[1] * 1.05)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncols=2)
+
+    fig, ax = plot_style(fig, ax, filename, legend=False)
 
 
 @CLI.command()
@@ -823,7 +895,9 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
 
     for idx, fig in enumerate(figs):
         plot_style(
-            figs[idx], axes[idx], f"profile_{commodity + "-" + str(year) + '-' + str(idx) + "-" + scenario}" 
+            figs[idx],
+            axes[idx],
+            f"profile_{commodity + '-' + str(year) + '-' + str(idx) + '-' + scenario}",
         )
 
 
@@ -893,7 +967,10 @@ def map(
     # ax.set_xlim(lon_lims)
     # ax.set_ylim(lat_lims)
 
-    fig.savefig("analysis/plots/map_%s%s" % (commodity + "-" + str(year) + "-" + scenario, ctx.obj['plot_ext']))
+    fig.savefig(
+        "analysis/plots/map_%s%s"
+        % (commodity + "-" + str(year) + "-" + scenario, ctx.obj["plot_ext"])
+    )
 
     return fig, ax
 
@@ -1420,61 +1497,76 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
     ## Get energy not served
     ENS = df.pivot_table(
-        index=["Season", "Time", "Region"], columns="Commodity", values="Value", aggfunc="sum"
+        index=["Season", "Time", "Region"],
+        columns="Commodity",
+        values="Value",
+        aggfunc="sum",
     )
-    ENS.to_csv("analysis/output/%s_hourlybackup.csv"%scenario)
+    ENS.to_csv("analysis/output/%s_hourlybackup.csv" % scenario)
 
-    LOLE = ENS.pivot_table(index='Region', aggfunc='count')
-    LOLE.columns = pd.MultiIndex.from_product((['LOLE (h)'], LOLE.columns))
-    ENS = ENS.pivot_table(index='Region', aggfunc='sum') / 1e6
-    ENS.columns = pd.MultiIndex.from_product((['ENS (TWh)'], ENS.columns))
+    LOLE = ENS.pivot_table(index="Region", aggfunc="count")
+    LOLE.columns = pd.MultiIndex.from_product((["LOLE (h)"], LOLE.columns))
+    ENS = ENS.pivot_table(index="Region", aggfunc="sum") / 1e6
+    ENS.columns = pd.MultiIndex.from_product((["ENS (TWh)"], ENS.columns))
 
-    df_out = ENS.join(LOLE).fillna(0) # Fill NaNs with zero, as it means no backup was used
+    df_out = ENS.join(LOLE).fillna(
+        0
+    )  # Fill NaNs with zero, as it means no backup was used
 
     df_out.to_csv(f"analysis/output/{scenario}_adeq.csv")
+
 
 @CLI.command()
 @click.pass_context
 def adequacy_table(ctx):
-    
+
     collect_adequacy_results()
-    df=pd.read_csv('analysis/output/adeq_collected.csv') 
+    df = pd.read_csv("analysis/output/adeq_collected.csv")
 
     # Get method, resolution, year and runtype
-    pattern = r'([FR]20[345]0)' # pattern that matches R or F and then 2030, 2040 or 2050
-    year=df.Scenario.str.extract(pattern, expand=False)
-    df['Runtype']=year.str[0]
-    df['Year']=year.str[1:]
-    pattern = r'([MCS][MDT][A-Za-z]*)' # pattern that matches M, C or S and then M, D or T
-    df['Method']=df.Scenario.str.extract(pattern, expand=False).fillna('ST')
-    pattern = r'(S\d+T\d+)' # pattern that matches S and any number and T and any number
-    df['Resolution']=df.Scenario.str.extract(pattern, expand=False).fillna('ST')
+    pattern = (
+        r"([FR]20[345]0)"  # pattern that matches R or F and then 2030, 2040 or 2050
+    )
+    year = df.Scenario.str.extract(pattern, expand=False)
+    df["Runtype"] = year.str[0]
+    df["Year"] = year.str[1:]
+    pattern = (
+        r"([MCS][MDT][A-Za-z]*)"  # pattern that matches M, C or S and then M, D or T
+    )
+    df["Method"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
+    pattern = (
+        r"(S\d+T\d+)"  # pattern that matches S and any number and T and any number
+    )
+    df["Resolution"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
 
-    # Pivot 
+    # Pivot
     test = df.pivot_table(
-            index=['Scenario', 'Region', 'Resolution', 'Runtype', 'Year', 'Commodity'],
-            columns=['Method', 'Parameter'],
-            values='Value',
-            aggfunc='sum'
+        index=["Scenario", "Region", "Resolution", "Runtype", "Year", "Commodity"],
+        columns=["Method", "Parameter"],
+        values="Value",
+        aggfunc="sum",
     )
     final = df.pivot_table(
-            index=['Region', 'Resolution', 'Runtype', 'Year', 'Commodity'],
-            columns=['Method', 'Parameter'],
-            values='Value',
-            aggfunc='mean'
+        index=["Region", "Resolution", "Runtype", "Year", "Commodity"],
+        columns=["Method", "Parameter"],
+        values="Value",
+        aggfunc="mean",
     )
 
     # Test if sum is the same, if not, final df actually did averaging across scenarios
-    assert test.sum().sum()==final.sum().sum(), "ERROR: Some scenarios were summed!"
+    assert test.sum().sum() == final.sum().sum(), "ERROR: Some scenarios were summed!"
 
     unique_scenarios = list(df.Scenario.unique())
-    print(f'{len(unique_scenarios)} unique scenarios:\n', unique_scenarios)
-    print('-'*80, '\nAll regions:','\n'+'-'*80)
+    print(f"{len(unique_scenarios)} unique scenarios:\n", unique_scenarios)
+    print("-" * 80, "\nAll regions:", "\n" + "-" * 80)
     print(final.round())
-    print('-'*80, '\nAverage across regions:','\n'+'-'*80)
-    print(final.pivot_table(index=['Resolution', 'Runtype', 'Year', 'Commodity'],
-                            aggfunc='mean').round())
-    print('-'*80)
+    print("-" * 80, "\nAverage across regions:", "\n" + "-" * 80)
+    print(
+        final.pivot_table(
+            index=["Resolution", "Runtype", "Year", "Commodity"], aggfunc="mean"
+        ).round()
+    )
+    print("-" * 80)
 
 
 @CLI.command()
@@ -1639,7 +1731,7 @@ def RA_Plot(ctx, scenarios: str):
 @click.option(
     "--filename",
     type=str,
-    default='bar_chart_output.png',
+    default="bar_chart_output.png",
     required=False,
     help="Name of outputted bar chart",
 )
