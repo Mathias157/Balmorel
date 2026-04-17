@@ -232,6 +232,11 @@ def all_bars(ctx, scenario):
     ctx.invoke(
         costs, filters=f'Scenario == "{scenario}"', filename=f"systemcosts_{scenario}"
     )
+    ctx.invoke(
+        production,
+        filters=f'Scenario == "{scenario}"',
+        filename=f"production_{scenario}",
+    )
     for commodity in ["electricity", "heat", "hydrogen"]:
         ctx.invoke(
             dem,
@@ -527,7 +532,7 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
     help="Dont plot, just get the dataframe",
 )
 @click.option(
-    "--filename", type=str, default="systemcosts", required=False, help="The filename"
+    "--filename", type=str, default="production", required=False, help="The filename"
 )
 def production(filters: str, get_df: bool, filename: str):
     """
@@ -537,13 +542,13 @@ def production(filters: str, get_df: bool, filename: str):
 
     fig, ax = plt.subplots()
 
-    df = collect_results("OBJ_YCR")
+    df = collect_results("PRO_YCRAGF")
 
-    if filters != None:
+    if filters is not None:
         df = df.query(filters)
 
     df = sort_scenarios(df).pivot_table(
-        index=["Scenario", "Year"],
+        index=["Scenario", "Commodity", "Year"],
         columns="Category",
         values="Value",
         aggfunc=lambda x: np.sum(x) / 1e3,
