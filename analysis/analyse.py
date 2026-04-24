@@ -130,6 +130,7 @@ def CLI(
             "cost-change",
             "cap",
             "map",
+            "production",
             "profile",
             "bar-chart",
             "adequacy",
