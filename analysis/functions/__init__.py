@@ -47,29 +47,119 @@ def find_result(sc_folder: str, scenario: str = ""):
 
     return res
 
-def collect_adequacy_results():
+
+def format_lole_ens_adequacy_results(df: pd.DataFrame):
+    # Get method, resolution, year and runtype
+    pattern = (
+        r"([FR]20[345]0)"  # pattern that matches R or F and then 2030, 2040 or 2050
+    )
+    year = df.Scenario.str.extract(pattern, expand=False)
+    df["Runtype"] = year.str[0]
+    df["Year"] = year.str[1:]
+    pattern = (
+        r"([MCS][MDT][A-Za-z]*)"  # pattern that matches M, C or S and then M, D or T
+    )
+    df["Method"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
+    pattern = (
+        r"(S\d+T\d+)"  # pattern that matches S and any number and T and any number
+    )
+    df["Resolution"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
+
+    # Pivot
+    test = df.pivot_table(
+        index=["Scenario", "Region", "Resolution", "Runtype", "Year", "Commodity"],
+        columns=["Method", "Parameter"],
+        values="Value",
+        aggfunc="sum",
+    )
+    final = df.pivot_table(
+        index=["Region", "Resolution", "Runtype", "Year", "Commodity"],
+        columns=["Method", "Parameter"],
+        values="Value",
+        aggfunc="mean",
+    )
+
+    # Test if sum is the same, if not, final df actually did averaging across scenarios
+    assert test.sum().sum() == final.sum().sum(), (
+        f"ERROR: Some scenarios were summed!\nTest table (sum)\n{test}\n\nFinal table (mean)\n{final}"
+    )
+
+    return final
+
+
+def format_backcap_adequacy_results(df: pd.DataFrame):
+    # Get method, resolution, year and runtype
+    pattern = (
+        r"([FR]20[345]0)"  # pattern that matches R or F and then 2030, 2040 or 2050
+    )
+    year = df.Scenario.str.extract(pattern, expand=False)
+    df["Runtype"] = year.str[0]
+    df["Year"] = year.str[1:]
+    pattern = (
+        r"([MCS][MDT][A-Za-z]*)"  # pattern that matches M, C or S and then M, D or T
+    )
+    df["Method"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
+    pattern = (
+        r"(S\d+T\d+)"  # pattern that matches S and any number and T and any number
+    )
+    df["Resolution"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
+
+    # Pivot
+    test = df.pivot_table(
+        index=["Scenario", "Region", "Resolution", "Runtype", "Year", "Commodity"],
+        columns=["Method"],
+        values="Value",
+        aggfunc="sum",
+    )
+    final = df.pivot_table(
+        index=["Region", "Resolution", "Runtype", "Year", "Commodity"],
+        columns=["Method"],
+        values="Value",
+        aggfunc="mean",
+    )
+
+    # Test if sum is the same, if not, final df actually did averaging across scenarios
+    assert test.sum().sum() == final.sum().sum(), (
+        f"ERROR: Some scenarios were summed!\nTest table (sum)\n{test}\n\nFinal table (mean)\n{final}"
+    )
+
+    return final
+
+
+def collect_adequacy_results(nth_max: int = 1):
     """Collect all adeq files in analysis/output"""
 
-    path=Path('analysis/output')
-    df=pd.DataFrame()
+    path = Path("analysis/output")
+    df_lole_ens = pd.DataFrame()
+    df_backcap = pd.DataFrame()
     for p in path.iterdir():
-        if '_adeq' in str(p) and p.name != 'adeq_collected.csv':
-            temp=pd.read_csv(p, index_col=0, header=[0,1])
+        if "_adeq" in str(p) and p.name != "adeq_collected.csv":
+            temp = pd.read_csv(p, index_col=0, header=[0, 1])
             if len(temp) > 0:
-                temp=temp.stack().stack().reset_index()
-                temp.columns = ['Region', 'Commodity', 'Parameter', 'Value']
-                scenario=p.name.split('_adeq')[0]
-                temp['Scenario'] = scenario
-                df=pd.concat((df, temp))
+                temp = temp.stack().stack().reset_index()
+                temp.columns = ["Region", "Commodity", "Parameter", "Value"]
+                scenario = p.name.split("_adeq")[0]
+                temp["Scenario"] = scenario
+                df_lole_ens = pd.concat((df_lole_ens, temp))
+        elif f"_backcapN{nth_max}.csv" in str(p) and p.name != "backcap_collected.csv":
+            temp = pd.read_csv(p)
+            if len(temp) > 0:
+                scenario = p.name.split(f"_backcapN{nth_max}")[0]
+                temp["Scenario"] = scenario
+                temp = (
+                    temp.pivot_table(index=["Scenario", "Region"]).stack().reset_index()
+                )
+                temp.columns = ["Scenario", "Region", "Commodity", "Value"]
+                df_backcap = pd.concat((df_backcap, temp))
 
-    # df.columns.names = ['Value', 'Commodity']
-    df.to_csv('analysis/output/adeq_collected.csv', index=False)
+    df_lole_ens.to_csv("analysis/output/adeq_collected.csv", index=False)
+    df_backcap.to_csv("analysis/output/backcap_collected.csv", index=False)
+
 
 # ------------------------------- #
 #            2. Main              #
 # ------------------------------- #
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     collect_adequacy_results()
-

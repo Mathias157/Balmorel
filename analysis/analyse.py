@@ -24,7 +24,11 @@ from premailer import transform
 import itertools
 from matplotlib.patches import Wedge as WedgePatch
 from functions.pit_storage import get_storage_profiles, polygon_with_point
-from functions import collect_adequacy_results, find_result
+from functions import (
+    collect_adequacy_results,
+    format_backcap_adequacy_results,
+    format_lole_ens_adequacy_results,
+)
 from pybalmorel import Balmorel, MainResults
 from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
@@ -1512,65 +1516,55 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
 
 @CLI.command()
-@click.pass_context
 @click.option(
     "--filters",
     type=str,
-    default=None,
+    default="",
     required=False,
     help="Filters for df.query(...)",
 )
-def adequacy_table(ctx, filters: str = ""):
+@click.option(
+    "--aggfunc",
+    type=str,
+    default="sum",
+    required=False,
+    help="Regional aggregation function for analysing continental results (e.g.: sum, mean, max)",
+)
+def adequacy_table(filters: str, aggfunc: str):
 
     collect_adequacy_results()
-    df = pd.read_csv("analysis/output/adeq_collected.csv")
+    df_lole_ens = pd.read_csv("analysis/output/adeq_collected.csv")
+    df_backcap = pd.read_csv("analysis/output/backcap_collected.csv")
 
     if filters != "":
-        df = df.query(filters)
+        df_lole_ens = df_lole_ens.query(filters)
+        df_backcap = df_backcap.query(filters)
 
-    # Get method, resolution, year and runtype
-    pattern = (
-        r"([FR]20[345]0)"  # pattern that matches R or F and then 2030, 2040 or 2050
-    )
-    year = df.Scenario.str.extract(pattern, expand=False)
-    df["Runtype"] = year.str[0]
-    df["Year"] = year.str[1:]
-    pattern = (
-        r"([MCS][MDT][A-Za-z]*)"  # pattern that matches M, C or S and then M, D or T
-    )
-    df["Method"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
-    pattern = (
-        r"(S\d+T\d+)"  # pattern that matches S and any number and T and any number
-    )
-    df["Resolution"] = df.Scenario.str.extract(pattern, expand=False).fillna("ST")
-
-    # Pivot
-    test = df.pivot_table(
-        index=["Scenario", "Region", "Resolution", "Runtype", "Year", "Commodity"],
-        columns=["Method", "Parameter"],
-        values="Value",
-        aggfunc="sum",
-    )
-    final = df.pivot_table(
-        index=["Region", "Resolution", "Runtype", "Year", "Commodity"],
-        columns=["Method", "Parameter"],
-        values="Value",
-        aggfunc="mean",
-    )
-
-    # Test if sum is the same, if not, final df actually did averaging across scenarios
-    assert test.sum().sum() == final.sum().sum(), (
-        f"ERROR: Some scenarios were summed!\nTest table (sum)\n{test}\n\nFinal table (mean)\n{final}"
-    )
-
-    unique_scenarios = list(df.Scenario.unique())
-    print(f"{len(unique_scenarios)} unique scenarios:\n", unique_scenarios)
-    print("-" * 80, "\nAll regions:", "\n" + "-" * 80)
-    print(final.round())
-    print("-" * 80, "\nAverage across regions:", "\n" + "-" * 80)
+    unique_scenarios = list(df_lole_ens.Scenario.unique())
     print(
-        final.pivot_table(
-            index=["Resolution", "Runtype", "Year", "Commodity"], aggfunc="mean"
+        f"{len(unique_scenarios)} unique scenarios:\n",
+        "\n" + "\n".join(unique_scenarios),
+    )
+
+    df_lole_ens = format_lole_ens_adequacy_results(df_lole_ens)
+    df_backcap = format_backcap_adequacy_results(df_backcap)
+
+    print("-" * 80, "\nLOLE and ENS for each region:", "\n" + "-" * 80)
+    print(df_lole_ens.round())
+    print("-" * 80, f"\nLOLE and ENS {aggfunc} across regions:", "\n" + "-" * 80)
+    print(
+        df_lole_ens.pivot_table(
+            index=["Resolution", "Runtype", "Year", "Commodity"], aggfunc=aggfunc
+        ).round()
+    )
+    print("-" * 80)
+
+    print("-" * 80, "\nBackup capacity for each region:", "\n" + "-" * 80)
+    print(df_backcap.round())
+    print("-" * 80, f"\nBackup capacity {aggfunc} across regions:", "\n" + "-" * 80)
+    print(
+        df_backcap.pivot_table(
+            index=["Resolution", "Runtype", "Year", "Commodity"], aggfunc=aggfunc
         ).round()
     )
     print("-" * 80)
