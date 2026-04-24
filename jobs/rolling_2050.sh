@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### -- specify queue --
-#BSUB -q man
+#BSUB -q hpc
 ### -- set the job Name --
 #BSUB -J GREAT_rolling_2050
 ### -- ask for number of cores (default: 1) --

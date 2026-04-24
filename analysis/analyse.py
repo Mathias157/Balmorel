@@ -538,7 +538,7 @@ def production(filters: str, get_df: bool, filename: str):
     """
     Plot production
     """
-    print("\nPlotting system costs..")
+    print("\nPlotting commodity production..")
 
     fig, ax = plt.subplots()
 
@@ -548,26 +548,15 @@ def production(filters: str, get_df: bool, filename: str):
         df = df.query(filters)
 
     df = sort_scenarios(df).pivot_table(
-        index=["Scenario", "Commodity", "Year"],
-        columns="Category",
+        index=["Year", "Commodity", "Scenario"],
+        columns="Technology",
         values="Value",
-        aggfunc=lambda x: np.sum(x) / 1e3,
+        aggfunc=lambda x: np.sum(x),
     )
-
-    if "Scenario in [" in filters:
-        sc_order = (
-            filters.replace(" ", "")
-            .split("Scenarioin[")[1]
-            .split("]")[0]
-            .replace('"', "")
-            .replace("'", "")
-            .split(",")
-        )
-        df = df.loc[sc_order, :]
 
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
-            "System Costs [B€]"
+            "Production [TWh]"
         )
     )
 
@@ -1523,10 +1512,20 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
 @CLI.command()
 @click.pass_context
-def adequacy_table(ctx):
+@click.option(
+    "--filters",
+    type=str,
+    default=None,
+    required=False,
+    help="Filters for df.query(...)",
+)
+def adequacy_table(ctx, filters: str = ""):
 
     collect_adequacy_results()
     df = pd.read_csv("analysis/output/adeq_collected.csv")
+
+    if filters != "":
+        df = df.query(filters)
 
     # Get method, resolution, year and runtype
     pattern = (
@@ -1559,7 +1558,9 @@ def adequacy_table(ctx):
     )
 
     # Test if sum is the same, if not, final df actually did averaging across scenarios
-    assert test.sum().sum() == final.sum().sum(), "ERROR: Some scenarios were summed!"
+    assert test.sum().sum() == final.sum().sum(), (
+        f"ERROR: Some scenarios were summed!\nTest table (sum)\n{test}\n\nFinal table (mean)\n{final}"
+    )
 
     unique_scenarios = list(df.Scenario.unique())
     print(f"{len(unique_scenarios)} unique scenarios:\n", unique_scenarios)

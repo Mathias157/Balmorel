@@ -52,11 +52,13 @@ def collect_adequacy_results():
     df=pd.DataFrame()
     for p in path.iterdir():
         if '_adeq' in str(p) and p.name != 'adeq_collected.csv':
-            temp=pd.read_csv(p, index_col=0, header=[0,1]).stack().stack().reset_index()
-            temp.columns = ['Region', 'Commodity', 'Parameter', 'Value']
-            scenario=p.name.split('_adeq')[0]
-            temp['Scenario'] = scenario
-            df=pd.concat((df, temp))
+            temp=pd.read_csv(p, index_col=0, header=[0,1])
+            if len(temp) > 0:
+                temp=temp.stack().stack().reset_index()
+                temp.columns = ['Region', 'Commodity', 'Parameter', 'Value']
+                scenario=p.name.split('_adeq')[0]
+                temp['Scenario'] = scenario
+                df=pd.concat((df, temp))
 
     # df.columns.names = ['Value', 'Commodity']
     df.to_csv('analysis/output/adeq_collected.csv', index=False)
