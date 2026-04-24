@@ -53,6 +53,7 @@ def format_lole_ens_adequacy_results(df: pd.DataFrame):
     pattern = (
         r"([FR]20[345]0)"  # pattern that matches R or F and then 2030, 2040 or 2050
     )
+    df["ShortSC"] = df.Scenario.str.replace("_" + pattern, "", regex=True)
     year = df.Scenario.str.extract(pattern, expand=False)
     df["Runtype"] = year.str[0]
     df["Year"] = year.str[1:]
@@ -67,13 +68,21 @@ def format_lole_ens_adequacy_results(df: pd.DataFrame):
 
     # Pivot
     test = df.pivot_table(
-        index=["Scenario", "Region", "Resolution", "Runtype", "Year", "Commodity"],
+        index=[
+            "Scenario",
+            "ShortSC",
+            "Region",
+            "Resolution",
+            "Runtype",
+            "Year",
+            "Commodity",
+        ],
         columns=["Method", "Parameter"],
         values="Value",
         aggfunc="sum",
     )
     final = df.pivot_table(
-        index=["Region", "Resolution", "Runtype", "Year", "Commodity"],
+        index=["ShortSC", "Region", "Resolution", "Runtype", "Year", "Commodity"],
         columns=["Method", "Parameter"],
         values="Value",
         aggfunc="mean",
@@ -92,6 +101,7 @@ def format_backcap_adequacy_results(df: pd.DataFrame):
     pattern = (
         r"([FR]20[345]0)"  # pattern that matches R or F and then 2030, 2040 or 2050
     )
+    df["ShortSC"] = df.Scenario.str.replace("_" + pattern, "", regex=True)
     year = df.Scenario.str.extract(pattern, expand=False)
     df["Runtype"] = year.str[0]
     df["Year"] = year.str[1:]
@@ -106,13 +116,21 @@ def format_backcap_adequacy_results(df: pd.DataFrame):
 
     # Pivot
     test = df.pivot_table(
-        index=["Scenario", "Region", "Resolution", "Runtype", "Year", "Commodity"],
+        index=[
+            "ShortSC",
+            "Scenario",
+            "Region",
+            "Resolution",
+            "Runtype",
+            "Year",
+            "Commodity",
+        ],
         columns=["Method"],
         values="Value",
         aggfunc="sum",
     )
     final = df.pivot_table(
-        index=["Region", "Resolution", "Runtype", "Year", "Commodity"],
+        index=["ShortSC", "Region", "Resolution", "Runtype", "Year", "Commodity"],
         columns=["Method"],
         values="Value",
         aggfunc="mean",

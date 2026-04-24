@@ -1554,7 +1554,8 @@ def adequacy_table(filters: str, aggfunc: str):
     print("-" * 80, f"\nLOLE and ENS {aggfunc} across regions:", "\n" + "-" * 80)
     print(
         df_lole_ens.pivot_table(
-            index=["Resolution", "Runtype", "Year", "Commodity"], aggfunc=aggfunc
+            index=["ShortSC", "Resolution", "Runtype", "Year", "Commodity"],
+            aggfunc=aggfunc,
         ).round()
     )
     print("-" * 80)
@@ -1564,7 +1565,8 @@ def adequacy_table(filters: str, aggfunc: str):
     print("-" * 80, f"\nBackup capacity {aggfunc} across regions:", "\n" + "-" * 80)
     print(
         df_backcap.pivot_table(
-            index=["Resolution", "Runtype", "Year", "Commodity"], aggfunc=aggfunc
+            index=["ShortSC", "Resolution", "Runtype", "Year", "Commodity"],
+            aggfunc=aggfunc,
         ).round()
     )
     print("-" * 80)
