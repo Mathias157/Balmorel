@@ -561,7 +561,9 @@ def production(filters: str, get_df: bool, filename: str, catbysector: bool):
         df = df.query(filters)
 
     if catbysector:
-        df["Sector"] = df["Area"].apply(
+        df["Sector"] = df["Commodity"]
+        heat_idx = df["Commodity"] == "HEAT"
+        df.loc[heat_idx, "Sector"] = df.loc[heat_idx, "Area"].apply(
             lambda x: (
                 "INDUSTRY"
                 if x in industry_heating_areas
