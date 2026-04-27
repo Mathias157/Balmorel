@@ -29,6 +29,7 @@ from functions import (
     format_backcap_adequacy_results,
     format_lole_ens_adequacy_results,
 )
+from functions.formats import individual_heating_areas, industry_heating_areas
 from pybalmorel import Balmorel, MainResults
 from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
@@ -539,7 +540,14 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
 @click.option(
     "--filename", type=str, default="production", required=False, help="The filename"
 )
-def production(filters: str, get_df: bool, filename: str):
+@click.option(
+    "--catbysector",
+    is_flag=True,
+    default=False,
+    required=False,
+    help="Categorise production by individual heating / district heating / industry",
+)
+def production(filters: str, get_df: bool, filename: str, catbysector: bool):
     """
     Plot production
     """
@@ -552,9 +560,26 @@ def production(filters: str, get_df: bool, filename: str):
     if filters is not None:
         df = df.query(filters)
 
+    if catbysector:
+        df["Sector"] = df["Area"].apply(
+            lambda x: (
+                "INDUSTRY"
+                if x in industry_heating_areas
+                else "INDIVIDUAL"
+                if x in individual_heating_areas
+                else "DISTRICT_HEATING"
+            )
+        )
+        columns = "Sector"
+        balmorel_colours["DISTRICT_HEATING"] = "#ed8989ff"
+        balmorel_colours["INDUSTRY"] = "#8993edff"
+        balmorel_colours["INDIVIDUAL"] = "#89edbaff"
+    else:
+        columns = "Technology"
+
     df = sort_scenarios(df).pivot_table(
         index=["Year", "Commodity", "Scenario"],
-        columns="Technology",
+        columns=columns,
         values="Value",
         aggfunc=lambda x: np.sum(x),
     )
