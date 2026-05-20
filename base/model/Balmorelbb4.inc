@@ -2131,7 +2131,7 @@ $include "../../base/addons/_hooks/qxk_up.inc"
 
 
 * Put a cap on the maximum accummulated transmission capacity, if a cap is specified
-VXKNACCUMNET.UP(Y,IRRRE,IRRRI)$(XINVCOST(Y,IRRRE,IRRRI) AND XMAXINV(IRRRE,IRRRI))= XMAXINV(IRRRE,IRRRI);
+VXKNACCUMNET.UP(Y,IRRRE,IRRRI)$(XINVCOST(Y,IRRRE,IRRRI) AND XMAXINV(IRRRE,IRRRI))= XMAXINV(IRRRE,IRRRI)-XKFX(Y,IRRRE,IRRRI);
 
 VGKNACCUMNET.LO(Y,AAA,G)$(GKNMIN(Y,AAA,G))= GKNMIN(Y,AAA,G);
 * Accumulated endogenous transmission investments during present BB4 model -----
