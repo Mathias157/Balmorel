@@ -34,3 +34,6 @@ VDR_Store_neg.UP(Y,IA,DR_TECH_SHIFT,S,T)$(IADR(Y,IA,DR_TECH_SHIFT) AND  NOT DR_D
 * The storage varible must be zero at the beginning of each season
 *VDR_Store_pos.fx(Y,IA,DR_TECH_SHIFT,S,T)$(ord(T)= 1) = 0;
 *VDR_Store_neg.fx(Y,IA,DR_TECH_SHIFT,S,T)$(ord(T)= 1) = 0;
+
+* Datacenters can balance down and upward shifts at any point in time (assuming virtual links between portfolios of datacenters)
+$ifi %flexible_datacenter% == yes VDR_UP.UP(Y,IA,'DR_SHIFT_DATACENTER',S,T)$IDR_FX(Y,IA,'DR_SHIFT_DATACENTER')=IDR_FX(Y,IA,'DR_SHIFT_DATACENTER');
