@@ -28,31 +28,37 @@
 #BSUB -e logs/GREAT_investment_%J.err
 
 # Load error handling and GAMS paths
-source jobs/functions.sh
+source ../jobs/functions.sh
 
-# Get scenario choice and run name from jobs/scenario_choice.sh
-source jobs/scenario_choice.sh
+# Get run name
+source config.sh
 
-echo "Starting investment optimization at $(date)"
-echo "Scenario: $scenario, Run name: ${run_name}_INV"
+echo "Starting investment optimisation at $(date)"
+run_name="$(basename $PWD)"
+echo "Run name: ${run_name}_INV"
 
 # Investment optimisation
-cd $investment_scenario/model
+cd model
 
 # Run GAMS - if this fails, set -e will cause immediate exit via the trap
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_INV"
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_INV" $opts
 gams_exit_code=$?
-
-cd ../../
 
 # Explicitly check GAMS exit code
 if [ $gams_exit_code -ne 0 ]; then
-  echo "ERROR: GAMS investment optimization failed with exit code $gams_exit_code"
-  exit $gams_exit_code
+    echo "ERROR: GAMS investment optimization failed with exit code $gams_exit_code"
+    exit $gams_exit_code
 fi
 
+cd ..
 optimality_check $LSB_JOBID 3
-echo "Investment optimization completed successfully at $(date)"
+echo "Investment optimisation completed successfully at $(date)"
+
+# Store simex files
+if not [ -d "${PWD}/simex_INV" ]; then
+    mkdir simex_INV
+fi
+/usr/bin/cp -rf simex/* simex_INV/
 
 # Submit fullyear runs only if we reach this point
-bash jobs/submit_year_runs.sh
+# bash jobs/submit_year_runs.sh

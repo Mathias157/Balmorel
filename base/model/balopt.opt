@@ -211,7 +211,7 @@ $setglobal EV yes
 *!option YES
 
 * Adds V2G charging:
-$setglobal V2G yes
+* $setglobal V2G yes
 *!option
 
 * Models EV as inter-seasonal storage (if it is not activated, then EVs are model as intra-seasonal storage):
@@ -344,7 +344,7 @@ $Setglobal HYDROGEN YES
 *!option yes
 
 * Allows investments in hydrogen transport
-$Setglobal H2TransInvest YES
+* $Setglobal H2TransInvest
 *!option yes
 
 SCALAR XH2INVESTSTART 'Year from which endogenous decisions in H2 transmission capacities are allowed' ;
