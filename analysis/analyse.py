@@ -547,7 +547,17 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
     required=False,
     help="Categorise production by individual heating / district heating / industry",
 )
-def production(filters: str, get_df: bool, filename: str, catbysector: bool):
+@click.option(
+    "-n",
+    "--normalise",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Normalise production across scenarios",
+)
+def production(
+    filters: str, get_df: bool, filename: str, catbysector: bool, normalise: bool
+):
     """
     Plot production
     """
@@ -585,6 +595,9 @@ def production(filters: str, get_df: bool, filename: str, catbysector: bool):
         values="Value",
         aggfunc=lambda x: np.sum(x),
     )
+
+    if normalise:
+        df = df.div(df.sum(axis=1), axis=0)
 
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
