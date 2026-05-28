@@ -24,8 +24,8 @@
 #BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
-#BSUB -o logs/GREAT_investment_%J.out
-#BSUB -e logs/GREAT_investment_%J.err
+#BSUB -o ../logs/GREAT_investment_%J.out
+#BSUB -e ../logs/GREAT_investment_%J.err
 
 # Load error handling and GAMS paths
 source ../jobs/functions.sh

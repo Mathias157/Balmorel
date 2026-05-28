@@ -24,33 +24,27 @@
 #BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
-#BSUB -o logs/GREAT_fullyear_2050_%J.out
-#BSUB -e logs/GREAT_fullyear_2050_%J.err
+#BSUB -o ../logs/GREAT_fullyear_2050_%J.out
+#BSUB -e ../logs/GREAT_fullyear_2050_%J.err
 
 # Load error handling and GAMS paths
-source jobs/functions.sh
+source ../jobs/functions.sh
 
 # Get scenario choice and run name from jobs/scenario_choice.sh
-source jobs/scenario_choice.sh
+source config.sh
 
-# Check if simex exists, create if not
-if not [ -d "${PWD}/O2050/simex" ]; then
-  mkdir O2050/simex
-fi
-
-# Copy or overwrite simex files from investment run, use /usr/bin/cp to avoid interactive mode defined in ~/.bashrc
-echo "Copying simex files from ${investment_scenario} to O2050/simex"
-/usr/bin/cp -rf $investment_scenario/simex/* O2050/simex/
+echo "Starting fullyear simulation at $(date)"
+run_name="$(basename $PWD)"
+echo "Run name: ${run_name}_F2050"
 
 # Full year simulation
-cd O2050
 cat data/T_full.inc >data/T.inc
 cd model
 cat balopt_full.opt >balopt.opt
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_F2050"
-cd ../../
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
+cd ..
 
 optimality_check $LSB_JOBID 1
 
 # Submit rolling horizon run
-bsub <jobs/rolling_2050.sh
+bsub <../jobs/rolling_2050.sh

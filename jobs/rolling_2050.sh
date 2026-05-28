@@ -24,25 +24,30 @@
 #BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
-#BSUB -o logs/GREAT_rolling_2050_%J.out
-#BSUB -e logs/GREAT_rolling_2050_%J.err
+#BSUB -o ../logs/GREAT_rolling_2050_%J.out
+#BSUB -e ../logs/GREAT_rolling_2050_%J.err
 
 # Load error handling and GAMS paths
-source jobs/functions.sh
+source ../jobs/functions.sh
 
 # Get scenario choice and run name from jobs/scenario_choice.sh
-source jobs/scenario_choice.sh
+source config.sh
+
+echo "Starting rolling seasons simulation at $(date)"
+run_name="$(basename $PWD)"
+echo "Run name: ${run_name}_R2050"
 
 # Rolling horison simulation
-cd O2050
 cat data/T_roll.inc >data/T.inc
 cd model
 cat balopt_roll.opt >balopt.opt
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_R2050"
-cd ../../
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_R2050" $opts
+cd ..
 
 optimality_check $LSB_JOBID 52
+
+cd ..
 if [ -f jobs/userfunctions.sh ]; then
-    . jobs/userfunctions.sh
-    verifications O2050
+  . jobs/userfunctions.sh
+  verifications $run_name
 fi
