@@ -115,13 +115,13 @@ def main(ctx, scenario, year, mainresults_path, gams_system_directory):
     DE_VAR_T = IncFile(
         name="DE_VAR_T",
         path=".",
-        prefix='$onmulti\nPARAMETER DE_VAR_T(RRR,DEUSER,SSS,TTT) "Variation in electricity demand"\n',
+        prefix='$onmulti\nTABLE DE_VAR_T(RRR,DEUSER,SSS,TTT) "Variation in electricity demand"\n',
         suffix="\n;\n$offmulti",
     )
     DE = IncFile(
         name="DE",
         path=".",
-        prefix='$onmulti\nPARAMETER DE(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"\n',
+        prefix='$onmulti\nTABLE DE(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"\n',
         suffix="\n;\n$offmulti",
     )
 
