@@ -12,9 +12,6 @@ Created on 29.05.2026
 #        0. Script Settings       #
 # ------------------------------- #
 
-# import matplotlib.pyplot as plt
-# import pandas as pd
-# import numpy as np
 from pybalmorel import MainResults, IncFile
 import click
 from copy import copy
@@ -25,7 +22,7 @@ from copy import copy
 
 
 @click.pass_context
-def simple_conversion(ctx, category: str, area_filter: str = ""):
+def simple_conversion(ctx, category: str):
 
     # Make .inc file with new DEUSER and the profile and annual demand
     exo_category = category.replace("ENDO", "EXO").replace("ENDOGENOUS", "EXO")
