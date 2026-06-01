@@ -30,6 +30,8 @@ def simple_conversion(ctx, category: str):
     profile = ctx.obj["profile"].query(f'Category == "{category}"')
     DE_VAR_T = copy(ctx.obj["DE_VAR_T"])
     DE_VAR_T.name += "_" + exo_category
+    DE_VAR_T.prefix = DE_VAR_T.prefix.replace("DE_VAR_T", "DE_VAR_T_" + exo_category)
+    DE_VAR_T.suffix = f"\n;\nDE_VAR_T(RRR,'{exo_category}',SSS,TTT) = DE_VAR_T_{exo_category}(RRR,'{exo_category}',SSS,TTT);\nDE_VAR_T_{exo_category}(RRR,'{exo_category}',SSS,TTT)=0;"
     DE_VAR_T.body = profile
     DE_VAR_T.body["DEUSER"] = exo_category
     DE_VAR_T.body_prepare(["Region", "DEUSER"], columns=["Season", "Time"])
@@ -38,6 +40,8 @@ def simple_conversion(ctx, category: str):
     annual = ctx.obj["annual"].query(f'Category == "{category}"')
     DE = copy(ctx.obj["DE"])
     DE.name += "_" + exo_category
+    DE.prefix = DE.prefix.replace("DE(", "DE_" + exo_category + "(")
+    DE.suffix = f"\n;\nDE(YYY, RRR,'{exo_category}') = DE_{exo_category}(YYY, RRR,'{exo_category}');\nDE_{exo_category}(YYY, RRR,'{exo_category}')=0;"
     DE.body = annual
     DE.body["DEUSER"] = exo_category
     DE.body_prepare(["Year", "Region"], columns="DEUSER")
@@ -61,6 +65,8 @@ def power_to_heat(ctx, area_query: str, new_deuser_name: str):
 
     DE_VAR_T = copy(ctx.obj["DE_VAR_T"])
     DE_VAR_T.name += "_" + new_deuser_name
+    DE_VAR_T.prefix = DE_VAR_T.prefix.replace("DE_VAR_T", "DE_VAR_T_" + new_deuser_name)
+    DE_VAR_T.suffix = f"\n;\nDE_VAR_T(RRR,'{new_deuser_name}',SSS,TTT) = DE_VAR_T_{new_deuser_name}(RRR,'{new_deuser_name}',SSS,TTT);\nDE_VAR_T_{new_deuser_name}(RRR,'{new_deuser_name}',SSS,TTT)=0;"
     DE_VAR_T.body = profile
     DE_VAR_T.body["DEUSER"] = new_deuser_name
     DE_VAR_T.body_prepare(["Region", "DEUSER"], columns=["Season", "Time"])
@@ -68,6 +74,8 @@ def power_to_heat(ctx, area_query: str, new_deuser_name: str):
 
     DE = copy(ctx.obj["DE"])
     DE.name += "_" + new_deuser_name
+    DE.prefix = DE.prefix.replace("DE", "DE_" + new_deuser_name)
+    DE.suffix = f"\n;\nDE(YYY, RRR,'{new_deuser_name}') = DE_{new_deuser_name}(YYY, RRR,'{new_deuser_name}');\nDE_{new_deuser_name}(YYY, RRR,'{new_deuser_name}')=0;"
     DE.body = annual
     DE.body["DEUSER"] = new_deuser_name
     DE.body_prepare(["Year", "Region"], columns="DEUSER")
@@ -115,14 +123,12 @@ def main(ctx, scenario, year, mainresults_path, gams_system_directory):
     DE_VAR_T = IncFile(
         name="DE_VAR_T",
         path=".",
-        prefix='$onmulti\nTABLE DE_VAR_T(RRR,DEUSER,SSS,TTT) "Variation in electricity demand"\n',
-        suffix="\n;\n$offmulti",
+        prefix='\nTABLE DE_VAR_T(RRR,DEUSER,SSS,TTT) "Variation in electricity demand"\n',
     )
     DE = IncFile(
         name="DE",
         path=".",
-        prefix='$onmulti\nTABLE DE(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"\n',
-        suffix="\n;\n$offmulti",
+        prefix='\nTABLE DE(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"\n',
     )
 
     ctx.ensure_object(dict)
