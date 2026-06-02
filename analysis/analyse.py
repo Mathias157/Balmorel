@@ -145,6 +145,7 @@ def CLI(
             "dem",
             "find-h2-synfuel-location",
             "ptes-and-adequacy",
+            "get-ts-res",
         ]
     ) and not is_help:
         # Locate results
@@ -547,7 +548,17 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
     required=False,
     help="Categorise production by individual heating / district heating / industry",
 )
-def production(filters: str, get_df: bool, filename: str, catbysector: bool):
+@click.option(
+    "-n",
+    "--normalise",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Normalise production across scenarios",
+)
+def production(
+    filters: str, get_df: bool, filename: str, catbysector: bool, normalise: bool
+):
     """
     Plot production
     """
@@ -585,6 +596,9 @@ def production(filters: str, get_df: bool, filename: str, catbysector: bool):
         values="Value",
         aggfunc=lambda x: np.sum(x),
     )
+
+    if normalise:
+        df = df.div(df.sum(axis=1), axis=0)
 
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
@@ -1444,9 +1458,9 @@ def get(ctx, symbol: str, pars, filters: str, diff: bool):
         # Loop through both absolute and relative difference dataframes
         for df_name in ["df_abs", "df_rel"]:
             df = eval(df_name)
-            df_styled = df.style.format(precision=1).set_table_styles(
-                [cell_format]
-            )  # Precision and general formatting
+            df_styled = df.style.format(precision=1).set_table_styles([
+                cell_format
+            ])  # Precision and general formatting
 
             # Style each column, so zero is white (with cmap RdBu reversed, higher values become red and lower blue)
             for col in df.columns:
@@ -2007,6 +2021,26 @@ def load_geofile(scenario: str, cluster_params: str = "DE, DH, WNDFLH, SOLEFLH")
         )
 
     return geofile
+
+
+@CLI.command()
+@click.pass_context
+@click.option('--scenarios', type=str, default="", help="Comma-separated scenarios to get resolution from, empty (meaning all) by default")
+def get_ts_res(ctx, scenarios):
+    """Get temporal resolution from all or chosen scenarios"""
+    
+    if scenarios != '':
+        scenarios = scenarios.replace(' ', '').split(',')
+    
+    model=ctx.obj['Balmorel']
+    model.collect_results(suffix_naming_only=True)
+    df=model.results.get_result('EL_PRICE_YCRST')
+
+    for scenario in df.Scenario.unique():
+        print('\n\n', scenario)
+        print(list(df.query('Scenario == @scenario').Season.unique()))
+        print(list(df.query('Scenario == @scenario').Time.unique()))
+
 
 
 # 3. Main
