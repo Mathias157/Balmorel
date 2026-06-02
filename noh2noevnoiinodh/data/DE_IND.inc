@@ -1,5 +1,5 @@
 
-TABLE DE_IND(YYY,RRR,DE_INDUSER) "Annual electricity consumption (MWh)"
+TABLE DE_IND(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"
                      IND
                         
 2030 . AL            0.0

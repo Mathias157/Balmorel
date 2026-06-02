@@ -1,5 +1,5 @@
 
-TABLE DE_IDVU(YYY,RRR,DE_IDVUUSER) "Annual electricity consumption (MWh)"
+TABLE DE_IDVU(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"
                      IDVU
                          
 2030 . AL             0.0

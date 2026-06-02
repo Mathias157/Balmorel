@@ -1,5 +1,5 @@
 
-TABLE DE_DH(YYY,RRR,DE_DHUSER) "Annual electricity consumption (MWh)"
+TABLE DE_DH(YYY,RRR,DEUSER) "Annual electricity consumption (MWh)"
                      DH
                        
 2030 . AT     4000000.0
