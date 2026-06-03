@@ -23,7 +23,7 @@ trap cleanup EXIT SIGTERM SIGINT
 optimality_check() {
   job_id=$1
   optimal_nr=$2
-  count=$(rg -e 'LP status \(1\): optimal' ../logs/*_${job_id}.out --count-matches)
+  count=$(rg -e '(LP|MIP|RMIP) status \(1\): optimal' ../logs/*_${job_id}.out --count-matches)
   if [[ "$count" -eq "$optimal_nr" ]]; then
     echo "OPTIMAL: Job ${job_id} had ${count} optimal solutions as expected"
   else

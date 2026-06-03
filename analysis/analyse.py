@@ -1572,7 +1572,6 @@ def adequacy(ctx, scenario: str, nth_max: int):
     help="Regional aggregation function for analysing continental results (e.g.: sum, mean, max)",
 )
 def adequacy_table(filters: str, aggfunc: str):
-
     collect_adequacy_results()
     df_lole_ens = pd.read_csv("analysis/output/adeq_collected.csv")
     df_backcap = pd.read_csv("analysis/output/backcap_collected.csv")
@@ -1681,7 +1680,6 @@ def ptes_and_adequacy(ctx, scenario: str):
     help="Search string for selecting $filter_ptes_caps files",
 )
 def plot_ptes_adequacy_relation(filter):
-
     path = Path("analysis/output")
     files = [file.name for file in path.glob(filter + "_ptes_caps.csv")]
 
@@ -1892,7 +1890,6 @@ def plot_style(
 
 @click.pass_context
 def collect_storage_profiles(ctx, scenarios: list):
-
     abspath = os.path.abspath(ctx.obj["path"])
     file_path = os.path.join(abspath, "analysis", "files", "storage_profiles.pkl")
     if os.path.exists(file_path) and not (ctx.obj["overwrite"]):
@@ -1966,7 +1963,6 @@ def collect_storage_profiles(ctx, scenarios: list):
 
 @click.pass_context
 def collect_results(ctx, symbol: str):
-
     abspath = os.path.abspath(ctx.obj["path"])
     file_path = os.path.join(abspath, "analysis", "files", f"{symbol}.pkl")
     if os.path.exists(file_path) and not (ctx.obj["overwrite"]):
