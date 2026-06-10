@@ -12,6 +12,7 @@ Created on 29.05.2026
 #        0. Script Settings       #
 # ------------------------------- #
 
+import numpy as np
 from pybalmorel import MainResults, IncFile
 import click
 from copy import copy
@@ -27,7 +28,8 @@ def simple_conversion(ctx, category: str):
     # Make .inc file with new DEUSER and the profile and annual demand
     exo_category = category.replace("ENDO", "EXO").replace("ENDOGENOUS", "EXO")
 
-    profile = ctx.obj["profile"].query(f'Category == "{category}"')
+    profile = ctx.obj["profile"].query(f'Category == "{category}" and Value > 0')
+
     DE_VAR_T = copy(ctx.obj["DE_VAR_T"])
     DE_VAR_T.name += "_" + exo_category
     DE_VAR_T.prefix = DE_VAR_T.prefix.replace("DE_VAR_T", "DE_VAR_T_" + exo_category)
@@ -37,7 +39,21 @@ def simple_conversion(ctx, category: str):
     DE_VAR_T.body_prepare(["Region", "DEUSER"], columns=["Season", "Time"])
     DE_VAR_T.save()
 
+    # Get negative demand (V2G for EVs)
+    negative_sum = (
+        ctx.obj["all_profiles"]
+        .query(f'Value < 0 and Category == "{category}"')
+        .pivot_table(index="Year", columns="Region", values="Value", aggfunc="sum")
+    )
+    positive_sum = (
+        ctx.obj["all_profiles"]
+        .query(f'Value > 0 and Category == "{category}"')
+        .pivot_table(index="Year", columns="Region", values="Value", aggfunc="sum")
+    )
+    negative_fraction_of_positive = (positive_sum + negative_sum) / positive_sum
+
     annual = ctx.obj["annual"].query(f'Category == "{category}"')
+
     DE = copy(ctx.obj["DE"])
     DE.name += "_" + exo_category
     DE.prefix = DE.prefix.replace("DE(", "DE_" + exo_category + "(")
@@ -45,6 +61,15 @@ def simple_conversion(ctx, category: str):
     DE.body = annual
     DE.body["DEUSER"] = exo_category
     DE.body_prepare(["Year", "Region"], columns="DEUSER")
+
+    if negative_sum.sum().sum() < -1e-4:
+        DE.suffix += "\n\n* Reducing demand by share of negative demand"
+        # Reduce annual demand by the percentage reduction of the positive sum when accounting for negative sum
+        for year, row in negative_fraction_of_positive.iterrows():
+            for region in row.index:
+                if not np.isnan(row[region]) and row[region] != 1:
+                    DE.suffix += f"\nDE('{year}','{region}','{exo_category}')=DE('{year}','{region}','{exo_category}')*{row[region]};"
+
     DE.save()
 
 
@@ -116,7 +141,7 @@ def main(ctx, scenario, year, mainresults_path, gams_system_directory):
         system_directory=gams_system_directory,
     )
 
-    profile = result.get_result("EL_DEMAND_YCRST").query(f"Year == '{year}'")
+    profile = result.get_result("EL_DEMAND_YCRST")
     annual = result.get_result("EL_DEMAND_YCR")
     annual.Value = annual.Value.round() * 1e6
 
@@ -133,7 +158,8 @@ def main(ctx, scenario, year, mainresults_path, gams_system_directory):
 
     ctx.ensure_object(dict)
     ctx.obj["result"] = result
-    ctx.obj["profile"] = profile
+    ctx.obj["profile"] = profile.query(f"Year == '{year}'")
+    ctx.obj["all_profiles"] = profile
     ctx.obj["annual"] = annual
     ctx.obj["DE_VAR_T"] = DE_VAR_T
     ctx.obj["DE"] = DE
