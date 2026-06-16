@@ -102,6 +102,13 @@ marker_cycle = itertools.cycle(markers)
     default=False,
     help="Makes the plots large or small",
 )
+@click.option(
+    "--filters",
+    type=str,
+    required=False,
+    default=None,
+    help="Filter string input for .query(...)",
+)
 @click.pass_context
 def CLI(
     ctx,
@@ -111,6 +118,7 @@ def CLI(
     path: str,
     gams_sysdir: str,
     large_plot: bool,
+    filters: str,
 ):
     "A CLI to analyse Balmorel results"
 
@@ -163,6 +171,7 @@ def CLI(
     ctx.obj["path"] = path
     ctx.obj["plot_path"] = Path(path) / "analysis" / "plots"
     ctx.obj["gams_system_directory"] = gams_sysdir
+    ctx.obj["filters"] = filters
 
     # Make output path if it doesn't exist
     if not Path(ctx.obj["path"] + "/analysis/output").exists():
@@ -303,6 +312,7 @@ def all_maps(ctx, scenario, year):
 
 
 @CLI.command()
+@click.pass_context
 @click.option(
     "--gen",
     "-g",
@@ -318,9 +328,6 @@ def all_maps(ctx, scenario, year):
     default=True,
     required=False,
     help="Plot storage capacities",
-)
-@click.option(
-    "--filters", type=str, default="", required=False, help="Filters for df.query(...)"
 )
 @click.option(
     "--include-backup",
@@ -347,9 +354,9 @@ def all_maps(ctx, scenario, year):
     "--filename", type=str, default="capacity", required=False, help="The filename"
 )
 def cap(
+    ctx,
     gen: bool,
     sto: bool,
-    filters: str,
     include_backup: bool,
     backup_nth_max: int,
     drop_hydro: bool,
@@ -359,6 +366,7 @@ def cap(
     """
     Plot generation or storage capacities
     """
+    filters = ctx.obj["filters"]
 
     plot_types = {"generation": gen, "storage": sto}
     for key in [key for key in plot_types.keys() if plot_types[key]]:
@@ -445,20 +453,15 @@ def cap(
 
 
 @CLI.command()
-@click.option(
-    "--filters",
-    type=str,
-    default=None,
-    required=False,
-    help="Filters for df.query(...)",
-)
+@click.pass_context
 @click.option(
     "--get-df", is_flag=True, default=False, help="Dont plot, just get the dataframe"
 )
-def fuel(filters: str, get_df: bool, filename: str = "fuelconsumption"):
+def fuel(ctx, get_df: bool, filename: str = "fuelconsumption"):
     """
     Plot fuel consumption
     """
+    filters = ctx.obj["filters"]
 
     print("\nPlotting fuel consumption..")
 
@@ -483,18 +486,13 @@ def fuel(filters: str, get_df: bool, filename: str = "fuelconsumption"):
 
 
 @CLI.command()
+@click.pass_context
 @click.argument("commodity", type=str)
-@click.option(
-    "--filters",
-    type=str,
-    required=False,
-    default=None,
-    help="Query input for filtering",
-)
-def dem(commodity: str, filters: str, filename: str = "demand"):
+def dem(ctx, commodity: str, filename: str = "demand"):
     """
     Plot fuel consumption
     """
+    filters = ctx.obj["filters"]
 
     print("\nPlotting %s demand.." % commodity)
 
@@ -525,13 +523,7 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
 
 
 @CLI.command()
-@click.option(
-    "--filters",
-    type=str,
-    required=False,
-    default=None,
-    help="Query input for filtering",
-)
+@click.pass_context
 @click.option(
     "--get-df",
     is_flag=True,
@@ -558,11 +550,16 @@ def dem(commodity: str, filters: str, filename: str = "demand"):
     help="Normalise production across scenarios",
 )
 def production(
-    filters: str, get_df: bool, filename: str, catbysector: bool, normalise: bool
+    ctx,
+    get_df: bool,
+    filename: str,
+    catbysector: bool,
+    normalise: bool,
 ):
     """
     Plot production
     """
+    filters = ctx.obj["filters"]
     print("\nPlotting commodity production..")
 
     fig, ax = plt.subplots()
@@ -619,13 +616,7 @@ def production(
 
 
 @CLI.command()
-@click.option(
-    "--filters",
-    type=str,
-    required=False,
-    default=None,
-    help="Query input for filtering",
-)
+@click.pass_context
 @click.option(
     "--get-df",
     is_flag=True,
@@ -636,10 +627,11 @@ def production(
 @click.option(
     "--filename", type=str, default="systemcosts", required=False, help="The filename"
 )
-def costs(filters: str, get_df: bool, filename: str):
+def costs(ctx, get_df: bool, filename: str):
     """
     Plot system costs
     """
+    filters = ctx.obj["filters"]
     print("\nPlotting system costs..")
 
     fig, ax = plt.subplots()
@@ -692,15 +684,9 @@ def LCOE():
 @CLI.command()
 @click.pass_context
 @click.argument("result", type=str, required=True)
-@click.option(
-    "--filters",
-    type=str,
-    required=False,
-    default=None,
-    help="Query input for filtering",
-)
 def matrix(ctx, result: str, filters: str):
     """Generate a matrix of results with N rows and M columns"""
+    filters = ctx.obj["filters"]
 
     if result.lower() == "costs":
         df = ctx.invoke(costs, filters=filters, get_df=True).sum(axis=1)
@@ -714,6 +700,8 @@ def matrix(ctx, result: str, filters: str):
         )
     elif result.lower() == "fuel":
         df = ctx.invoke(fuel, filters=filters, get_df=True).sum(axis=1)
+    else:
+        raise ValueError(f"{result} option not added to matrix function yet.")
 
     df.index = pd.Series(
         df.index.str
@@ -738,6 +726,7 @@ def matrix(ctx, result: str, filters: str):
 
 
 @CLI.command()
+@click.pass_context
 @click.option(
     "--sc-group",
     type=str,
@@ -753,19 +742,13 @@ def matrix(ctx, result: str, filters: str):
     help="Scenario group names separated by ;",
 )
 @click.option(
-    "--filters",
-    type=str,
-    required=False,
-    default=None,
-    help="Query input for filtering",
-)
-@click.option(
     "--filename", type=str, required=False, default=None, help="Output filename"
 )
-def cost_change(sc_group: str, group_names: str, filters: str, filename: str):
+def cost_change(ctx, sc_group: str, group_names: str, filename: str):
     """
     Plot change in system costs between scenarios
     """
+    filters = ctx.obj["filters"]
     print("\nPlotting system costs..")
 
     df = collect_results("OBJ_YCR")
@@ -1420,14 +1403,8 @@ def allendofmodel(ctx, scenario: str, symbol: str):
 @click.pass_context
 @click.argument("symbol", type=str, required=True)
 @click.argument("pars", required=True)
-@click.option(
-    "--filters",
-    type=str,
-    required=False,
-    help="String for filtering that can be passed to a query",
-)
 @click.option("--diff", is_flag=True, required=False, help="Show difference or not?")
-def get(ctx, symbol: str, pars, filters: str, diff: bool):
+def get(ctx, symbol: str, pars, diff: bool):
     """
     Get a certain symbol and show the values as a table.
     This function retrieves results for a specified symbol from a Balmorel model context,
@@ -1442,6 +1419,7 @@ def get(ctx, symbol: str, pars, filters: str, diff: bool):
     Returns:
     None
     """
+    filters = ctx.obj["filters"]
 
     model = ctx.obj["Balmorel"]
     model.collect_results()
@@ -1570,13 +1548,7 @@ def adequacy(ctx, scenario: str, nth_max: int):
 
 
 @CLI.command()
-@click.option(
-    "--filters",
-    type=str,
-    default="",
-    required=False,
-    help="Filters for df.query(...)",
-)
+@click.pass_context
 @click.option(
     "--aggfunc",
     type=str,
@@ -1584,7 +1556,8 @@ def adequacy(ctx, scenario: str, nth_max: int):
     required=False,
     help="Regional aggregation function for analysing continental results (e.g.: sum, mean, max)",
 )
-def adequacy_table(filters: str, aggfunc: str):
+def adequacy_table(ctx, aggfunc: str):
+    filters = ctx.obj["filters"]
     collect_adequacy_results()
     df_lole_ens = pd.read_csv("analysis/output/adeq_collected.csv")
     df_backcap = pd.read_csv("analysis/output/backcap_collected.csv")
@@ -1774,16 +1747,10 @@ def RA_Plot(ctx, scenarios: str):
 
 
 @CLI.command()
+@click.pass_context
 @click.argument("symbol", type=str, required=True)
 @click.argument("index", type=str, required=True)
 @click.argument("columns", type=str, required=True)
-@click.option(
-    "--filters",
-    type=str,
-    default=None,
-    required=False,
-    help="Filters for df.query(...)",
-)
 @click.option(
     "--filename",
     type=str,
@@ -1791,7 +1758,7 @@ def RA_Plot(ctx, scenarios: str):
     required=False,
     help="Name of outputted bar chart",
 )
-def bar_chart(symbol: str, index: str, columns: str, filters: str, filename: str):
+def bar_chart(ctx, symbol: str, index: str, columns: str):
     """
     Generates a bar chart from the specified scenarios and symbol.
     This function retrieves data from the specified scenarios, processes it, and generates a bar chart
@@ -1812,6 +1779,7 @@ def bar_chart(symbol: str, index: str, columns: str, filters: str, filename: str
     fig, ax = plt.subplots()
 
     # Apply filters
+    filters = ctx.obj["filters"]
     if filters != None:
         df = df.query(filters)
 
