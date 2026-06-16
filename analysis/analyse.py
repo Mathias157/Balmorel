@@ -416,7 +416,8 @@ def cap(
                     df.loc[scenario, "BACKUP"] = 0
                     try:
                         f = (
-                            pd.read_csv(
+                            pd
+                            .read_csv(
                                 "analysis/output/%s_backcapN%d.csv"
                                 % (scenario_csv, backup_nth_max)
                             )
@@ -657,7 +658,8 @@ def costs(filters: str, get_df: bool, filename: str):
 
     if "Scenario in [" in filters:
         sc_order = (
-            filters.replace(" ", "")
+            filters
+            .replace(" ", "")
             .split("Scenarioin[")[1]
             .split("]")[0]
             .replace('"', "")
@@ -681,6 +683,10 @@ def costs(filters: str, get_df: bool, filename: str):
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncols=2)
 
     fig, ax = plot_style(fig, ax, filename, legend=False)
+
+
+def LCOE():
+    pass
 
 
 @CLI.command()
@@ -710,7 +716,8 @@ def matrix(ctx, result: str, filters: str):
         df = ctx.invoke(fuel, filters=filters, get_df=True).sum(axis=1)
 
     df.index = pd.Series(
-        df.index.str.replace("base", "N99M99")
+        df.index.str
+        .replace("base", "N99M99")
         .str.replace("N2_", "N2M2_")
         .str.replace("N10_", "N10M10_")
         .str.replace("N30_", "N30M30_")
@@ -1035,7 +1042,8 @@ def find_h2_synfuel_location(ctx, scenario: str, commodity: str, year: int = 205
     gf.columns = ["Region", "geometry"]
 
     df = (
-        results.get_result("G_CAP_YCRAF")
+        results
+        .get_result("G_CAP_YCRAF")
         .query(
             'Technology in ["ELECTROLYZER", "SYNFUELPRODUCER"] and Commodity in ["HYDROGEN", "SYNFUEL"]'
         )
@@ -1250,7 +1258,8 @@ def sifnaios_profile(
     # Filter data
     if cluster.lower() == "all":
         df = (
-            sto.query(
+            sto
+            .query(
                 'Technology == "inter" \
                     and Commodity == @commodity \
                     and Scenario == @scenario'
@@ -1261,7 +1270,8 @@ def sifnaios_profile(
     else:
         cluster_area = cluster + "_A"
         df = (
-            sto.query(
+            sto
+            .query(
                 'A == @cluster_area \
                     and Technology == "inter" \
                     and Commodity == @commodity \
@@ -1369,7 +1379,8 @@ def vre_seas_prod(ctx, scenario: str):
 
     fig, ax = plt.subplots(figsize=(9, 5))
     (
-        df.query(query_string)
+        df
+        .query(query_string)
         .pivot_table(
             index="Season", columns="Technology", values="Value", aggfunc="sum"
         )
@@ -1478,7 +1489,8 @@ def get(ctx, symbol: str, pars, filters: str, diff: bool):
         print(df.to_string())
         # Precision and general formatting
         html = (
-            df.style.format(precision=1)
+            df.style
+            .format(precision=1)
             .set_table_styles([cell_format])
             .background_gradient(cmap="RdYlGn_r")
             .to_html()
@@ -1527,7 +1539,8 @@ def adequacy(ctx, scenario: str, nth_max: int):
         )
     else:
         cap = (
-            df.groupby(["Region", "Commodity"])["Value"]
+            df
+            .groupby(["Region", "Commodity"])["Value"]
             .apply(lambda x: x.nlargest(nth_max).iloc[-1])  # Selects N'th max
             .unstack()  # Reshapes the data into a table
         )
@@ -1642,7 +1655,8 @@ def ptes_and_adequacy(ctx, scenario: str):
     # Get heat demand
     ptes_areas = ptes_caps.index.to_list()
     heat_dem = (
-        res.get_result("H_DEMAND_YCRA")
+        res
+        .get_result("H_DEMAND_YCRA")
         .query('Category == "EXOGENOUS"')
         .pivot_table(index="Area", values="Value", aggfunc=lambda x: np.sum(x) * 1e3)
         .rename(columns={"Value": "exo_heat_dem_GWh"})
@@ -2021,22 +2035,26 @@ def load_geofile(scenario: str, cluster_params: str = "DE, DH, WNDFLH, SOLEFLH")
 
 @CLI.command()
 @click.pass_context
-@click.option('--scenarios', type=str, default="", help="Comma-separated scenarios to get resolution from, empty (meaning all) by default")
+@click.option(
+    "--scenarios",
+    type=str,
+    default="",
+    help="Comma-separated scenarios to get resolution from, empty (meaning all) by default",
+)
 def get_ts_res(ctx, scenarios):
     """Get temporal resolution from all or chosen scenarios"""
-    
-    if scenarios != '':
-        scenarios = scenarios.replace(' ', '').split(',')
-    
-    model=ctx.obj['Balmorel']
+
+    if scenarios != "":
+        scenarios = scenarios.replace(" ", "").split(",")
+
+    model = ctx.obj["Balmorel"]
     model.collect_results(suffix_naming_only=True)
-    df=model.results.get_result('EL_PRICE_YCRST')
+    df = model.results.get_result("EL_PRICE_YCRST")
 
     for scenario in df.Scenario.unique():
-        print('\n\n', scenario)
-        print(list(df.query('Scenario == @scenario').Season.unique()))
-        print(list(df.query('Scenario == @scenario').Time.unique()))
-
+        print("\n\n", scenario)
+        print(list(df.query("Scenario == @scenario").Season.unique()))
+        print(list(df.query("Scenario == @scenario").Time.unique()))
 
 
 # 3. Main
