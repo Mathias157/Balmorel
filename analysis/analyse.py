@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 from importlib import resources
 
+import cmcrameri.cm as cmc
 import click
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -39,6 +40,8 @@ from premailer import transform
 from pybalmorel import Balmorel, MainResults
 from pybalmorel.formatting import balmorel_colours
 from pybalmorel.utils import symbol_to_df
+from pybalmorel import geofiles
+
 
 # Some formatting
 balmorel_colours["SYNFUELPRODUCER"] = "#E8C3A8"
@@ -563,8 +566,6 @@ def production(
     """
     print("\nPlotting commodity production..")
 
-    fig, ax = plt.subplots()
-
     df = collect_results("PRO_YCRAGF")
 
     filters = ctx.obj["filters"]
@@ -601,6 +602,8 @@ def production(
     if get_df:
         return df
 
+    fig, ax = plt.subplots()
+
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
             "Production [TWh]"
@@ -625,15 +628,16 @@ def production(
     help="Dont plot, just get the dataframe",
 )
 @click.option(
+    "--columns", required=False, default="Category", help="What to display in legend"
+)
+@click.option(
     "--filename", type=str, default="systemcosts", required=False, help="The filename"
 )
-def costs(ctx, get_df: bool, filename: str):
+def costs(ctx, get_df: bool, columns: str, filename: str):
     """
     Plot system costs
     """
     print("\nPlotting system costs..")
-
-    fig, ax = plt.subplots()
 
     df = collect_results("OBJ_YCR")
 
@@ -655,19 +659,21 @@ def costs(ctx, get_df: bool, filename: str):
 
     df = sort_scenarios(df).pivot_table(
         index=["Scenario", "Year"],
-        columns="Category",
+        columns=columns,
         values="Value",
         aggfunc=lambda x: np.sum(x) / 1e3,
     )
+
+    if get_df:
+        return df
+
+    fig, ax = plt.subplots()
 
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
             "System Costs [B€]"
         )
     )
-
-    if get_df:
-        return df
 
     # Y limits were a bit too tight
     ylims = ax.get_ylim()
@@ -681,11 +687,51 @@ def costs(ctx, get_df: bool, filename: str):
 @click.pass_context
 def LCOE(ctx):
 
-    df_costs = ctx.invoke(costs, get_df=True)
-    df_prod = ctx.invoke(production, get_df=True)
+    # Extract data
+    df_costs = ctx.invoke(costs, get_df=True, columns="Region")
+    df_prod = ctx.invoke(production, get_df=True, columns="Region").pivot_table(
+        index=["Scenario", "Year"], aggfunc="sum"
+    )
 
-    # System LCOE
-    print(df_prod.sum(axis=1) / df_costs.sum(axis=1))
+    # Calculate LCOEs
+    lcoe = df_prod / df_costs
+    system_lcoe = lcoe.mean(axis=1)
+
+    # Plot maps per scenario and year
+    with resources.path(geofiles, "2024 BalmorelMap.geojson") as fspath:
+        _ = fspath.stat()
+
+    # Make maps
+    gf = gpd.read_file(fspath).rename(columns={"id": "Region"})
+
+    for ind in lcoe.index:
+        lcoe_temp = lcoe.loc[ind].reset_index()
+        lcoe_temp.columns = ["Region", "Value"]
+        temp = gf.merge(lcoe_temp, on="Region")
+        fig, ax = plt.subplots()
+        temp.plot(
+            column="Value",
+            ax=ax,
+            cmap=cmc.batlow,
+            legend=True,
+            label=True,
+            legend_kwds={"label": "€/MWh"},
+        )
+        temp.apply(
+            lambda x: ax.annotate(
+                text=round(x["Value"]),
+                xy=x.geometry.centroid.coords[0],
+                ha="center",
+                color="white",
+                bbox={"facecolor": "#00000054", "pad": 1, "linewidth": 0},
+            ),
+            axis=1,
+        )
+        ax.set_title(", ".join(ind))
+        ax.set_xlim([-11, 35])
+        ax.set_ylim([32, 72])
+        ax.axes.set_axis_off()
+        plot_style(fig, ax, f"lcoe_{ind[0]}_{ind[1]}", figsize=(12, 7), legend=False)
 
 
 @CLI.command()
@@ -1852,8 +1898,9 @@ def plot_style(
     name: str,
     legend: bool = True,
     legend_pos: str = "right",
+    figsize: tuple = (7, 4),
 ):
-    fig.set_size_inches((7, 4))
+    fig.set_size_inches(figsize)
     ax.set_facecolor(ctx.obj["fc"])
 
     if legend and legend_pos == "up":
