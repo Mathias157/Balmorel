@@ -638,8 +638,20 @@ def costs(ctx, get_df: bool, filename: str):
 
     df = collect_results("OBJ_YCR")
 
-    if filters != None:
+    if filters is not None:
         df = df.query(filters)
+
+        if "Scenario in [" in filters:
+            sc_order = (
+                filters
+                .replace(" ", "")
+                .split("Scenarioin[")[1]
+                .split("]")[0]
+                .replace('"', "")
+                .replace("'", "")
+                .split(",")
+            )
+            df = df.loc[sc_order, :]
 
     df = sort_scenarios(df).pivot_table(
         index=["Scenario", "Year"],
@@ -647,18 +659,6 @@ def costs(ctx, get_df: bool, filename: str):
         values="Value",
         aggfunc=lambda x: np.sum(x) / 1e3,
     )
-
-    if "Scenario in [" in filters:
-        sc_order = (
-            filters
-            .replace(" ", "")
-            .split("Scenarioin[")[1]
-            .split("]")[0]
-            .replace('"', "")
-            .replace("'", "")
-            .split(",")
-        )
-        df = df.loc[sc_order, :]
 
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
@@ -686,20 +686,15 @@ def LCOE():
 @click.argument("result", type=str, required=True)
 def matrix(ctx, result: str, filters: str):
     """Generate a matrix of results with N rows and M columns"""
-    filters = ctx.obj["filters"]
 
     if result.lower() == "costs":
-        df = ctx.invoke(costs, filters=filters, get_df=True).sum(axis=1)
+        df = ctx.invoke(costs, get_df=True).sum(axis=1)
     elif result.lower() == "gencap":
-        df = ctx.invoke(cap, gen=True, sto=False, filters=filters, get_df=True).sum(
-            axis=1
-        )
+        df = ctx.invoke(cap, gen=True, sto=False, get_df=True).sum(axis=1)
     elif result.lower() == "stocap":
-        df = ctx.invoke(cap, sto=True, gen=False, filters=filters, get_df=True).sum(
-            axis=1
-        )
+        df = ctx.invoke(cap, sto=True, gen=False, get_df=True).sum(axis=1)
     elif result.lower() == "fuel":
-        df = ctx.invoke(fuel, filters=filters, get_df=True).sum(axis=1)
+        df = ctx.invoke(fuel, get_df=True).sum(axis=1)
     else:
         raise ValueError(f"{result} option not added to matrix function yet.")
 
@@ -1758,7 +1753,7 @@ def RA_Plot(ctx, scenarios: str):
     required=False,
     help="Name of outputted bar chart",
 )
-def bar_chart(ctx, symbol: str, index: str, columns: str):
+def bar_chart(ctx, symbol: str, index: str, columns: str, filename: str):
     """
     Generates a bar chart from the specified scenarios and symbol.
     This function retrieves data from the specified scenarios, processes it, and generates a bar chart
