@@ -154,6 +154,7 @@ def CLI(
             "find-h2-synfuel-location",
             "ptes-and-adequacy",
             "get-ts-res",
+            "lcoe",
         ]
     ) and not is_help:
         # Locate results
@@ -535,11 +536,10 @@ def dem(ctx, commodity: str, filename: str = "demand"):
     "--filename", type=str, default="production", required=False, help="The filename"
 )
 @click.option(
-    "--catbysector",
-    is_flag=True,
-    default=False,
+    "--columns",
+    default="Technology",
     required=False,
-    help="Categorise production by individual heating / district heating / industry",
+    help="What to put in legend - select 'catbysector' to categorise production by individual heating / district heating / industry",
 )
 @click.option(
     "-n",
@@ -553,23 +553,23 @@ def production(
     ctx,
     get_df: bool,
     filename: str,
-    catbysector: bool,
+    columns: str,
     normalise: bool,
 ):
     """
     Plot production
     """
-    filters = ctx.obj["filters"]
     print("\nPlotting commodity production..")
 
     fig, ax = plt.subplots()
 
     df = collect_results("PRO_YCRAGF")
 
+    filters = ctx.obj["filters"]
     if filters is not None:
         df = df.query(filters)
 
-    if catbysector:
+    if columns.lower() == "catbysector":
         df["Sector"] = df["Commodity"]
         heat_idx = df["Commodity"] == "HEAT"
         df.loc[heat_idx, "Sector"] = df.loc[heat_idx, "Area"].apply(
@@ -585,8 +585,6 @@ def production(
         balmorel_colours["DISTRICT_HEATING"] = "#ed8989ff"
         balmorel_colours["INDUSTRY"] = "#8993edff"
         balmorel_colours["INDIVIDUAL"] = "#89edbaff"
-    else:
-        columns = "Technology"
 
     df = sort_scenarios(df).pivot_table(
         index=["Year", "Commodity", "Scenario"],
@@ -598,14 +596,14 @@ def production(
     if normalise:
         df = df.div(df.sum(axis=1), axis=0)
 
+    if get_df:
+        return df
+
     (
         df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
             "Production [TWh]"
         )
     )
-
-    if get_df:
-        return df
 
     # Y limits were a bit too tight
     ylims = ax.get_ylim()
@@ -631,13 +629,13 @@ def costs(ctx, get_df: bool, filename: str):
     """
     Plot system costs
     """
-    filters = ctx.obj["filters"]
     print("\nPlotting system costs..")
 
     fig, ax = plt.subplots()
 
     df = collect_results("OBJ_YCR")
 
+    filters = ctx.obj["filters"]
     if filters is not None:
         df = df.query(filters)
 
@@ -677,14 +675,21 @@ def costs(ctx, get_df: bool, filename: str):
     fig, ax = plot_style(fig, ax, filename, legend=False)
 
 
-def LCOE():
-    pass
+@CLI.command()
+@click.pass_context
+def LCOE(ctx):
+
+    df_costs = ctx.invoke(costs, get_df=True)
+    df_prod = ctx.invoke(production, get_df=True)
+
+    # System LCOE
+    print(df_prod.sum(axis=1) / df_costs.sum(axis=1))
 
 
 @CLI.command()
 @click.pass_context
 @click.argument("result", type=str, required=True)
-def matrix(ctx, result: str, filters: str):
+def matrix(ctx, result: str):
     """Generate a matrix of results with N rows and M columns"""
 
     if result.lower() == "costs":
