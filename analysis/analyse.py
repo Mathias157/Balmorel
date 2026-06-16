@@ -7,36 +7,38 @@ Meant to be used with the analyse/analyse.bat shell/batch scripts (Linux/Windows
 Created on 06.10.2024
 @author: Mathias Berg Rosendal, PhD Student at DTU Management (Energy Economics & Modelling)
 """
-# %% ------------------------------- ###
-###           0. Main CLI           ###
-### ------------------------------- ###
+# ------------------------------- #
+#           0. Main CLI           #
+# ------------------------------- #
 
-from matplotlib.dates import DateFormatter
-from gams import GamsWorkspace
+import itertools
+import os
+import pickle
+import re
+import sys
+from pathlib import Path
+from importlib import resources
+
+import click
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import sys
-import click
-import re
-from premailer import transform
-import itertools
-from matplotlib.patches import Wedge as WedgePatch
-from functions.pit_storage import get_storage_profiles, polygon_with_point
+from decouple import config
 from functions import (
     collect_adequacy_results,
     format_backcap_adequacy_results,
     format_lole_ens_adequacy_results,
 )
 from functions.formats import individual_heating_areas, industry_heating_areas
+from functions.pit_storage import get_storage_profiles
+from gams import GamsWorkspace
+from matplotlib.dates import DateFormatter
+from matplotlib.patches import Wedge as WedgePatch
+from premailer import transform
 from pybalmorel import Balmorel, MainResults
-from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
-import pickle
-from pathlib import Path
-import os
-from decouple import config
+from pybalmorel.utils import symbol_to_df
 
 # Some formatting
 balmorel_colours["SYNFUELPRODUCER"] = "#E8C3A8"
@@ -193,8 +195,8 @@ def CLI(
 
 
 # %% ------------------------------- ###
-###            1. Commands          ###
-### ------------------------------- ###
+# 1. Commands          ###
+# ------------------------------- ###
 
 
 @CLI.command()
@@ -370,7 +372,7 @@ def cap(
     filters = ctx.obj["filters"]
 
     plot_types = {"generation": gen, "storage": sto}
-    for key in [key for key in plot_types.keys() if plot_types[key]]:
+    for key in [key for key in plot_types if plot_types[key]]:
         print("\nPlotting %s capacities.." % key)
 
         fig, ax = plt.subplots()
@@ -1220,11 +1222,11 @@ def sifnaios_profile(
         )
     )
 
-    ## Get it in 52 weeks, i.e. 8736 hours
+    # Get it in 52 weeks, i.e. 8736 hours
     idx = time_ind.dt.isocalendar().query("year == @weather_year").index
     time_ind = time_ind[idx]
 
-    ## Get corresponding S and T set
+    # Get corresponding S and T set
     S = ["S0%d" % i for i in range(1, 10)] + ["S%d" % i for i in range(10, 53)]
     T = (
         ["T00%d" % i for i in range(1, 10)]
@@ -1234,7 +1236,7 @@ def sifnaios_profile(
     ST_ind = pd.MultiIndex.from_product((S, T))
     index = pd.DataFrame(index=ST_ind).reset_index()
 
-    ## Combine
+    # Combine
     index = index.set_index(time_ind).reset_index()
     index.columns = ["time", "S", "T"]
 
@@ -1526,7 +1528,7 @@ def adequacy(ctx, scenario: str, nth_max: int):
         "analysis/output/%s_backcapN%d.csv" % (scenario.replace("_operun", ""), nth_max)
     )
 
-    ## Get energy not served
+    # Get energy not served
     ENS = df.pivot_table(
         index=["Season", "Time", "Region"],
         columns="Commodity",
@@ -1648,7 +1650,7 @@ def ptes_and_adequacy(ctx, scenario: str):
         'Scenario == @scenario and Generation.str.contains("BACKUP") and Commodity == "HEAT"'
     )
 
-    ## Get energy not served
+    # Get energy not served
     ENS = df.pivot_table(
         index=["Season", "Time"], columns="Area", values="Value", aggfunc="sum"
     )
@@ -1800,8 +1802,8 @@ def bar_chart(ctx, symbol: str, index: str, columns: str, filename: str):
 
 
 # %% ------------------------------- ###
-###            2. Utils             ###
-### ------------------------------- ###
+# 2. Utils             ###
+# ------------------------------- ###
 
 
 def get_geofile(scenario, model_path):
