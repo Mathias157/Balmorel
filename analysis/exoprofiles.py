@@ -56,7 +56,9 @@ def simple_conversion(ctx, category: str):
 
     DE = copy(ctx.obj["DE"])
     DE.name += "_" + exo_category
-    DE.prefix = DE.prefix.replace("DE(", "DE_" + exo_category + "(")
+    DE.prefix = DE.prefix.replace("DE(", "DE_" + exo_category + "(").replace(
+        f"DE_{exo_category}USER", "DEUSER"
+    )
     DE.suffix = f"\n;\nDE(YYY, RRR,'{exo_category}') = DE_{exo_category}(YYY, RRR,'{exo_category}');\nDE_{exo_category}(YYY, RRR,'{exo_category}')=0;"
     DE.body = annual
     DE.body["DEUSER"] = exo_category
@@ -99,7 +101,9 @@ def power_to_heat(ctx, area_query: str, new_deuser_name: str):
 
     DE = copy(ctx.obj["DE"])
     DE.name += "_" + new_deuser_name
-    DE.prefix = DE.prefix.replace("DE", "DE_" + new_deuser_name)
+    DE.prefix = DE.prefix.replace("DE", "DE_" + new_deuser_name).replace(
+        f"DE_{new_deuser_name}USER", "DEUSER"
+    )
     DE.suffix = f"\n;\nDE(YYY, RRR,'{new_deuser_name}') = DE_{new_deuser_name}(YYY, RRR,'{new_deuser_name}');\nDE_{new_deuser_name}(YYY, RRR,'{new_deuser_name}')=0;"
     DE.body = annual
     DE.body["DEUSER"] = new_deuser_name
