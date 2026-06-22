@@ -680,7 +680,13 @@ def costs(ctx, get_df: bool, columns: str, filename: str):
     default=False,
     help="Filter capital and fixed costs out of LCOE calculations",
 )
-def LCOE(ctx, no_capex):
+def LCOE(ctx, no_capex, lat_lims: tuple = (32, 72), lon_lims: tuple = (-11, 35)):
+    """
+    Plot map of system levelised cost of energy.
+
+    lat_lims: Set to European boundary
+    lon_lims: Set to European boundary
+    """
 
     # Extract data
     df_prod = ctx.invoke(production, get_df=True, columns="Region").pivot_table(
@@ -716,7 +722,7 @@ def LCOE(ctx, no_capex):
         temp.plot(
             column="Value",
             ax=ax,
-            cmap=cmc.batlow,
+            cmap=cmc.batlow,  # pyright: ignore
             vmin=5,
             vmax=40,
             legend=True,
@@ -734,9 +740,9 @@ def LCOE(ctx, no_capex):
             axis=1,
         )
         ax.set_title(", ".join(ind) + f"\nAverage: {system_lcoe.loc[ind]:02.0f} €/MWh")
-        ax.set_xlim([-11, 35])
-        ax.set_ylim([32, 72])
-        ax.axes.set_axis_off()
+        ax.set_xlim(lon_lims)
+        ax.set_ylim(lat_lims)
+        ax.axes.set_axis_off()  # pyright: ignore
         plot_style(fig, ax, f"lcoe_{ind[0]}_{ind[1]}", figsize=(12, 7), legend=False)
 
 
