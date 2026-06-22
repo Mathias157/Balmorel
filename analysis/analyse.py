@@ -57,6 +57,7 @@ balmorel_colours["GENERATION_CAPITAL_COSTS"] = "#FFA500"
 balmorel_colours["GENERATION_FIXED_COSTS"] = "#D2A106"
 balmorel_colours["GENERATION_FUEL_COSTS"] = "#747474"
 balmorel_colours["GENERATION_OPERATIONAL_COSTS"] = "#E5D8D8"
+balmorel_colours["GENERATION_UC_COSTS"] = "#FF2B10"
 balmorel_colours["ELECTRICITY"] = "#FFD700"
 balmorel_colours["HEAT"] = "#BA4E00"
 balmorel_colours["GENERATION_CO2_TAX"] = "#141414"
@@ -645,18 +646,6 @@ def costs(ctx, get_df: bool, columns: str, filename: str):
     if filters is not None:
         df = df.query(filters)
 
-        if "Scenario in [" in filters:
-            sc_order = (
-                filters
-                .replace(" ", "")
-                .split("Scenarioin[")[1]
-                .split("]")[0]
-                .replace('"', "")
-                .replace("'", "")
-                .split(",")
-            )
-            df = df.loc[sc_order, :]
-
     df = sort_scenarios(df).pivot_table(
         index=["Scenario", "Year"],
         columns=columns,
@@ -685,17 +674,32 @@ def costs(ctx, get_df: bool, columns: str, filename: str):
 
 @CLI.command()
 @click.pass_context
-def LCOE(ctx):
+@click.option(
+    "--no-capex",
+    is_flag=True,
+    default=False,
+    help="Filter capital and fixed costs out of LCOE calculations",
+)
+def LCOE(ctx, no_capex):
 
     # Extract data
-    df_costs = ctx.invoke(costs, get_df=True, columns="Region")
     df_prod = ctx.invoke(production, get_df=True, columns="Region").pivot_table(
         index=["Scenario", "Year"], aggfunc="sum"
     )
 
+    if no_capex:
+        query_string = 'Category not in ["GENERATION_CAPITAL_COSTS", "GENERATION_FIXED_COSTS", "TRANSMISSION_CAPITAL_COSTS", "H2_TRANSMISSION_CAPITAL_COSTS"]'
+        if ctx.obj["filters"] is None:
+            ctx.obj["filters"] = query_string
+        else:
+            ctx.obj["filters"] = ctx.obj["filters"] + " and " + query_string
+
+    # Convert to M€
+    df_costs = ctx.invoke(costs, get_df=True, columns="Region") * 1e3
+
     # Calculate LCOEs
-    lcoe = df_prod / df_costs
-    system_lcoe = lcoe.mean(axis=1)
+    lcoe = df_costs / df_prod
+    system_lcoe = df_costs.sum(axis=1) / df_prod.sum(axis=1)
 
     # Plot maps per scenario and year
     with resources.path(geofiles, "2024 BalmorelMap.geojson") as fspath:
@@ -713,6 +717,8 @@ def LCOE(ctx):
             column="Value",
             ax=ax,
             cmap=cmc.batlow,
+            vmin=5,
+            vmax=40,
             legend=True,
             label=True,
             legend_kwds={"label": "€/MWh"},
@@ -727,7 +733,7 @@ def LCOE(ctx):
             ),
             axis=1,
         )
-        ax.set_title(", ".join(ind))
+        ax.set_title(", ".join(ind) + f"\nAverage: {system_lcoe.loc[ind]:02.0f} €/MWh")
         ax.set_xlim([-11, 35])
         ax.set_ylim([32, 72])
         ax.axes.set_axis_off()
@@ -954,7 +960,7 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
 
     # Get mainresults files
     res = MainResults(
-        "MainResults_%s.gdx" % scenario,
+        f"MainResults_{scenario}.gdx",
         paths=model_path,
         system_directory=ctx.obj["gams_system_directory"],
     )
@@ -971,7 +977,7 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
     if node != "all":
         scenario += "_" + node
 
-    for idx, fig in enumerate(figs):
+    for idx, _ in enumerate(figs):
         plot_style(
             figs[idx],
             axes[idx],
@@ -1001,7 +1007,6 @@ def map(
     lat_lims: list,
     lines: str,
     generation: str,
-    invoked: bool = False,
     generation_show: bool = True,
 ):
     """Plot transmission capacity maps for electricity or hydrogen"""
@@ -1022,10 +1027,7 @@ def map(
         geofile, geofile_region_column = get_geofile(scenario, model_path)
 
     # Pie radius for comparing scenarios
-    pie_radius_max = 0.5  # The largest one for comparison (N70 largest cluster is CL36 with 13.244423 GW)
-    pie_radius_max = 0.5 * (
-        7.07 / 13.24
-    )  # The smaller one (base largest cluster is Frederikshavn with 7.07 GW)
+    pie_radius_max = 1.5
 
     fig, ax = res.plot_map(
         scenario,
@@ -1037,11 +1039,12 @@ def map(
         generation=generation,
         style=ctx.obj["plot_style_for_modules"],
         pie_radius_max=pie_radius_max,
-        pie_radius_min=0.03,
+        pie_radius_min=0.2,
         regions_model_color="lightgray",
         regions_ext_color="lightgray",
         **{"generation_show": generation_show},
     )
+    # Default input is zooming in on Denmark
     # ax.set_xlim(lon_lims)
     # ax.set_ylim(lat_lims)
 
@@ -1907,8 +1910,6 @@ def plot_style(
         ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1), ncol=3)
     elif legend and legend_pos == "right":
         ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), ncol=1)
-
-    plot_path = ctx.obj["plot_path"]
 
     fig.savefig(
         ctx.obj["plot_path"] / (name + ctx.obj["plot_ext"]),
