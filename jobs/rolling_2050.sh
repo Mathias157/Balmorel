@@ -38,7 +38,8 @@ run_name="$(basename $PWD)"
 echo "Run name: ${run_name}_R2050"
 
 # Rolling horison simulation
-cat data/T_roll.inc >data/T.inc
+cat ../base/data/T_roll.inc >data/T.inc
+cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_roll.opt >balopt.opt
 gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_R2050" $opts
@@ -48,6 +49,6 @@ optimality_check $LSB_JOBID 52
 
 cd ..
 if [ -f ../jobs/userfunctions.sh ]; then
-    . ../jobs/userfunctions.sh
-    verifications $run_name
+  . ../jobs/userfunctions.sh
+  verifications $run_name
 fi

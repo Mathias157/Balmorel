@@ -37,6 +37,10 @@ echo "Starting investment optimisation at $(date)"
 run_name="$(basename $PWD)"
 echo "Run name: ${run_name}_INV"
 
+# Temporal resolution
+cat ../base/data/T_inv.inc >data/T.inc
+cat ../base/data/S_inv.inc >data/S.inc
+
 # Investment optimisation
 cd model
 cat balopt_inv.opt >balopt.opt
@@ -47,8 +51,8 @@ gams_exit_code=$?
 
 # Explicitly check GAMS exit code
 if [ $gams_exit_code -ne 0 ]; then
-    echo "ERROR: GAMS investment optimization failed with exit code $gams_exit_code"
-    exit $gams_exit_code
+  echo "ERROR: GAMS investment optimization failed with exit code $gams_exit_code"
+  exit $gams_exit_code
 fi
 
 cd ..
@@ -57,7 +61,7 @@ echo "Investment optimisation completed successfully at $(date)"
 
 # Store simex files
 if not [ -d "${PWD}/simex_INV" ]; then
-    mkdir simex_INV
+  mkdir simex_INV
 fi
 /usr/bin/cp -rf simex/* simex_INV/
 

@@ -59,3 +59,7 @@ base/evprofiles
 jobs/userfunctions.sh
 tests
 balopt.opt
+**/data/T.inc
+**/data/T_inv.inc
+**/data/T_full.inc
+**/data/T_roll.inc

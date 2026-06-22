@@ -41,7 +41,8 @@ echo "Run name: ${run_name}_F2050"
 /usr/bin/cp -rf simex_INV/* simex/
 
 # Full year simulation
-cat data/T_full.inc >data/T.inc
+cat ../base/data/T_full.inc >data/T.inc
+cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_full.opt >balopt.opt
 gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
