@@ -58,3 +58,4 @@ base_*
 base/evprofiles
 jobs/userfunctions.sh
 tests
+balopt.opt
