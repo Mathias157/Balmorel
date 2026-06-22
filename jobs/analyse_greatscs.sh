@@ -1,0 +1,1 @@
+pixi run analyse production --filters 'Scenario in ["EVN_INV" , "HPN_INV" , "TPN_INV" , "ELN_INV" , "HSNSSN_INV" , "HSN_INV" , "SSN_INV" , "EIN_INV" , "DCN_INV" , "H2N_INV" , "base_INV"] and Commodity =="ELECTRICITY" and Year == "2050"' --normalise
