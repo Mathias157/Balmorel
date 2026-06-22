@@ -8,10 +8,10 @@
 #BSUB -n 10
 ### -- specify that the cores must be on the same host --
 #BSUB -R "span[hosts=1]"
-### -- specify that we need 4GB of memory per core/slot --
-#BSUB -R "rusage[mem=4GB]"
+### -- specify that we need 6.5GB of memory per core/slot --
+#BSUB -R "rusage[mem=6.5GB]"
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
-#BSUB -M 4GB
+#BSUB -M 6.5GB
 ### -- set walltime limit: hh:mm --
 #BSUB -W 15:00
 ### -- set the email address --
@@ -47,7 +47,7 @@ cd ..
 optimality_check $LSB_JOBID 52
 
 cd ..
-if [ -f jobs/userfunctions.sh ]; then
-  . jobs/userfunctions.sh
-  verifications $run_name
+if [ -f ../jobs/userfunctions.sh ]; then
+    . ../jobs/userfunctions.sh
+    verifications $run_name
 fi

@@ -8,10 +8,10 @@
 #BSUB -n 10
 ### -- specify that the cores must be on the same host --
 #BSUB -R "span[hosts=1]"
-### -- specify that we need 4GB of memory per core/slot --
-#BSUB -R "rusage[mem=6.5GB]"
+### -- specify that we need 11GB of memory per core/slot --
+#BSUB -R "rusage[mem=11GB]"
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
-#BSUB -M 6.5GB
+#BSUB -M 11GB
 ### -- set walltime limit: hh:mm --
 #BSUB -W 8:00
 ### -- set the email address --
@@ -36,6 +36,9 @@ source config.sh
 echo "Starting fullyear simulation at $(date)"
 run_name="$(basename $PWD)"
 echo "Run name: ${run_name}_F2050"
+
+# Copy simex files from investment run
+/usr/bin/cp -rf simex_INV/* simex/
 
 # Full year simulation
 cat data/T_full.inc >data/T.inc
