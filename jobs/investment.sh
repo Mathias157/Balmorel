@@ -39,6 +39,7 @@ echo "Run name: ${run_name}_INV"
 
 # Investment optimisation
 cd model
+cat balopt_inv.opt >balopt.opt
 
 # Run GAMS - if this fails, set -e will cause immediate exit via the trap
 gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_INV" $opts
