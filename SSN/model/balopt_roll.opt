@@ -975,7 +975,7 @@ putclose fileMERGEWITHBASEbat;
 
 * The model type has implications for the solver type.
 * Classical model types are LP (Linear Programming), QP (Quadratic Programming), MIP (Mixed Integer Programming).
-$setglobal SOLVETYPE MIP
+$setglobal SOLVETYPE RMIP
 *!option LP      "Linear Programming"
 *!option RMIP    "Relaxed Mixed Integer Programming"
 *!option MIP     "Mixed Integer Programming"
