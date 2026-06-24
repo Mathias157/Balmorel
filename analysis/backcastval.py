@@ -177,6 +177,11 @@ bidding_zone_translation = {
     "IT-Calabria": "IT",
     "IT-Sicily": "IT",
     "IT-Sardinia": "IT",
+    "DE4-E": "DE",
+    "DE4-N": "DE",
+    "DE4-S": "DE",
+    "DE4-W": "DE",
+    "FIN": "FI",
 }
 
 # ------------------------------- #
@@ -207,14 +212,14 @@ def load_entsoe_data(year):
             )
             region = format_entsoe_region_name(item, year, "load")
             temp["Region"] = region
-            loads = pd.concat((loads, temp))
+            loads = pd.concat((loads, temp), ignore_index=True)
         elif item.match("*_day_ahead_prices.csv"):
             temp = pd.read_csv(item).rename(
                 columns={"Unnamed: 0": "Time", "0": "Value"}
             )
             region = format_entsoe_region_name(item, year, "day_ahead_prices")
             temp["Region"] = region
-            elprices = pd.concat((elprices, temp))
+            elprices = pd.concat((elprices, temp), ignore_index=True)
         else:
             warn(f"{item} was not loaded as it did not match naming pattern.", Warning)
             continue
@@ -248,14 +253,19 @@ def calculate_statistics(df):
     pass
 
 
-def aggregate_entsoe_regions(df):
-    "Aggregate IT etc"
-    pass
+def aggregate_regions(df: pd.DataFrame, aggfunc: str):
+    "Aggregate DE4, IT-* etc"
 
+    for region in df.Region.unique():
+        if region in bidding_zone_translation:
+            df = (
+                df.replace({"Region": {region: bidding_zone_translation[region]}})
+                .pivot_table(index=["Region", "Time"], values="Value", aggfunc=aggfunc)
+                .reset_index()
+            )
+            print(f"Aggregating {region} to {bidding_zone_translation[region]}")
 
-def aggregate_balmorel_regions(df):
-    "Aggregate DE4 etc"
-    pass
+    return df
 
 
 # ------------------------------- #
@@ -266,17 +276,49 @@ def aggregate_balmorel_regions(df):
 @click.command()
 def main():
     entsoe_load, entsoe_elprices = load_entsoe_data(2024)
-    print(f"Amount of regions in ENTSO-E Load data: {len(entsoe_load.Region.unique())}")
+    entsoe_load = aggregate_regions(entsoe_load, "mean")
+    entsoe_elprices = aggregate_regions(entsoe_elprices, "mean")
+    entsoe_load_unique_regions = set(entsoe_load.Region.unique())
+    entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
+    print(f"Amount of regions in ENTSO-E Load data: {entsoe_load_unique_regions}")
     print(
-        f"Amount of regions in ENTSO-E El. prices data: {len(entsoe_elprices.Region.unique())}"
+        f"Amount of regions in ENTSO-E El. prices data: {entsoe_elprices_unique_regions}"
     )
+    set_difference = entsoe_load_unique_regions.difference(
+        entsoe_elprices_unique_regions
+    )
+    if set_difference:
+        print(f"Difference in region sets: {set_difference}")
+    else:
+        print("No regional differences between ENTSO-E load and el. price results")
     balmorel_load, balmorel_elprices = load_balmorel_data()
+    balmorel_load = aggregate_regions(balmorel_load, "mean")
+    balmorel_elprices = aggregate_regions(balmorel_elprices, "mean")
+    balmorel_load_unique_regions = set(balmorel_load.Region.unique())
+    balmorel_elprices_unique_regions = set(balmorel_elprices.Region.unique())
+    print(f"Amount of regions in Balmorel Load data: {balmorel_load_unique_regions}")
     print(
-        f"Amount of regions in Balmorel Load data: {len(balmorel_load.Region.unique())}"
+        f"Amount of regions in Balmorel El. prices data: {balmorel_elprices_unique_regions}"
     )
-    print(
-        f"Amount of regions in Balmorel El. prices data: {len(balmorel_elprices.Region.unique())}"
+    set_difference = balmorel_load_unique_regions.difference(
+        balmorel_elprices_unique_regions
     )
+    if set_difference:
+        print(f"Difference in region sets: {set_difference}")
+    else:
+        print("No regional differences between Balmorel load and el. price results")
+
+    entsoe_unique_regions = entsoe_load_unique_regions.intersection(
+        entsoe_elprices_unique_regions
+    )
+    balmorel_unique_regions = balmorel_load_unique_regions.intersection(
+        balmorel_elprices_unique_regions
+    )
+    dataset_difference = entsoe_unique_regions.difference(balmorel_unique_regions)
+    if dataset_difference:
+        print(
+            f"Regional differnces in dataset and Balmorel scope: {dataset_difference}"
+        )
 
 
 if __name__ == "__main__":
