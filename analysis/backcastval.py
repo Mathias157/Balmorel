@@ -227,6 +227,11 @@ def load_entsoe_data(year):
     return loads, elprices
 
 
+def format_balmorel_time(df):
+    # TODO: If S01-S52 and T001-T168, time starts on the first monday and has a length of 8736 hours
+    pass
+
+
 def load_balmorel_data():
     "Load df from MainResults"
 
