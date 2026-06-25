@@ -309,7 +309,12 @@ def load_balmorel_data(
 
 def calculate_statistics(df):
     "Get std. dev, mean, max etc..."
-    pass
+
+    for region in df.index.get_level_values(0).unique():
+        temp = df.loc[region]
+        print(
+            f"\nStatistics for {region}:\nStd. dev:\n{temp.std()}\nMean:\n{temp.mean()}\nMin:\n{temp.mean()}\nMax:\n{temp.max()}"
+        )
 
 
 def aggregate_regions(df: pd.DataFrame, aggfunc: str, time_columns: list):
@@ -433,7 +438,13 @@ def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwr
     prices, loads = load_and_align_regions(
         balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
     )
+    print("-" * 100)
+    print("Statistics on prices in €/MWh")
+    print("-" * 100)
     calculate_statistics(prices)
+    print("-" * 100)
+    print("Statistics on load in MWh")
+    print("-" * 100)
     calculate_statistics(loads)
 
 
