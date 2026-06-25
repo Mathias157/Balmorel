@@ -307,8 +307,13 @@ def load_balmorel_data(
     return load, elprices
 
 
-def calculate_statistics(df):
+def calculate_statistics(df: pd.DataFrame, timeslicing: int = 0):
     "Get std. dev, mean, max etc..."
+
+    if timeslicing != 0:
+        time = df.index.get_level_values(1).unique()
+        idx = time[:timeslicing]
+        df = df.loc[(slice(None), idx), :]
 
     for region in df.index.get_level_values(0).unique():
         temp = df.loc[region]
