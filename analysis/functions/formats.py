@@ -11,10 +11,19 @@ Created on 27.04.2026
 #        0. Script Settings       #
 # ------------------------------- #
 
+import pandas as pd
 
 # ------------------------------- #
 #          1. Functions           #
 # ------------------------------- #
+
+testdf = pd.DataFrame(
+    {
+        "date": pd.date_range("2023-01-01", periods=5),
+        "value": [10, 20, 30, 40, 50],
+        "name": ["Freja", "Odin", "Ida", "Sven", "Bjørg"],
+    }
+)
 
 # Should really not be hardcoded but loaded from scenario using symbol_to_df(db, "INDIVUSERS_AAA")
 individual_heating_areas = [

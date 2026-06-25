@@ -17,7 +17,7 @@ import numpy as np
 from pathlib import Path
 import click
 from decouple import config
-from pybalmorel import Balmorel
+from pybalmorel import MainResults
 from warnings import warn
 
 # Replace with pybalmorel.entsoe import in the future
@@ -227,23 +227,45 @@ def load_entsoe_data(year):
     return loads, elprices
 
 
-def format_balmorel_time(df):
-    # TODO: If S01-S52 and T001-T168, time starts on the first monday and has a length of 8736 hours
-    pass
+def format_balmorel_df(year: int, df: pd.DataFrame):
+    if not (df.Season.unique().shape[0] == 52 and df.Time.unique().shape[0] == 168):
+        raise ValueError("Temporal structure not recognised!")
+
+    new_timeindex = (
+        pd.date_range(f"{year}-01-01 00:00", f"{year}-12-31 23:00", freq="h")
+        .isocalendar()
+        .reset_index()
+    )
+
+    # Get index of first monday and last sunday
+    first_monday_hour = new_timeindex.iloc[:168, :].query("day == 1").index[0]
+    last_sunday_hour = new_timeindex.query("day == 7").index[-1]
+    new_timeindex = new_timeindex.loc[first_monday_hour:last_sunday_hour, "index"]
+
+    # Insert to Balmorel df
+    df_out = df.query(f'Year == "{year}"').pivot_table(
+        index=["Season", "Time"], columns="Region", values="Value", aggfunc="sum"
+    )
+    df_out.index = new_timeindex
+
+    return df_out
 
 
-def load_balmorel_data():
+def load_balmorel_data(scenario_name: str, scenario_folder_path: str, overwrite: bool):
     "Load df from MainResults"
 
     path = Path("analysis/output")
     if (
         not path.joinpath("balmorel_prices.csv").exists()
         or not path.joinpath("balmorel_load.csv").exists()
-    ):
-        model = Balmorel(".", gams_system_directory=config("GAMS_SYSTEM_DIR"))  # pyright: ignore
-        model.collect_results()
-        load = model.results.get_result("EL_DEMAND_YCRST")
-        elprices = model.results.get_result("EL_PRICE_YCRST")
+    ) or overwrite:
+        results = MainResults(
+            f"MainResults_{scenario_name}.gdx",
+            paths=Path(scenario_folder_path).absolute().__str__(),
+            system_directory=config("GAMS_SYSTEM_DIR", None),
+        )  # pyright: ignore
+        load = results.get_result("EL_DEMAND_YCRST")
+        elprices = results.get_result("EL_PRICE_YCRST")
         load.to_csv(path.joinpath("balmorel_load.csv"), index=False)
         elprices.to_csv(path.joinpath("balmorel_prices.csv"), index=False)
     else:
@@ -273,16 +295,16 @@ def aggregate_regions(df: pd.DataFrame, aggfunc: str):
     return df
 
 
-# ------------------------------- #
-#            2. Main              #
-# ------------------------------- #
-
-
-@click.command()
-def main():
-    entsoe_load, entsoe_elprices = load_entsoe_data(2024)
-    entsoe_load = aggregate_regions(entsoe_load, "mean")
-    entsoe_elprices = aggregate_regions(entsoe_elprices, "mean")
+def load_and_align_regions(
+    balmorel_scenario: str,
+    balmorel_scenario_path: str,
+    year: int,
+    elpriceaggfunc: str,
+    overwrite: bool,
+):
+    entsoe_load, entsoe_elprices = load_entsoe_data(year)
+    entsoe_load = aggregate_regions(entsoe_load, "sum")
+    entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc)
     entsoe_load_unique_regions = set(entsoe_load.Region.unique())
     entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
     print(f"Amount of regions in ENTSO-E Load data: {entsoe_load_unique_regions}")
@@ -296,9 +318,11 @@ def main():
         print(f"Difference in region sets: {set_difference}")
     else:
         print("No regional differences between ENTSO-E load and el. price results")
-    balmorel_load, balmorel_elprices = load_balmorel_data()
-    balmorel_load = aggregate_regions(balmorel_load, "mean")
-    balmorel_elprices = aggregate_regions(balmorel_elprices, "mean")
+    balmorel_load, balmorel_elprices = load_balmorel_data(
+        balmorel_scenario, balmorel_scenario_path, overwrite
+    )
+    balmorel_load = aggregate_regions(balmorel_load, "sum")
+    balmorel_elprices = aggregate_regions(balmorel_elprices, elpriceaggfunc)
     balmorel_load_unique_regions = set(balmorel_load.Region.unique())
     balmorel_elprices_unique_regions = set(balmorel_elprices.Region.unique())
     print(f"Amount of regions in Balmorel Load data: {balmorel_load_unique_regions}")
@@ -324,6 +348,23 @@ def main():
         print(
             f"Regional differnces in dataset and Balmorel scope: {dataset_difference}"
         )
+
+
+# ------------------------------- #
+#            2. Main              #
+# ------------------------------- #
+
+
+@click.argument("balmorel-scenario", type=str, default="backcast_R2024")
+@click.argument("balmorel-scenario-path", type=str, default="backcast/model")
+@click.argument("year", type=int, default=2024)
+@click.argument("elpriceaggfunc", type=str, default="mean")
+@click.option("--overwrite", "-o", is_flag=True, default=False)
+@click.command()
+def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite):
+    load_and_align_regions(
+        balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
+    )
 
 
 if __name__ == "__main__":
