@@ -390,6 +390,33 @@ def load_and_align_regions(
             f"Regional differnces in dataset and Balmorel scope: {dataset_difference}"
         )
 
+    # Join datasets
+    prices = (
+        entsoe_elprices.set_index(["Region", "Time"])
+        .rename(columns={"Value": "ENTSOE"})
+        .join(
+            (
+                balmorel_elprices.rename(columns={"Value": "BALMOREL"}).set_index(
+                    ["Region", "Time"]
+                )
+            ),
+            how="inner",
+        )
+    )
+
+    loads = (
+        entsoe_load.set_index(["Region", "Time"])
+        .rename(columns={"Value": "ENTSOE"})
+        .join(
+            balmorel_load.rename(columns={"Value": "BALMOREL"}).set_index(
+                ["Region", "Time"]
+            ),
+            how="inner",
+        )
+    )
+
+    return prices, loads
+
 
 # ------------------------------- #
 #            2. Main              #
@@ -403,9 +430,11 @@ def load_and_align_regions(
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.command()
 def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite):
-    load_and_align_regions(
+    prices, loads = load_and_align_regions(
         balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
     )
+    calculate_statistics(prices)
+    calculate_statistics(loads)
 
 
 if __name__ == "__main__":
