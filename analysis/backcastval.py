@@ -14,6 +14,7 @@ Created on 24.06.2026
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from zoneinfo import ZoneInfo
 from pathlib import Path
 import click
 from decouple import config
@@ -198,7 +199,7 @@ def format_entsoe_region_name(path, year, parameter):
     return region
 
 
-def load_entsoe_data(year):
+def load_entsoe_data(year: int, resampling: str = "h"):
     "Load csvs"
     path = Path("backcast/entsoedata")
 
@@ -210,8 +211,23 @@ def load_entsoe_data(year):
             temp = pd.read_csv(item).rename(
                 columns={"Unnamed: 0": "Time", "Actual Load": "Value"}
             )
+
+            # Get time and resample to hours
+            temp.Time = pd.to_datetime(temp.Time, utc=True).dt.tz_convert(
+                "Europe/Copenhagen",
+            )
+            temp = (
+                temp.resample(
+                    resampling,
+                    on="Time",
+                )
+                .aggregate({"Value": "mean"})
+                .reset_index()
+            )
+
             region = format_entsoe_region_name(item, year, "load")
             temp["Region"] = region
+
             loads = pd.concat((loads, temp), ignore_index=True)
         elif item.match("*_day_ahead_prices.csv"):
             temp = pd.read_csv(item).rename(
@@ -219,7 +235,14 @@ def load_entsoe_data(year):
             )
             region = format_entsoe_region_name(item, year, "day_ahead_prices")
             temp["Region"] = region
+
+            # Get time
+            temp.Time = pd.to_datetime(temp.Time, utc=True).dt.tz_convert(
+                "Europe/Copenhagen",
+            )
+
             elprices = pd.concat((elprices, temp), ignore_index=True)
+
         else:
             warn(f"{item} was not loaded as it did not match naming pattern.", Warning)
             continue
@@ -227,12 +250,17 @@ def load_entsoe_data(year):
     return loads, elprices
 
 
-def format_balmorel_df(year: int, df: pd.DataFrame):
+def format_balmorel_df(df: pd.DataFrame, year: int):
     if not (df.Season.unique().shape[0] == 52 and df.Time.unique().shape[0] == 168):
         raise ValueError("Temporal structure not recognised!")
 
     new_timeindex = (
-        pd.date_range(f"{year}-01-01 00:00", f"{year}-12-31 23:00", freq="h")
+        pd.date_range(
+            f"{year}-01-01 00:00",
+            f"{year}-12-31 23:00",
+            freq="h",
+            tz=ZoneInfo("Europe/Copenhagen"),
+        )
         .isocalendar()
         .reset_index()
     )
@@ -243,15 +271,19 @@ def format_balmorel_df(year: int, df: pd.DataFrame):
     new_timeindex = new_timeindex.loc[first_monday_hour:last_sunday_hour, "index"]
 
     # Insert to Balmorel df
-    df_out = df.query(f'Year == "{year}"').pivot_table(
+    df_out = df.pivot_table(
         index=["Season", "Time"], columns="Region", values="Value", aggfunc="sum"
     )
     df_out.index = new_timeindex
+    df_out = df_out.stack().reset_index()
+    df_out.columns = ["Time", "Region", "Value"]
 
     return df_out
 
 
-def load_balmorel_data(scenario_name: str, scenario_folder_path: str, overwrite: bool):
+def load_balmorel_data(
+    scenario_name: str, scenario_folder_path: str, year: int, overwrite: bool
+):
     "Load df from MainResults"
 
     path = Path("analysis/output")
@@ -264,8 +296,8 @@ def load_balmorel_data(scenario_name: str, scenario_folder_path: str, overwrite:
             paths=Path(scenario_folder_path).absolute().__str__(),
             system_directory=config("GAMS_SYSTEM_DIR", None),
         )  # pyright: ignore
-        load = results.get_result("EL_DEMAND_YCRST")
-        elprices = results.get_result("EL_PRICE_YCRST")
+        load = results.get_result("EL_DEMAND_YCRST").query(f"Year == '{year}'")
+        elprices = results.get_result("EL_PRICE_YCRST").query(f"Year == '{year}'")
         load.to_csv(path.joinpath("balmorel_load.csv"), index=False)
         elprices.to_csv(path.joinpath("balmorel_prices.csv"), index=False)
     else:
@@ -280,14 +312,18 @@ def calculate_statistics(df):
     pass
 
 
-def aggregate_regions(df: pd.DataFrame, aggfunc: str):
+def aggregate_regions(df: pd.DataFrame, aggfunc: str, time_columns: list):
     "Aggregate DE4, IT-* etc"
 
     for region in df.Region.unique():
         if region in bidding_zone_translation:
             df = (
                 df.replace({"Region": {region: bidding_zone_translation[region]}})
-                .pivot_table(index=["Region", "Time"], values="Value", aggfunc=aggfunc)
+                .pivot_table(
+                    index=["Region"] + time_columns,
+                    values="Value",
+                    aggfunc=aggfunc,
+                )
                 .reset_index()
             )
             print(f"Aggregating {region} to {bidding_zone_translation[region]}")
@@ -303,8 +339,8 @@ def load_and_align_regions(
     overwrite: bool,
 ):
     entsoe_load, entsoe_elprices = load_entsoe_data(year)
-    entsoe_load = aggregate_regions(entsoe_load, "sum")
-    entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc)
+    entsoe_load = aggregate_regions(entsoe_load, "sum", ["Time"])
+    entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc, ["Time"])
     entsoe_load_unique_regions = set(entsoe_load.Region.unique())
     entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
     print(f"Amount of regions in ENTSO-E Load data: {entsoe_load_unique_regions}")
@@ -319,10 +355,15 @@ def load_and_align_regions(
     else:
         print("No regional differences between ENTSO-E load and el. price results")
     balmorel_load, balmorel_elprices = load_balmorel_data(
-        balmorel_scenario, balmorel_scenario_path, overwrite
+        balmorel_scenario, balmorel_scenario_path, year, overwrite
     )
-    balmorel_load = aggregate_regions(balmorel_load, "sum")
-    balmorel_elprices = aggregate_regions(balmorel_elprices, elpriceaggfunc)
+    balmorel_load = format_balmorel_df(
+        aggregate_regions(balmorel_load, "sum", ["Season", "Time"]), year
+    )
+    balmorel_elprices = format_balmorel_df(
+        aggregate_regions(balmorel_elprices, elpriceaggfunc, ["Season", "Time"]),
+        year,
+    )
     balmorel_load_unique_regions = set(balmorel_load.Region.unique())
     balmorel_elprices_unique_regions = set(balmorel_elprices.Region.unique())
     print(f"Amount of regions in Balmorel Load data: {balmorel_load_unique_regions}")
