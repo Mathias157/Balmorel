@@ -190,6 +190,15 @@ bidding_zone_translation = {
 # ------------------------------- #
 
 
+class DataContainer:
+    """Container for ENTSO-E data."""
+
+    def __init__(self, data_items):
+        super(DataContainer, self).__init__()
+        for item in data_items:
+            setattr(self, item, pd.DataFrame())
+
+
 def format_entsoe_region_name(path, year, parameter):
     raw_region_name = path.name.lstrip(f"{year}_").rstrip(f"_{parameter}.csv")
     if raw_region_name in bidding_zone_codes:
@@ -199,55 +208,57 @@ def format_entsoe_region_name(path, year, parameter):
     return region
 
 
+def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
+    """Format ENTSO-E data"""
+
+    df.columns = ["Time", "Value"]
+
+    # Get time and resample to hours
+    df.Time = pd.to_datetime(df.Time, utc=True).dt.tz_convert(
+        "Europe/Copenhagen",
+    )
+    df = (
+        df.resample(
+            resampling,
+            on="Time",
+        )
+        .aggregate({"Value": "mean"})
+        .reset_index()
+    )
+
+    region = format_entsoe_region_name(filepath, year, "load")
+    df["Region"] = region
+
+    return df
+
+
 def load_entsoe_data(year: int, resampling: str = "h"):
     "Load csvs"
     path = Path("backcast/entsoedata")
+    data_items = ["loads", "day_ahead_prices", "generation"]
+    data = DataContainer(data_items)
 
-    loads = pd.DataFrame()
-    elprices = pd.DataFrame()
     for item in path.iterdir():
         # Load data for a specific region
-        if item.match("*_load.csv"):
-            temp = pd.read_csv(item).rename(
-                columns={"Unnamed: 0": "Time", "Actual Load": "Value"}
-            )
-
-            # Get time and resample to hours
-            temp.Time = pd.to_datetime(temp.Time, utc=True).dt.tz_convert(
-                "Europe/Copenhagen",
-            )
-            temp = (
-                temp.resample(
-                    resampling,
-                    on="Time",
+        tries = 0
+        for data_item in data_items:
+            if item.match(f"*_{data_item}.csv"):
+                temp = format_entsoe_data(pd.read_csv(item), resampling, item, year)
+                setattr(
+                    data,
+                    data_item,
+                    pd.concat((getattr(data, data_item), temp), ignore_index=True),
                 )
-                .aggregate({"Value": "mean"})
-                .reset_index()
+            else:
+                tries += 1
+
+        if tries == len(data_items):
+            warn(
+                f"{item} was not loaded as it did not match naming pattern.",
+                Warning,
             )
 
-            region = format_entsoe_region_name(item, year, "load")
-            temp["Region"] = region
-
-            loads = pd.concat((loads, temp), ignore_index=True)
-        elif item.match("*_day_ahead_prices.csv"):
-            temp = pd.read_csv(item).rename(
-                columns={"Unnamed: 0": "Time", "0": "Value"}
-            )
-            region = format_entsoe_region_name(item, year, "day_ahead_prices")
-            temp["Region"] = region
-
-            # Get time
-            temp.Time = pd.to_datetime(temp.Time, utc=True).dt.tz_convert(
-                "Europe/Copenhagen",
-            )
-
-            elprices = pd.concat((elprices, temp), ignore_index=True)
-
-        else:
-            warn(f"{item} was not loaded as it did not match naming pattern.", Warning)
-            continue
-
-    return loads, elprices
+    return [getattr(data, data_item) for data_item in data_items]
 
 
 def format_balmorel_df(df: pd.DataFrame, year: int):
