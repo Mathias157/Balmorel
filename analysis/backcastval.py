@@ -221,7 +221,7 @@ def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
         # Multi-columned data
         if any([type(val) is str for val in df.iloc[0, 1:]]):
             df = pd.read_csv(filepath, header=[0, 1])
-            temp = df.iloc[:, 1:].T.groupby(level=0).mean().T
+            temp = df.iloc[:, 1:].T.groupby(level=0).first().T
             temp["Time"] = df.iloc[:, 0]
             df = temp
             aggregation = {col: "mean" for col in df.columns[:-1]}
