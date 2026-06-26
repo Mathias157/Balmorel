@@ -211,7 +211,20 @@ def format_entsoe_region_name(path, year, parameter):
 def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
     """Format ENTSO-E data"""
 
-    df.columns = ["Time", "Value"]
+    if "generation" not in filepath.name:
+        df.columns = ["Time", "Value"]
+        aggregation = {"Value": "mean"}
+    else:
+        df.columns = ["Time"] + list(df.columns[1:])
+        aggregation = {col: "mean" for col in df.columns[1:]}
+
+        # Multi-columned data
+        if any([type(val) is str for val in df.iloc[0, 1:]]):
+            df = pd.read_csv(filepath, header=[0, 1])
+            temp = df.iloc[:, 1:].T.groupby(level=0).mean().T
+            temp["Time"] = df.iloc[:, 0]
+            df = temp
+            aggregation = {col: "mean" for col in df.columns[:-1]}
 
     # Get time and resample to hours
     df.Time = pd.to_datetime(df.Time, utc=True).dt.tz_convert(
@@ -222,7 +235,7 @@ def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
             resampling,
             on="Time",
         )
-        .aggregate({"Value": "mean"})
+        .aggregate(aggregation)
         .reset_index()
     )
 
@@ -235,7 +248,7 @@ def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
 def load_entsoe_data(year: int, resampling: str = "h"):
     "Load csvs"
     path = Path("backcast/entsoedata")
-    data_items = ["loads", "day_ahead_prices", "generation"]
+    data_items = ["load", "day_ahead_prices", "generation"]
     data = DataContainer(data_items)
 
     for item in path.iterdir():
@@ -359,7 +372,8 @@ def load_and_align_regions(
     elpriceaggfunc: str,
     overwrite: bool,
 ):
-    entsoe_load, entsoe_elprices = load_entsoe_data(year)
+    entsoe_load, entsoe_elprices, entsoe_generation = load_entsoe_data(year)
+    print(entsoe_generation)
     entsoe_load = aggregate_regions(entsoe_load, "sum", ["Time"])
     entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc, ["Time"])
     entsoe_load_unique_regions = set(entsoe_load.Region.unique())
