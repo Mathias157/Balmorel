@@ -208,7 +208,7 @@ def format_entsoe_region_name(path, year, parameter):
     return region
 
 
-def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
+def format_entsoe_data(df, resampling: str, filepath: Path, year: int, parameter: str):
     """Format ENTSO-E data"""
 
     if "generation" not in filepath.name:
@@ -239,7 +239,7 @@ def format_entsoe_data(df, resampling: str, filepath: Path, year: int):
         .reset_index()
     )
 
-    region = format_entsoe_region_name(filepath, year, "load")
+    region = format_entsoe_region_name(filepath, year, parameter)
     df["Region"] = region
 
     return df
@@ -256,7 +256,9 @@ def load_entsoe_data(year: int, resampling: str = "h"):
         tries = 0
         for data_item in data_items:
             if item.match(f"*_{data_item}.csv"):
-                temp = format_entsoe_data(pd.read_csv(item), resampling, item, year)
+                temp = format_entsoe_data(
+                    pd.read_csv(item), resampling, item, year, data_item
+                )
                 setattr(
                     data,
                     data_item,
@@ -295,12 +297,28 @@ def format_balmorel_df(df: pd.DataFrame, year: int):
     new_timeindex = new_timeindex.loc[first_monday_hour:last_sunday_hour, "index"]
 
     # Insert to Balmorel df
+    if "Technology" in df.columns:
+        columns_in = ["Region", "Technology"]
+        columns_out = columns_in[::-1]
+    else:
+        columns_in = ["Region"]
+        columns_out = columns_in
+
     df_out = df.pivot_table(
-        index=["Season", "Time"], columns="Region", values="Value", aggfunc="sum"
+        index=["Season", "Time"],
+        columns=columns_in,
+        values="Value",
+        aggfunc="sum",
     )
+
     df_out.index = new_timeindex
-    df_out = df_out.stack().reset_index()
-    df_out.columns = ["Time", "Region", "Value"]
+
+    if type(df_out.columns) is pd.Index:
+        df_out = df_out.stack().reset_index()
+    elif type(df_out.columns) is pd.MultiIndex:
+        df_out = df_out.stack().stack().reset_index()
+    print(df_out)
+    df_out.columns = ["Time"] + columns_out + ["Value"]
 
     return df_out
 
@@ -355,10 +373,14 @@ def aggregate_regions(df: pd.DataFrame, aggfunc: str, time_columns: list):
 
     for region in df.Region.unique():
         if region in bidding_zone_translation:
+            if "Technology" in df.columns:
+                new_index = ["Region", "Technology"] + time_columns
+            else:
+                new_index = ["Region"] + time_columns
             df = (
                 df.replace({"Region": {region: bidding_zone_translation[region]}})
                 .pivot_table(
-                    index=["Region"] + time_columns,
+                    index=new_index,
                     values="Value",
                     aggfunc=aggfunc,
                 )
@@ -369,31 +391,9 @@ def aggregate_regions(df: pd.DataFrame, aggfunc: str, time_columns: list):
     return df
 
 
-def load_and_align(
-    balmorel_scenario: str,
-    balmorel_scenario_path: str,
-    year: int,
-    elpriceaggfunc: str,
-    overwrite: bool,
+def get_and_format_balmorel(
+    balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
 ):
-    entsoe_load, entsoe_elprices, entsoe_generation = load_entsoe_data(year)
-    print(entsoe_generation)
-    entsoe_load = aggregate_regions(entsoe_load, "sum", ["Time"])
-    entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc, ["Time"])
-    entsoe_load_unique_regions = set(entsoe_load.Region.unique())
-    entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
-    entsoe_generation_unique_regions = set(entsoe_generation.Region.unique())
-    print(f"Amount of regions in ENTSO-E Load data: {entsoe_load_unique_regions}")
-    print(
-        f"Amount of regions in ENTSO-E El. prices data: {entsoe_elprices_unique_regions}"
-    )
-    set_difference = entsoe_load_unique_regions.difference(
-        entsoe_elprices_unique_regions
-    ).union(entsoe_load_unique_regions.difference(entsoe_generation_unique_regions))
-    if set_difference:
-        print(f"Difference in region sets: {set_difference}")
-    else:
-        print("No regional differences between ENTSO-E load and el. price results")
     balmorel_load, balmorel_elprices, balmorel_generation = load_balmorel_data(
         balmorel_scenario, balmorel_scenario_path, year, overwrite
     )
@@ -423,6 +423,80 @@ def load_and_align(
     else:
         print("No regional differences between Balmorel load and el. price results")
 
+    return (
+        balmorel_load,
+        balmorel_elprices,
+        balmorel_generation,
+        balmorel_load_unique_regions,
+        balmorel_elprices_unique_regions,
+        balmorel_generation_unique_regions,
+    )
+
+
+def get_and_format_entsoe(year, elpriceaggfunc):
+    entsoe_load, entsoe_elprices, entsoe_generation = load_entsoe_data(year)
+    entsoe_load = aggregate_regions(entsoe_load, "sum", ["Time"])
+    entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc, ["Time"])
+    entsoe_generation = (
+        entsoe_generation.pivot_table(index=["Time", "Region"]).stack().reset_index()
+    )
+    entsoe_generation.columns = ["Time", "Region", "Technology", "Value"]
+    entsoe_generation = aggregate_regions(entsoe_generation, "sum", ["Time"])
+    entsoe_load_unique_regions = set(entsoe_load.Region.unique())
+    entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
+    entsoe_generation_unique_regions = set(entsoe_generation.Region.unique())
+    print(f"Amount of regions in ENTSO-E Load data: {entsoe_load_unique_regions}")
+    print(
+        f"Amount of regions in ENTSO-E El. prices data: {entsoe_elprices_unique_regions}"
+    )
+    set_difference = entsoe_load_unique_regions.difference(
+        entsoe_elprices_unique_regions
+    ).union(entsoe_load_unique_regions.difference(entsoe_generation_unique_regions))
+    if set_difference:
+        print(f"Difference in region sets: {set_difference}")
+    else:
+        print("No regional differences between ENTSO-E load and el. price results")
+
+    return (
+        entsoe_load,
+        entsoe_elprices,
+        entsoe_generation,
+        entsoe_load_unique_regions,
+        entsoe_elprices_unique_regions,
+        entsoe_generation_unique_regions,
+    )
+
+
+def load_and_align(
+    balmorel_scenario: str,
+    balmorel_scenario_path: str,
+    year: int,
+    elpriceaggfunc: str,
+    overwrite: bool,
+):
+
+    # Load and format data
+    (
+        entsoe_load,
+        entsoe_elprices,
+        entsoe_generation,
+        entsoe_load_unique_regions,
+        entsoe_elprices_unique_regions,
+        entsoe_generation_unique_regions,
+    ) = get_and_format_entsoe(year, elpriceaggfunc)
+
+    (
+        balmorel_load,
+        balmorel_elprices,
+        balmorel_generation,
+        balmorel_load_unique_regions,
+        balmorel_elprices_unique_regions,
+        balmorel_generation_unique_regions,
+    ) = get_and_format_balmorel(
+        balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
+    )
+
+    # Get unique regions
     entsoe_unique_regions = entsoe_load_unique_regions.intersection(
         entsoe_elprices_unique_regions
     ).intersection(entsoe_generation_unique_regions)
@@ -432,7 +506,7 @@ def load_and_align(
     dataset_difference = entsoe_unique_regions.difference(balmorel_unique_regions)
     if dataset_difference:
         print(
-            f"Regional differnces in dataset and Balmorel scope: {dataset_difference}"
+            f"Regional differences in dataset and Balmorel scope: {dataset_difference}"
         )
 
     # Join datasets
@@ -460,9 +534,22 @@ def load_and_align(
         )
     )
 
+    print(entsoe_generation)
+    print(balmorel_generation)
+    generation = (
+        entsoe_generation.set_index(["Region", "Technology", "Time"])
+        .rename(columns={"Value": "ENTSOE"})
+        .join(
+            balmorel_generation.rename(columns={"Value": "BALMOREL"}).set_index(
+                ["Region", "Technology", "Time"]
+            ),
+            how="inner",
+        )
+    )
+
     #
 
-    return prices, loads
+    return prices, loads, generation
 
 
 # ------------------------------- #
@@ -477,17 +564,21 @@ def load_and_align(
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.command()
 def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite):
-    prices, loads = load_and_align(
+    prices, loads, generation = load_and_align(
         balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
     )
+    print("-" * 100)
+    print("Statistics on load in MWh")
+    print("-" * 100)
+    calculate_statistics(loads)
     print("-" * 100)
     print("Statistics on prices in €/MWh")
     print("-" * 100)
     calculate_statistics(prices)
     print("-" * 100)
-    print("Statistics on load in MWh")
+    print("Statistics on generation in MWh")
     print("-" * 100)
-    calculate_statistics(loads)
+    calculate_statistics(generation)
 
 
 if __name__ == "__main__":
