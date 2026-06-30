@@ -270,18 +270,34 @@ def main():
     }
 
     scenarios = [
-        "EVN_INV",
-        "HPN_INV",
-        "TPN_INV",
-        "ELN_INV",
-        "HSNSSN_INV",
-        "HSN_INV",
-        "SSN_INV",
-        "EIN_INV",
-        "DCN_INV",
-        "H2N_INV",
-        "base_INV",
+        "base_R2050",
+        "DCN_R2050",
+        "EVN_R2050",
+        "HPN_R2050",
+        "TPN_R2050",
+        "ELN_R2050",
+        "HSNSSN_R2050",
+        "HSN_R2050",
+        "SSN_R2050",
+        "EIN_R2050",
+        "H2N_R2050",
+        "ALLN_R2050",
     ]
+
+    scenario_labels = {
+        "base_R2050": "base",
+        "DCN_R2050": "DCN",
+        "EVN_R2050": "EVN",
+        "HPN_R2050": "HPN",
+        "TPN_R2050": "TPN",
+        "ELN_R2050": "ELN",
+        "HSNSSN_R2050": "HSNSSN",
+        "HSN_R2050": "HSN",
+        "SSN_R2050": "SSN",
+        "EIN_R2050": "EIN",
+        "H2N_R2050": "H2N",
+        "ALLN_R2050": "ALLN",
+    }
 
     # Load results (change to MainResults if timeseries-heavy results are required?)
     model = Balmorel("analysis/Balmorel", gams_system_directory="/opt/gams/53")
@@ -304,6 +320,7 @@ def main():
         rel_dev,
         rel_range,
         title="Scenario Importance — relative deviation from mean",
+        scenario_labels=scenario_labels,
     )
     fig_heat.savefig("test.png")
 
