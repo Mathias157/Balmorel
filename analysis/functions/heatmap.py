@@ -12,12 +12,10 @@ Created on 23.06.2026
 # ------------------------------- #
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Rectangle
 from pybalmorel import Balmorel
-from scipy import stats
 
 # ------------------------------- #
 #          1. Functions           #
@@ -46,12 +44,11 @@ param_labels = {
 }
 
 
-# TODO: Generally: Parameters will be scenarios in my case, scenario-dimension
-# should be deleted, and .get_results replaced with .get_result
-def compute_srcc(res, scenarios, regions, year, outputs, output_symbol, filters):
+def compute_relative_importance(
+    res, scenarios, regions, year, outputs, output_symbol, filters
+):
 
-    # Build output matrix
-    # TODO: Change this to MainResults result collection
+    # Build output matrix: rows=scenarios, cols=outputs
     df_y = {}
     for output in outputs:
         if regions != "all":
@@ -69,78 +66,73 @@ def compute_srcc(res, scenarios, regions, year, outputs, output_symbol, filters)
         df_out = df_out.groupby("Scenario", as_index=False)["Value"].sum()
         df_y[output] = df_out.set_index("Scenario")["Value"]
 
-    df_y = pd.DataFrame(df_y)  # missing scenarios become NaN automatically
-    print(df_y.round().astype(int))
+    df_y = pd.DataFrame(df_y)  # shape: (n_scenarios, n_outputs)
 
-    # TODO: Not working - maybe skip spearman matrix when you have so few data points?
+    # Relative range per output: (max - min) / mean
+    rel_range = (df_y.max() - df_y.min()) / df_y.mean()  # Series, index=outputs
 
-    # Compute SRCC — per-pair mask handles any remaining NaNs
-    rho_matrix = pd.DataFrame(index=scenarios, columns=outputs, dtype=float)
-    pval_matrix = pd.DataFrame(index=scenarios, columns=outputs, dtype=float)
+    # Per-cell deviation from mean: (value - mean) / mean  (signed)
+    rel_dev = (df_y - df_y.mean()) / df_y.mean()  # DataFrame, same shape as df_y
 
-    scenario_rank = np.arange(len(scenarios))
-    for output in outputs:
-        mask = df_y[output].notna()
-        vals = df_y.loc[mask, output].values
-        ranks = scenario_rank[mask]
-
-        if mask.sum() < 3:
-            rho_matrix[output] = float("nan")
-            pval_matrix[output] = float("nan")
-            continue
-
-        rho, pval = stats.spearmanr(ranks, vals)
-        rho_matrix[output] = rho
-        pval_matrix[output] = pval
-
-    return rho_matrix, pval_matrix
+    return rel_dev, rel_range
 
 
-def plot_srcc_heatmap(
-    rho_matrix,
-    pval_matrix,
-    alpha=0.1,
-    min_rho=0.1,
-    title="SRCC Heatmap",
-    param_labels=None,
+def plot_importance_heatmap(
+    rel_dev,  # DataFrame: scenarios × outputs
+    rel_range,  # Series: outputs
+    title="Scenario Importance Heatmap",
+    output_labels=None,
+    scenario_labels=None,
 ):
+    # rows=outputs, cols=scenarios (transposed for display)
+    data = rel_dev.T  # shape: outputs × scenarios
+    rows = data.index.tolist()  # outputs
+    cols = data.columns.tolist()  # scenarios
 
-    # Transpose so outputs (originally columns) are rows, inputs (originally rows) are columns
-    rho_matrix = rho_matrix.T
-    pval_matrix = pval_matrix.T
-
-    rho = rho_matrix.values.astype(float)
-    pval = pval_matrix.values.astype(float)
-    significant = (pval < alpha) & (np.abs(rho) >= min_rho)
-
-    rows = rho_matrix.index.tolist()  # outputs
-    cols = rho_matrix.columns.tolist()  # inputs
-
-    # Rename inputs if param_labels provided
-    if param_labels:
-        cols = [param_labels.get(c, c) for c in cols]
+    rows_display = [output_labels.get(r, r) if output_labels else r for r in rows]
+    cols_display = [scenario_labels.get(c, c) if scenario_labels else c for c in cols]
 
     nrows, ncols = len(rows), len(cols)
 
-    def scale_radius(r, rmin=0.08, rmax=0.45):
-        actual_min = np.abs(rho[significant]).min()
-        actual_max = np.abs(rho[significant]).max()
-        return rmin + (abs(r) - actual_min) / (actual_max - actual_min) * (rmax - rmin)
+    # Circle radius scaled by rel_range of that output row
+    r_min, r_max = 0.08, 0.45
+    rng_min = rel_range.min()
+    rng_max = rel_range.max()
 
-    fig, ax = plt.subplots(figsize=(max(ncols * 0.9, 14), max(nrows * 0.9, 6)))
+    def row_radius(output, cell_rel_dev):
+        """Max radius for this row set by rel_range; scale within row by abs(rel_dev)."""
+        row_max_r = r_min + (rel_range[output] - rng_min) / (
+            rng_max - rng_min + 1e-9
+        ) * (r_max - r_min)
+        row_dev_max = rel_dev[output].abs().max()
+        if row_dev_max == 0:
+            return r_min
+        return r_min + (abs(cell_rel_dev) / row_dev_max) * (row_max_r - r_min)
 
-    # --- Draw cells ---
-    for i in range(nrows):
-        for j in range(ncols):
+    fig, ax = plt.subplots(figsize=(max(ncols * 0.9, 10), max(nrows * 0.9, 4)))
+
+    for i, output in enumerate(rows):
+        for j, scenario in enumerate(cols):
             x, y = j, i
             rect = Rectangle(
                 (x - 0.5, y - 0.5), 1, 1, facecolor="white", edgecolor="none"
             )
             ax.add_patch(rect)
-            if significant[i, j]:
-                r = rho[i, j]
-                radius = scale_radius(r)
-                color = "#E78AC3" if r > 0 else "#F4A261"
+
+            val = data.loc[output, scenario]
+            if pd.isna(val):
+                grey = Rectangle(
+                    (x - 0.5, y - 0.5),
+                    1,
+                    1,
+                    facecolor="#D9D9D9",
+                    edgecolor="none",
+                    zorder=2,
+                )
+                ax.add_patch(grey)
+            else:
+                radius = row_radius(output, val)
+                color = "#E78AC3" if val > 0 else "#F4A261"
                 circ = Circle(
                     (x, y),
                     radius,
@@ -150,27 +142,14 @@ def plot_srcc_heatmap(
                     zorder=2,
                 )
                 ax.add_patch(circ)
-                # font_color = "white" if abs(r) > 0.5 else "black"
-                # ax.text(x, y, f"{r:.2f}", ha="center", va="center",
-                #        fontsize=7, color=font_color, zorder=3)
-            else:
-                grey_rect = Rectangle(
-                    (x - 0.5, y - 0.5),
-                    1,
-                    1,
-                    facecolor="#D9D9D9",
-                    edgecolor="none",
-                    zorder=2,
-                )
-                ax.add_patch(grey_rect)
 
-    # --- Grid lines ---
+    # Grid
     for j in range(ncols + 1):
         ax.plot([j - 0.5, j - 0.5], [-0.5, nrows - 0.5], color="black", lw=0.8)
     for i in range(nrows + 1):
         ax.plot([-0.5, ncols - 0.5], [i - 0.5, i - 0.5], color="black", lw=0.8)
 
-    # --- Column labels (inputs, angled with inclined extension lines) ---
+    # Column labels (scenarios, angled)
     y_top_grid = -0.5
     y_label = -0.8
     incline_length = min(ncols * 0.5, 2.0)
@@ -183,7 +162,7 @@ def plot_srcc_heatmap(
             color="black",
             lw=0.8,
         )
-    for j, col in enumerate(cols):
+    for j, col in enumerate(cols_display):
         ax.text(
             j,
             y_label - 0.1,
@@ -195,27 +174,23 @@ def plot_srcc_heatmap(
             fontsize=9,
         )
 
-    # --- Row labels (outputs) ---
-    for i, row in enumerate(rows):
+    # Row labels (outputs)
+    for i, row in enumerate(rows_display):
         ax.text(-0.7, i, row, ha="right", va="center", fontsize=10)
 
-    # --- Limits & appearance ---
     ax.set_xlim(-1.5, ncols - 0.5)
     ax.set_ylim(nrows - 0.5, y_label - incline_length - 0.5)
     ax.set_aspect("equal")
     ax.axis("off")
-
-    # --- Title ---
     ax.set_title(title, fontsize=13, fontweight="bold", pad=20)
 
-    # --- Legend ---
     legend_elements = [
         Line2D(
             [0],
             [0],
             marker="o",
             color="w",
-            label="Positive correlation (ρ > 0)",
+            label="Above mean",
             markerfacecolor="#E78AC3",
             markersize=14,
         ),
@@ -224,7 +199,7 @@ def plot_srcc_heatmap(
             [0],
             marker="o",
             color="w",
-            label="Negative correlation (ρ < 0)",
+            label="Below mean",
             markerfacecolor="#F4A261",
             markersize=14,
         ),
@@ -233,7 +208,7 @@ def plot_srcc_heatmap(
             [0],
             marker="o",
             color="w",
-            label="Not significant / weak",
+            label="No data",
             markerfacecolor="#D9D9D9",
             markersize=14,
             markeredgecolor="grey",
@@ -314,7 +289,8 @@ def main():
     res = model.results
 
     # Compute once, reuse for all plots
-    rho_matrix, pval_matrix = compute_srcc(
+
+    rel_dev, rel_range = compute_relative_importance(
         res=res,
         scenarios=scenarios,
         regions="all",
@@ -324,17 +300,11 @@ def main():
         filters=filters,
     )
 
-    # TODO: Plot heatmap
-
-    rho_matrix.columns = rho_matrix.columns.map(lambda x: param_labels.get(x, x))
-    pval_matrix.columns = pval_matrix.columns.map(lambda x: param_labels.get(x, x))
-    fig_heat = plot_srcc_heatmap(
-        rho_matrix,
-        pval_matrix,
-        title="SRCC — All scenarios vs Outputs",
-        param_labels=param_labels,
+    fig_heat = plot_importance_heatmap(
+        rel_dev,
+        rel_range,
+        title="Scenario Importance — relative deviation from mean",
     )
-    fig_heat.show()
     fig_heat.savefig("test.png")
 
     # Bar chart: one output at a time
