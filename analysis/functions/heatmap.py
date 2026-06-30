@@ -44,21 +44,53 @@ param_labels = {
 }
 
 
+class CachedResults:
+    def __init__(self, results):
+        self.results = results
+
+    def get_and_cache(self, symbol, base_query: str | None = None):
+
+        if not hasattr(self, symbol):
+            df = self.results.get_result(symbol)
+            if base_query:
+                df = df.query(base_query)
+
+            setattr(self, symbol, df)
+        else:
+            df = getattr(self, symbol)
+
+        return df
+
+    def clear_cache(self, symbol):
+        try:
+            delattr(self, symbol)
+        except AttributeError:
+            print(symbol, "already deleted from cache")
+
+
 def compute_relative_importance(
     res, scenarios, regions, year, outputs, output_symbol, filters
 ):
 
+    # Prepare data
+    cached_results = CachedResults(res)
+
     # Build output matrix: rows=scenarios, cols=outputs
     df_y = {}
-    for output in outputs:
+    for i, output in enumerate(outputs):
+        current_symbol = output_symbol[output]
         if regions != "all":
-            df_out = res.get_result(output_symbol[output]).query(
-                f'Year == "{year}" and Regions in {regions} and Scenario in {scenarios}'
+            df_out = cached_results.get_and_cache(
+                current_symbol,
+                f'Year == "{year}" and Regions in {regions} and Scenario in {scenarios}',
             )
         else:
-            df_out = res.get_result(output_symbol[output]).query(
-                f'Year == "{year}" and Scenario in {scenarios}'
+            df_out = cached_results.get_and_cache(
+                current_symbol, f'Year == "{year}" and Scenario in {scenarios}'
             )
+
+        if current_symbol not in [output_symbol[output] for output in outputs[i + 1 :]]:
+            cached_results.clear_cache(current_symbol)
 
         if output in filters:
             df_out = df_out.query(filters[output])
@@ -238,7 +270,7 @@ def main():
         "Production (TWh)",
         "Generation Capacity (GW)",
         "Storage power cap (GW)",
-        # "Peak Generation Production",
+        "Peak Generation Production (TWh)",
         # "Elec Battery Production",
         # "Elec Battery Capacity",
         # "Demand Response Production",
@@ -262,11 +294,13 @@ def main():
         "Production (TWh)": "PRO_YCRAGF",
         "Generation Capacity (GW)": "G_CAP_YCRAF",
         "Storage power cap (GW)": "G_CAP_YCRAF",
+        "Peak Generation Production (TWh)": "PRO_YCRAGF",
     }
 
     filters = {
         "Generation Capacity": 'not Technology.str.contains("STORAGE")',
         "Storage power cap (GW)": 'Technology.str.contains("STORAGE")',
+        "Peak Generation Production (TWh)": 'Generation.str.contains("BACKUP")',
     }
 
     scenarios = [
@@ -323,10 +357,6 @@ def main():
         scenario_labels=scenario_labels,
     )
     fig_heat.savefig("test.png")
-
-    # Bar chart: one output at a time
-    # fig_bar = plot_srcc_bars(rho_matrix, pval_matrix, output="V2G Production")
-    # fig_bar.show()
 
 
 if __name__ == "__main__":
