@@ -185,6 +185,107 @@ bidding_zone_translation = {
     "FIN": "FI",
 }
 
+balmorel_to_category = {
+    # Wind
+    "WIND-ON - WIND": "Wind",
+    "WIND-OFF - WIND": "Wind",
+    # Solar
+    "SOLAR-PV - SUN": "Solar",
+    "SOLAR-HEATING - SUN": "Solar",
+    # Hydro
+    "HYDRO-RUN-OF-RIVER - WATER": "Hydro",
+    "HYDRO-RESERVOIRS - WATER": "Hydro",
+    # Nuclear
+    "CONDENSING - NUCLEAR": "Nuclear",
+    # Biomass & Bioenergy
+    "BOILERS - BIOMETHANE": "Biomass & Bioenergy",
+    "BOILERS - WOODPELLETS": "Biomass & Bioenergy",
+    "BOILERS - WOODCHIPS": "Biomass & Bioenergy",
+    "BOILERS - WOODWASTE": "Biomass & Bioenergy",
+    "BOILERS - WOOD": "Biomass & Bioenergy",
+    "BOILERS - STRAW": "Biomass & Bioenergy",
+    "BOILERS - BIOGAS": "Biomass & Bioenergy",
+    "BOILERS - BIOOIL": "Biomass & Bioenergy",
+    "CONDENSING - BIOMETHANE": "Biomass & Bioenergy",
+    "CHP-BACK-PRESSURE - BIOMETHANE": "Biomass & Bioenergy",
+    "CHP-BACK-PRESSURE - WOODCHIPS": "Biomass & Bioenergy",
+    "CHP-BACK-PRESSURE - WOODPELLETS": "Biomass & Bioenergy",
+    "CHP-BACK-PRESSURE - WOODWASTE": "Biomass & Bioenergy",
+    "CHP-BACK-PRESSURE - BIOGAS": "Biomass & Bioenergy",
+    "CHP-BACK-PRESSURE - STRAW": "Biomass & Bioenergy",
+    "CHP-EXTRACTION - BIOMETHANE": "Biomass & Bioenergy",
+    "CHP-EXTRACTION - WOODPELLETS": "Biomass & Bioenergy",
+    # Fossil Gas
+    "BOILERS - NATGAS": "Fossil Gas",
+    "CHP-BACK-PRESSURE - NATGAS": "Fossil Gas",
+    "CHP-EXTRACTION - NATGAS": "Fossil Gas",
+    "STEAMREFORMING - NATGAS": "Fossil Gas",
+    "BOILERS - OTHERGAS": "Fossil Gas",
+    "CHP-BACK-PRESSURE - OTHERGAS": "Fossil Gas",
+    "CHP-EXTRACTION - OTHERGAS": "Fossil Gas",
+    # Fossil Solid
+    "BOILERS - COAL": "Fossil Solid",
+    "BOILERS - PEAT": "Fossil Solid",
+    "CHP-BACK-PRESSURE - COAL": "Fossil Solid",
+    "CHP-BACK-PRESSURE - PEAT": "Fossil Solid",
+    "CHP-EXTRACTION - COAL": "Fossil Solid",
+    "CHP-EXTRACTION - PEAT": "Fossil Solid",
+    # Fossil Liquid & Other Fossil
+    "BOILERS - LIGHTOIL": "Fossil Liquid & Other Fossil",
+    "BOILERS - FUELOIL": "Fossil Liquid & Other Fossil",
+    "CHP-BACK-PRESSURE - LIGHTOIL": "Fossil Liquid & Other Fossil",
+    "CHP-BACK-PRESSURE - FUELOIL": "Fossil Liquid & Other Fossil",
+    "CHP-EXTRACTION - FUELOIL": "Fossil Liquid & Other Fossil",
+    # Waste & Heat Recovery
+    "BOILERS - MUNIWASTE": "Waste & Heat Recovery",
+    "BOILERS - WASTEHEAT": "Waste & Heat Recovery",
+    "CONDENSING - MUNIWASTE": "Waste & Heat Recovery",
+    "CONDENSING - WASTEHEAT": "Waste & Heat Recovery",
+    "CHP-BACK-PRESSURE - MUNIWASTE": "Waste & Heat Recovery",
+    "CHP-EXTRACTION - MUNIWASTE": "Waste & Heat Recovery",
+    # Storage & Flexibility
+    "INTRASEASONAL-ELECT-STORAGE - ELECTRIC": "Storage & Flexibility",
+    "INTRASEASONAL-HEAT-STORAGE - HEAT": "Storage & Flexibility",
+    "INTERSEASONAL-HEAT-STORAGE - HEAT": "Storage & Flexibility",
+    "ELECT-TO-HEAT - ELECTRIC": "Storage & Flexibility",
+    "CHP-BACK-PRESSURE - HEAT": "Storage & Flexibility",
+    # Uncategorised (catch-all)
+    "CONDENSING - DUMMY": "Other",
+}
+
+entsoe_to_category = {
+    # Wind
+    "Wind Onshore": "Wind",
+    "Wind Offshore": "Wind",
+    # Solar
+    "Solar": "Solar",
+    # Hydro
+    "Hydro Run-of-river and poundage": "Hydro",
+    "Hydro Water Reservoir": "Hydro",
+    "Hydro Pumped Storage": "Hydro",
+    # Nuclear
+    "Nuclear": "Nuclear",
+    # Biomass & Bioenergy
+    "Biomass": "Biomass & Bioenergy",
+    # Fossil Gas
+    "Fossil Gas": "Fossil Gas",
+    "Fossil Coal-derived gas": "Fossil Gas",
+    # Fossil Solid
+    "Fossil Brown coal/Lignite": "Fossil Solid",
+    "Fossil Hard coal": "Fossil Solid",
+    "Fossil Peat": "Fossil Solid",
+    # Fossil Liquid & Other Fossil
+    "Fossil Oil": "Fossil Liquid & Other Fossil",
+    "Fossil Oil shale": "Fossil Liquid & Other Fossil",
+    # Waste & Heat Recovery
+    "Waste": "Waste & Heat Recovery",
+    # Storage & Flexibility
+    "Geothermal": "Storage & Flexibility",
+    "Marine": "Storage & Flexibility",
+    "Other renewable": "Storage & Flexibility",
+    "Other": "Storage & Flexibility",
+}
+
 # ------------------------------- #
 #          1. Functions           #
 # ------------------------------- #
@@ -317,7 +418,6 @@ def format_balmorel_df(df: pd.DataFrame, year: int):
         df_out = df_out.stack().reset_index()
     elif type(df_out.columns) is pd.MultiIndex:
         df_out = df_out.stack().stack().reset_index()
-    print(df_out)
     df_out.columns = ["Time"] + columns_out + ["Value"]
 
     return df_out
@@ -341,7 +441,9 @@ def load_balmorel_data(
         )  # pyright: ignore
         load = results.get_result("EL_DEMAND_YCRST").query(f"Year == '{year}'")
         elprices = results.get_result("EL_PRICE_YCRST").query(f"Year == '{year}'")
-        generation = results.get_result("PRO_YCRAGFST").query(f"Year == '{year}'")
+        generation = results.get_result("PRO_YCRAGFST").query(
+            f"Year == '{year}' and Commodity == 'ELECTRICITY'"
+        )
         load.to_csv(path.joinpath("balmorel_load.csv"), index=False)
         elprices.to_csv(path.joinpath("balmorel_prices.csv"), index=False)
         generation.to_csv(path.joinpath("balmorel_generation.csv"), index=False)
@@ -353,7 +455,9 @@ def load_balmorel_data(
     return load, elprices, generation
 
 
-def calculate_statistics(df: pd.DataFrame, timeslicing: int = 0):
+def calculate_statistics(
+    df: pd.DataFrame, timeslicing: int = 0, per_region: bool = False
+):
     "Get std. dev, mean, max etc..."
 
     if timeslicing != 0:
@@ -361,22 +465,33 @@ def calculate_statistics(df: pd.DataFrame, timeslicing: int = 0):
         idx = time[:timeslicing]
         df = df.loc[(slice(None), idx), :]
 
-    for region in df.index.get_level_values(0).unique():
-        temp = df.loc[region]
+    if per_region:
+        for region in df.index.get_level_values(0).unique():
+            temp = df.loc[region]
+            print(
+                f"\nStatistics for {region}:\nStd. dev:\n{temp.std().round()}\nMean:\n{temp.mean().round()}\nMin:\n{temp.mean().round()}\nMax:\n{temp.max().round()}"
+            )
+    else:
         print(
-            f"\nStatistics for {region}:\nStd. dev:\n{temp.std()}\nMean:\n{temp.mean()}\nMin:\n{temp.mean()}\nMax:\n{temp.max()}"
+            f"\nStd. dev:\n{df.std().round()}\nMean:\n{df.mean().round()}\nMin:\n{df.mean().round()}\nMax:\n{df.max().round()}"
         )
 
 
 def aggregate_regions(df: pd.DataFrame, aggfunc: str, time_columns: list):
     "Aggregate DE4, IT-* etc"
 
+    # Combine technology and fuel column for Balmorel
+    if "Technology" in df.columns and "Fuel" in df.columns:
+        df.Technology = df.Technology + " - " + df.Fuel
+
+    # Prepare correct indices
+    if "Technology" in df.columns:
+        new_index = ["Region", "Technology"] + time_columns
+    else:
+        new_index = ["Region"] + time_columns
+
     for region in df.Region.unique():
         if region in bidding_zone_translation:
-            if "Technology" in df.columns:
-                new_index = ["Region", "Technology"] + time_columns
-            else:
-                new_index = ["Region"] + time_columns
             df = (
                 df.replace({"Region": {region: bidding_zone_translation[region]}})
                 .pivot_table(
@@ -408,20 +523,25 @@ def get_and_format_balmorel(
         aggregate_regions(balmorel_generation, elpriceaggfunc, ["Season", "Time"]),
         year,
     )
+    for tech_category in balmorel_generation.Technology:
+        if tech_category not in balmorel_to_category:
+            warn(
+                f"{tech_category} technology category in Balmorel has not been mapped to overarching category in the balmorel_to_category dictionary!"
+            )
+    balmorel_generation.Technology = balmorel_generation.Technology.map(
+        balmorel_to_category
+    )
+
+    # Check unique regions in Balmorel results
     balmorel_load_unique_regions = set(balmorel_load.Region.unique())
     balmorel_elprices_unique_regions = set(balmorel_elprices.Region.unique())
     balmorel_generation_unique_regions = set(balmorel_generation.Region.unique())
-    print(f"Amount of regions in Balmorel Load data: {balmorel_load_unique_regions}")
-    print(
-        f"Amount of regions in Balmorel El. prices data: {balmorel_elprices_unique_regions}"
-    )
     set_difference = balmorel_load_unique_regions.difference(
         balmorel_elprices_unique_regions
     ).union(balmorel_load_unique_regions.difference(balmorel_generation_unique_regions))
+
     if set_difference:
-        print(f"Difference in region sets: {set_difference}")
-    else:
-        print("No regional differences between Balmorel load and el. price results")
+        warn(f"Difference in region sets between Balmorel results: {set_difference}")
 
     return (
         balmorel_load,
@@ -434,28 +554,37 @@ def get_and_format_balmorel(
 
 
 def get_and_format_entsoe(year, elpriceaggfunc):
+    # Load
     entsoe_load, entsoe_elprices, entsoe_generation = load_entsoe_data(year)
     entsoe_load = aggregate_regions(entsoe_load, "sum", ["Time"])
+
+    # Electricity prices
     entsoe_elprices = aggregate_regions(entsoe_elprices, elpriceaggfunc, ["Time"])
+
+    # Generation of electricity
     entsoe_generation = (
         entsoe_generation.pivot_table(index=["Time", "Region"]).stack().reset_index()
     )
     entsoe_generation.columns = ["Time", "Region", "Technology", "Value"]
     entsoe_generation = aggregate_regions(entsoe_generation, "sum", ["Time"])
+
+    for tech_category in entsoe_generation.Technology:
+        if tech_category not in entsoe_to_category:
+            warn(
+                f"{tech_category} technology category in ENTSO-E has not been mapped to overarching category in the entsoe_to_category dictionary!"
+            )
+    entsoe_generation.Technology = entsoe_generation.Technology.map(entsoe_to_category)
     entsoe_load_unique_regions = set(entsoe_load.Region.unique())
     entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
     entsoe_generation_unique_regions = set(entsoe_generation.Region.unique())
-    print(f"Amount of regions in ENTSO-E Load data: {entsoe_load_unique_regions}")
-    print(
-        f"Amount of regions in ENTSO-E El. prices data: {entsoe_elprices_unique_regions}"
-    )
+
+    # Find amount of unique regions in ENTSO-E datasets
     set_difference = entsoe_load_unique_regions.difference(
         entsoe_elprices_unique_regions
     ).union(entsoe_load_unique_regions.difference(entsoe_generation_unique_regions))
+
     if set_difference:
-        print(f"Difference in region sets: {set_difference}")
-    else:
-        print("No regional differences between ENTSO-E load and el. price results")
+        warn(f"Difference in region sets between ENTSO-E datasets: {set_difference}")
 
     return (
         entsoe_load,
@@ -505,8 +634,8 @@ def load_and_align(
     ).intersection(balmorel_generation_unique_regions)
     dataset_difference = entsoe_unique_regions.difference(balmorel_unique_regions)
     if dataset_difference:
-        print(
-            f"Regional differences in dataset and Balmorel scope: {dataset_difference}"
+        warn(
+            f"These regions are either only in the ENTSO-E dataset or Balmorel results and will be filtered away when data is joined: {dataset_difference}"
         )
 
     # Join datasets
@@ -534,8 +663,6 @@ def load_and_align(
         )
     )
 
-    print(entsoe_generation)
-    print(balmorel_generation)
     generation = (
         entsoe_generation.set_index(["Region", "Technology", "Time"])
         .rename(columns={"Value": "ENTSOE"})
@@ -546,8 +673,6 @@ def load_and_align(
             how="inner",
         )
     )
-
-    #
 
     return prices, loads, generation
 
@@ -569,16 +694,16 @@ def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwr
     )
     print("-" * 100)
     print("Statistics on load in MWh")
-    print("-" * 100)
     calculate_statistics(loads)
     print("-" * 100)
     print("Statistics on prices in €/MWh")
-    print("-" * 100)
     calculate_statistics(prices)
     print("-" * 100)
-    print("Statistics on generation in MWh")
+    print("Generation statistics on generation in MWh")
+    for technology in generation.index.get_level_values(1).unique():
+        print(f"\nStatistics for {technology}")
+        calculate_statistics(generation.loc[(slice(None), technology, slice(None))])
     print("-" * 100)
-    calculate_statistics(generation)
 
 
 if __name__ == "__main__":
