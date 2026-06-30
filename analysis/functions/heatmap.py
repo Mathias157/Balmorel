@@ -13,6 +13,7 @@ Created on 23.06.2026
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from decouple import config
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Rectangle
 from pybalmorel import Balmorel
@@ -21,36 +22,14 @@ from pybalmorel import Balmorel
 #          1. Functions           #
 # ------------------------------- #
 
-param_labels = {
-    "CO2_TAX": "CO2 Tax",
-    "PV_INVC": "PV CAPEX",
-    "ONS_WT_INVC": "Onshore Wind CAPEX",
-    "OFF_WT_INVC": "Offshore Wind CAPEX",
-    "H2_TRANS_INVC": "H2 Transmission CAPEX",
-    "ELEC_TRANS_INVC": "Electricity Transmission CAPEX",
-    "NATGAS_P": "Natural Gas Price",
-    "EV_BEV_available": "EV BEV Availability",
-    "V2G_EFF": "V2G Efficiency",
-    "EV_CHARGE_CAP": "EV Charger Capacity",
-    "ADOPTION_RATE_DR": "Demand Response Adoption Rate",
-    "BATTERIES_OandM": "Battery OPEX",
-    "BATTERIES_INVCOST0": "Battery CAPEX",
-    "V2G_SHARE": "V2G Share",
-    "DH2_DEMAND": "Hydrogen Demand",
-    "H2S_INVC": "H2 Storage CAPEX",
-    "HS_INVC": "Heat Storage CAPEX",
-    "HP_INVC": "Heat Pump CAPEX",
-    "H2_INVCOST0": "Electrolyser CAPEX",
-}
-
 
 class CachedResults:
     def __init__(self, results):
         self.results = results
 
     def get_and_cache(self, symbol, base_query: str | None = None):
-
         if not hasattr(self, symbol):
+            print(f"Loading {symbol} into cache...")
             df = self.results.get_result(symbol)
             if base_query:
                 df = df.query(base_query)
@@ -63,6 +42,7 @@ class CachedResults:
 
     def clear_cache(self, symbol):
         try:
+            print(f"Removing {symbol} from cache...")
             delattr(self, symbol)
         except AttributeError:
             print(symbol, "already deleted from cache")
@@ -71,7 +51,6 @@ class CachedResults:
 def compute_relative_importance(
     res, scenarios, regions, year, outputs, output_symbol, filters
 ):
-
     # Prepare data
     cached_results = CachedResults(res)
 
@@ -265,13 +244,12 @@ def plot_importance_heatmap(
 
 
 def main():
-
     outputs = [
         "Production (TWh)",
         "Generation Capacity (GW)",
         "Storage power cap (GW)",
         "Peak Generation Production (TWh)",
-        # "Elec Battery Production",
+        "Elec Battery Production (TWh)",
         # "Elec Battery Capacity",
         # "Demand Response Production",
         # "Thermal Storage Production",
@@ -295,12 +273,14 @@ def main():
         "Generation Capacity (GW)": "G_CAP_YCRAF",
         "Storage power cap (GW)": "G_CAP_YCRAF",
         "Peak Generation Production (TWh)": "PRO_YCRAGF",
+        "Elec Battery Production (TWh)": "G_CAP_YCRAF",
     }
 
     filters = {
         "Generation Capacity": 'not Technology.str.contains("STORAGE")',
         "Storage power cap (GW)": 'Technology.str.contains("STORAGE")',
         "Peak Generation Production (TWh)": 'Generation.str.contains("BACKUP")',
+        "Elec Battery Production (TWh)": 'Generation.str.contains("ELEC_BAT")',
     }
 
     scenarios = [
@@ -334,7 +314,9 @@ def main():
     }
 
     # Load results (change to MainResults if timeseries-heavy results are required?)
-    model = Balmorel("analysis/Balmorel", gams_system_directory="/opt/gams/53")
+    model = Balmorel(
+        "analysis/Balmorel", gams_system_directory=config("GAMS_SYSTEM_DIR")
+    )
     model.collect_results()
     res = model.results
 
