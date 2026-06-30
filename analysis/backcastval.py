@@ -692,16 +692,19 @@ def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwr
     prices, loads, generation = load_and_align(
         balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
     )
+    print("\n\n")
     print("-" * 100)
     print("Statistics on load in MWh")
     calculate_statistics(loads)
+    print("\n\n")
     print("-" * 100)
     print("Statistics on prices in €/MWh")
     calculate_statistics(prices)
+    print("\n\n")
     print("-" * 100)
-    print("Generation statistics on generation in MWh")
+    print("Statistics on generation in MWh")
     for technology in generation.index.get_level_values(1).unique():
-        print(f"\nStatistics for {technology}")
+        print(f"\n{technology}:")
         calculate_statistics(generation.loc[(slice(None), technology, slice(None))])
     print("-" * 100)
 
