@@ -12,10 +12,10 @@ Created on 23.06.2026
 # ------------------------------- #
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
-from matplotlib.patches import Circle, Rectangle
+import pandas as pd
 from matplotlib.lines import Line2D
+from matplotlib.patches import Circle, Rectangle
 from pybalmorel import Balmorel
 from scipy import stats
 
@@ -48,40 +48,50 @@ param_labels = {
 
 # TODO: Generally: Parameters will be scenarios in my case, scenario-dimension
 # should be deleted, and .get_results replaced with .get_result
-def compute_srcc(res, scenarios, outputs, regions, year):
+def compute_srcc(res, scenarios, regions, year, outputs, output_symbol, filters):
 
     # Build output matrix
     # TODO: Change this to MainResults result collection
     df_y = {}
     for output in outputs:
         if regions != "all":
-            df_out = res.get_result(output).query(
+            df_out = res.get_result(output_symbol[output]).query(
                 f'Year == "{year}" and Regions in {regions} and Scenario in {scenarios}'
             )
         else:
-            df_out = res.get_result(output).query(
+            df_out = res.get_result(output_symbol[output]).query(
                 f'Year == "{year}" and Scenario in {scenarios}'
             )
+
+        if output in filters:
+            df_out = df_out.query(filters[output])
 
         df_out = df_out.groupby("Scenario", as_index=False)["Value"].sum()
         df_y[output] = df_out.set_index("Scenario")["Value"]
 
     df_y = pd.DataFrame(df_y)  # missing scenarios become NaN automatically
+    print(df_y.round().astype(int))
+
+    # TODO: Not working - maybe skip spearman matrix when you have so few data points?
 
     # Compute SRCC — per-pair mask handles any remaining NaNs
     rho_matrix = pd.DataFrame(index=scenarios, columns=outputs, dtype=float)
     pval_matrix = pd.DataFrame(index=scenarios, columns=outputs, dtype=float)
 
-    for scenario in scenarios:
-        for output in outputs:
-            mask = df_y[output].notna()
-            if mask.sum() < 3:
-                rho_matrix.loc[scenario, output] = float("nan")
-                pval_matrix.loc[scenario, output] = float("nan")
-                continue
-            rho, pval = stats.spearmanr(df_y.loc[mask, output])
-            rho_matrix.loc[scenario, output] = rho
-            pval_matrix.loc[scenario, output] = pval
+    scenario_rank = np.arange(len(scenarios))
+    for output in outputs:
+        mask = df_y[output].notna()
+        vals = df_y.loc[mask, output].values
+        ranks = scenario_rank[mask]
+
+        if mask.sum() < 3:
+            rho_matrix[output] = float("nan")
+            pval_matrix[output] = float("nan")
+            continue
+
+        rho, pval = stats.spearmanr(ranks, vals)
+        rho_matrix[output] = rho
+        pval_matrix[output] = pval
 
     return rho_matrix, pval_matrix
 
@@ -250,8 +260,9 @@ def plot_srcc_heatmap(
 def main():
 
     outputs = [
-        "PRO_YCRAGF"
-        # "V2G Production",
+        "Production (TWh)",
+        "Generation Capacity (GW)",
+        "Storage power cap (GW)",
         # "Peak Generation Production",
         # "Elec Battery Production",
         # "Elec Battery Capacity",
@@ -272,9 +283,16 @@ def main():
         # "H2 Transmission Capacity",
     ]
 
-    model = Balmorel("analysis/Balmorel", gams_system_directory="/opt/gams/53")
-    model.collect_results()
-    res = model.results
+    output_symbol = {
+        "Production (TWh)": "PRO_YCRAGF",
+        "Generation Capacity (GW)": "G_CAP_YCRAF",
+        "Storage power cap (GW)": "G_CAP_YCRAF",
+    }
+
+    filters = {
+        "Generation Capacity": 'not Technology.str.contains("STORAGE")',
+        "Storage power cap (GW)": 'Technology.str.contains("STORAGE")',
+    }
 
     scenarios = [
         "EVN_INV",
@@ -290,17 +308,24 @@ def main():
         "base_INV",
     ]
 
+    # Load results (change to MainResults if timeseries-heavy results are required?)
+    model = Balmorel("analysis/Balmorel", gams_system_directory="/opt/gams/53")
+    model.collect_results()
+    res = model.results
+
     # Compute once, reuse for all plots
-    # TODO: Input res and parameters correctly
     rho_matrix, pval_matrix = compute_srcc(
         res=res,
         scenarios=scenarios,
-        outputs=outputs,
         regions="all",
         year="2050",
+        outputs=outputs,
+        output_symbol=output_symbol,
+        filters=filters,
     )
 
-    # Heatmap: full overview
+    # TODO: Plot heatmap
+
     rho_matrix.columns = rho_matrix.columns.map(lambda x: param_labels.get(x, x))
     pval_matrix.columns = pval_matrix.columns.map(lambda x: param_labels.get(x, x))
     fig_heat = plot_srcc_heatmap(
