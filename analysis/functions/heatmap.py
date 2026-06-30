@@ -32,7 +32,10 @@ class CachedResults:
             print(f"Loading {symbol} into cache...")
             df = self.results.get_result(symbol)
             if base_query:
-                df = df.query(base_query)
+                try:
+                    df = df.query(base_query)
+                except pd.errors.UndefinedVariableError:
+                    df = df.query(base_query.replace("Year", "Y"))
 
             setattr(self, symbol, df)
         else:
@@ -245,42 +248,69 @@ def plot_importance_heatmap(
 
 def main():
     outputs = [
-        "Production (TWh)",
-        "Generation Capacity (GW)",
-        "Storage power cap (GW)",
-        "Peak Generation Production (TWh)",
-        "Elec Battery Production (TWh)",
-        # "Elec Battery Capacity",
-        # "Demand Response Production",
-        # "Thermal Storage Production",
-        # "Hydro Production",
-        # "H2 Storage",
-        # "Elec PV Production",
-        # "Elec ONSHORE Production",
-        # "Elec OFFSHORE Production",
-        # "Elec Transmission Flow",
-        # "Elec Transmission Capacity",
-        # "Heat Pump Capacity",
-        # "Heat Pump Production",
-        # "H2 Green Capacity",
-        # "H2 Green Production",
-        # "H2 Transmission Flow",
-        # "H2 Transmission Capacity",
+        "Production",
+        "Generation Capacity",
+        "Storage Power Capacity",
+        "Peak Generation Production",
+        "Elec. Battery Production",
+        "Elec. Battery Capacity",
+        "Demand Response Use",
+        "Thermal Storage Production",
+        "Hydro Production",
+        "H2 Storage Production",
+        "Elec. PV Production",
+        "Elec. Onshore Wind Production",
+        "Elec. Offshore Wind Production",
+        "Elec. Transmission Flow",
+        "Elec. Transmission Capacity",
+        "Heat Pump Capacity",
+        "Heat Pump Production",
+        "H2 Green Capacity",
+        "H2 Green Production",
+        "H2 Transmission Flow",
+        "H2 Transmission Capacity",
     ]
 
     output_symbol = {
-        "Production (TWh)": "PRO_YCRAGF",
-        "Generation Capacity (GW)": "G_CAP_YCRAF",
-        "Storage power cap (GW)": "G_CAP_YCRAF",
-        "Peak Generation Production (TWh)": "PRO_YCRAGF",
-        "Elec Battery Production (TWh)": "G_CAP_YCRAF",
+        "Production": "PRO_YCRAGF",
+        "Generation Capacity": "G_CAP_YCRAF",
+        "Storage Power Capacity": "G_CAP_YCRAF",
+        "Peak Generation Production": "PRO_YCRAGF",
+        "Elec. Battery Production": "G_CAP_YCRAF",
+        "Elec. Battery Capacity": "G_CAP_YCRAF",
+        "Demand Response Use": "DR_FLEX_Y",
+        "Thermal Storage Production": "PRO_YCRAGF",
+        "Hydro Production": "PRO_YCRAGF",
+        "H2 Storage Production": "PRO_YCRAGF",
+        "Elec. PV Production": "PRO_YCRAGF",
+        "Elec. Onshore Wind Production": "PRO_YCRAGF",
+        "Elec. Offshore Wind Production": "PRO_YCRAGF",
+        "Elec. Transmission Flow": "X_FLOW_YCR",
+        "Elec. Transmission Capacity": "X_CAP_YCR",
+        "Heat Pump Capacity": "G_CAP_YCRAF",
+        "Heat Pump Production": "PRO_YCRAGF",
+        "H2 Green Capacity": "G_CAP_YCRAF",
+        "H2 Green Production": "PRO_YCRAGF",
+        "H2 Transmission Flow": "XH2_FLOW_YCR",
+        "H2 Transmission Capacity": "XH2_CAP_YCR",
     }
 
     filters = {
         "Generation Capacity": 'not Technology.str.contains("STORAGE")',
-        "Storage power cap (GW)": 'Technology.str.contains("STORAGE")',
-        "Peak Generation Production (TWh)": 'Generation.str.contains("BACKUP")',
-        "Elec Battery Production (TWh)": 'Generation.str.contains("ELEC_BAT")',
+        "Storage Power Capacity": 'Technology.str.contains("STORAGE")',
+        "Elec. Battery Capacity": 'Generation.str.contains("ELEC_BAT")',
+        "Peak Generation Production": 'Generation.str.contains("BACKUP")',
+        "Elec. Battery Production": 'Generation.str.contains("ELEC_BAT")',
+        "Thermal Storage Production": 'Technology.str.contains("STORAGE") and Commodity == "HEAT"',
+        "Hydro Production": 'Technology.str.contains("HYDRO")',
+        "H2 Storage Production": 'Technology == "H2-STORAGE"',
+        "Elec. PV Production": 'Technology == "SOLAR-PV"',
+        "Elec. Onshore Wind Production": 'Technology == "WIND-ON"',
+        "Elec. Offshore Wind Production": 'Technology == "WIND-OFF"',
+        "Heat Pump Capacity": 'Generation.str.contains("HP_ELEC")',
+        "Heat Pump Production": 'Generation.str.contains("HP_ELEC")',
+        "H2 Green Capacity": 'Technology == "ELECTROLYZER"',
+        "H2 Green Production": 'Technology == "ELECTROLYZER"',
     }
 
     scenarios = [
@@ -315,7 +345,8 @@ def main():
 
     # Load results (change to MainResults if timeseries-heavy results are required?)
     model = Balmorel(
-        "analysis/Balmorel", gams_system_directory=config("GAMS_SYSTEM_DIR")
+        "analysis/Balmorel",
+        gams_system_directory=config("GAMS_SYSTEM_DIR"),  # pyright: ignore
     )
     model.collect_results()
     res = model.results
@@ -338,7 +369,7 @@ def main():
         title="Scenario Importance — relative deviation from mean",
         scenario_labels=scenario_labels,
     )
-    fig_heat.savefig("test.png")
+    fig_heat.savefig("test.png", dpi=300)
 
 
 if __name__ == "__main__":
