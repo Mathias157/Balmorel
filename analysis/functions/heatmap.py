@@ -11,6 +11,7 @@ Created on 23.06.2026
 #        0. Script Settings       #
 # ------------------------------- #
 
+import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from decouple import config
@@ -97,6 +98,7 @@ def plot_importance_heatmap(
     title="Scenario Importance Heatmap",
     output_labels=None,
     scenario_labels=None,
+    value_annotate=False,
 ):
     # rows=outputs, cols=scenarios (transposed for display)
     data = rel_dev.T  # shape: outputs × scenarios
@@ -109,7 +111,7 @@ def plot_importance_heatmap(
     nrows, ncols = len(rows), len(cols)
 
     # Circle radius scaled by rel_range of that output row
-    r_min, r_max = 0.08, 0.45
+    r_min, r_max = 0.04, 0.45
     rng_min = rel_range.min()
     rng_max = rel_range.max()
 
@@ -156,6 +158,9 @@ def plot_importance_heatmap(
                     zorder=2,
                 )
                 ax.add_patch(circ)
+
+            if value_annotate and val is not np.nan:
+                ax.annotate(f"{val * 100:2.1f}", xy=(x, y))
 
     # Grid
     for j in range(ncols + 1):
