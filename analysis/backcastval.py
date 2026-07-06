@@ -719,6 +719,46 @@ def load_and_align(
     return prices, loads, generation
 
 
+def plot_bar_chart(
+    df: pd.DataFrame, columns_to_keep: list = [], per_region: bool = False
+):
+
+    if per_region:
+        regions = df.index.get_level_values(0).unique()
+        for region in regions:
+            fig, ax = plt.subplots()
+
+            if len(columns_to_keep) > 0:
+                df_agg = (
+                    df.query(f'Region == "{region}"')
+                    .pivot_table(
+                        index=columns_to_keep, aggfunc=lambda x: np.sum(x) / 1e6
+                    )
+                    .T
+                )
+            else:
+                df_agg = df.T.sum() / 1e6
+
+            df_agg.plot(ax=ax, kind="bar", stacked=True, color=colors)
+            ax.set_ylabel("Generation (TWh)")
+            ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
+            fig.savefig(f"{region}_generation.png", bbox_inches="tight")
+    else:
+        fig, ax = plt.subplots()
+
+        if len(columns_to_keep) > 0:
+            df_agg = df.pivot_table(
+                index=columns_to_keep, aggfunc=lambda x: np.sum(x) / 1e6
+            ).T
+        else:
+            df_agg = df.T.sum() / 1e6
+
+        df_agg.plot(ax=ax, kind="bar", stacked=True, color=colors)
+        ax.set_ylabel("Generation (TWh)")
+        ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
+        fig.savefig("generation.png", bbox_inches="tight")
+
+
 # ------------------------------- #
 #            2. Main              #
 # ------------------------------- #
@@ -731,17 +771,39 @@ def load_and_align(
 @click.option("--overwrite", "-o", is_flag=True, default=False)
 @click.command()
 def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite):
-    prices, loads, generation = load_and_align(
-        balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
+
+    load_file, price_file, generation_file = (
+        Path("analysis/output/loads.csv"),
+        Path("analysis/output/prices.csv"),
+        Path("analysis/output/generation.csv"),
     )
+
+    if overwrite or not (
+        load_file.exists() and price_file.exists() and generation_file.exists()
+    ):
+        print("Load ENTSO-E raw csvs and Balmorel results")
+        prices, loads, generation = load_and_align(
+            balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
+        )
+        loads.to_csv(load_file)
+        prices.to_csv(price_file)
+        generation.to_csv(generation_file)
+    else:
+        print("Load csv's from last loading")
+        loads = pd.read_csv(load_file, index_col=[0, 1])
+        prices = pd.read_csv(price_file, index_col=[0, 1])
+        generation = pd.read_csv(generation_file, index_col=[0, 1, 2])
+
     print("\n\n")
     print("-" * 100)
     print("Statistics on load in MWh")
     calculate_statistics(loads)
+    # plot_bar_chart()
     print("\n\n")
     print("-" * 100)
     print("Statistics on prices in €/MWh")
     calculate_statistics(prices)
+    # plot_bar_chart()
     print("\n\n")
     print("-" * 100)
     print("Statistics on generation in MWh")
@@ -749,6 +811,8 @@ def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwr
         print(f"\n{technology}:")
         calculate_statistics(generation.loc[(slice(None), technology, slice(None))])
     print("-" * 100)
+
+    plot_bar_chart(generation, ["Technology"])
 
 
 if __name__ == "__main__":
