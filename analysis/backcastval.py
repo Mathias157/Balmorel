@@ -724,25 +724,29 @@ def plot_bar_chart(
 ):
 
     if per_region:
-        regions = df.index.get_level_values(0).unique()
-        for region in regions:
-            fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(12, 5), dpi=300)
 
-            if len(columns_to_keep) > 0:
-                df_agg = (
-                    df.query(f'Region == "{region}"')
-                    .pivot_table(
-                        index=columns_to_keep, aggfunc=lambda x: np.sum(x) / 1e6
-                    )
-                    .T
-                )
-            else:
-                df_agg = df.T.sum() / 1e6
+        if len(columns_to_keep) > 0:
+            df_agg = df.pivot_table(
+                index=columns_to_keep,
+                columns="Region",
+                values=["ENTSOE", "BALMOREL"],
+                aggfunc=lambda x: np.sum(x) / 1e6,
+            ).T
+            df_agg.index.names = ["Value", "Region"]
+            df_agg = df_agg.sort_index(level=["Region", "Value"])
+            df_agg = df_agg.reset_index().set_index(["Region", "Value"])
+        else:
+            df_agg = df.pivot_table(
+                index="Region",
+                values=["ENTSOE", "BALMOREL"],
+                aggfunc=lambda x: np.sum(x) / 1e6,
+            )
 
-            df_agg.plot(ax=ax, kind="bar", stacked=True, color=colors)
-            ax.set_ylabel("Generation (TWh)")
-            ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
-            fig.savefig(f"{region}_generation.png", bbox_inches="tight")
+        df_agg.plot(ax=ax, kind="bar", stacked=True, color=colors)
+        ax.set_ylabel("Generation (TWh)")
+        ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
+        fig.savefig("analysis/plots/generation_per_region.png", bbox_inches="tight")
     else:
         fig, ax = plt.subplots()
 
@@ -756,7 +760,7 @@ def plot_bar_chart(
         df_agg.plot(ax=ax, kind="bar", stacked=True, color=colors)
         ax.set_ylabel("Generation (TWh)")
         ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5))
-        fig.savefig("generation.png", bbox_inches="tight")
+        fig.savefig("analysis/plots/generation.png", bbox_inches="tight")
 
 
 # ------------------------------- #
@@ -813,6 +817,7 @@ def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwr
     print("-" * 100)
 
     plot_bar_chart(generation, ["Technology"])
+    plot_bar_chart(generation, ["Technology"], True)
 
 
 if __name__ == "__main__":
