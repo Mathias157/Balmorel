@@ -198,6 +198,13 @@ balmorel_to_category = {
     # Nuclear
     "CONDENSING - NUCLEAR": "Nuclear",
     # Biomass & Bioenergy
+    "CONDENSING - STRAW": "Biomass & Bioenergy",
+    "CONDENSING - WOODPELLETS": "Biomass & Bioenergy",
+    "CHP-EXTRACTION - STRAW": "Biomass & Bioenergy",
+    "CHP-EXTRACTION - WOOD": "Biomass & Bioenergy",
+    "CHP-EXTRACTION - BIOGAS": "Biomass & Bioenergy",
+    "CONDENSING - BIOGAS": "Biomass & Bioenergy",
+    "CONDENSING - WOOD": "Biomass & Bioenergy",
     "BOILERS - BIOMETHANE": "Biomass & Bioenergy",
     "BOILERS - WOODPELLETS": "Biomass & Bioenergy",
     "BOILERS - WOODCHIPS": "Biomass & Bioenergy",
@@ -217,13 +224,21 @@ balmorel_to_category = {
     "CHP-EXTRACTION - WOODPELLETS": "Biomass & Bioenergy",
     # Fossil Gas
     "BOILERS - NATGAS": "Fossil Gas",
+    "CONDENSING - NATGAS": "Fossil Gas",
     "CHP-BACK-PRESSURE - NATGAS": "Fossil Gas",
     "CHP-EXTRACTION - NATGAS": "Fossil Gas",
+    "CHP-EXTRACTION - RETORTGAS": "Fossil Gas",
+    "CONDENSING - RETORTGAS": "Fossil Gas",
     "STEAMREFORMING - NATGAS": "Fossil Gas",
     "BOILERS - OTHERGAS": "Fossil Gas",
     "CHP-BACK-PRESSURE - OTHERGAS": "Fossil Gas",
     "CHP-EXTRACTION - OTHERGAS": "Fossil Gas",
     # Fossil Solid
+    "CHP-BACK-PRESSURE - LIGNITE": "Fossil Solid",
+    "CHP-EXTRACTION - LIGNITE": "Fossil Solid",
+    "CONDENSING - COAL": "Fossil Solid",
+    "CONDENSING - LIGNITE": "Fossil Solid",
+    "CHP-EXTRACTION - SHALE": "Fossil Solid",
     "BOILERS - COAL": "Fossil Solid",
     "BOILERS - PEAT": "Fossil Solid",
     "CHP-BACK-PRESSURE - COAL": "Fossil Solid",
@@ -232,6 +247,8 @@ balmorel_to_category = {
     "CHP-EXTRACTION - PEAT": "Fossil Solid",
     # Fossil Liquid & Other Fossil
     "BOILERS - LIGHTOIL": "Fossil Liquid & Other Fossil",
+    "CONDENSING - FUELOIL": "Fossil Liquid & Other Fossil",
+    "CONDENSING - LIGHTOIL": "Fossil Liquid & Other Fossil",
     "BOILERS - FUELOIL": "Fossil Liquid & Other Fossil",
     "CHP-BACK-PRESSURE - LIGHTOIL": "Fossil Liquid & Other Fossil",
     "CHP-BACK-PRESSURE - FUELOIL": "Fossil Liquid & Other Fossil",
@@ -284,6 +301,20 @@ entsoe_to_category = {
     "Marine": "Storage & Flexibility",
     "Other renewable": "Storage & Flexibility",
     "Other": "Storage & Flexibility",
+}
+
+colors = {
+    "Wind": "#4ECDC4",
+    "Solar": "#FFE66D",
+    "Hydro": "#0077B6",
+    "Nuclear": "#FF6B6B",
+    "Biomass & Bioenergy": "#6B8E23",
+    "Fossil Gas": "#8B4513",
+    "Fossil Solid": "#555555",
+    "Fossil Liquid & Other Fossil": "#333333",
+    "Waste & Heat Recovery": "#9B59B6",
+    "Storage & Flexibility": "#F39C12",
+    "Other": "#CCCCCC",
 }
 
 # ------------------------------- #
