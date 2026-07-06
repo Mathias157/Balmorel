@@ -554,6 +554,8 @@ def get_and_format_balmorel(
         aggregate_regions(balmorel_generation, elpriceaggfunc, ["Season", "Time"]),
         year,
     )
+
+    # Aggregate technology groups
     for tech_category in balmorel_generation.Technology:
         if tech_category not in balmorel_to_category:
             warn(
@@ -562,6 +564,9 @@ def get_and_format_balmorel(
     balmorel_generation.Technology = balmorel_generation.Technology.map(
         balmorel_to_category
     )
+    balmorel_generation = balmorel_generation.groupby(
+        ["Region", "Technology", "Time"], as_index=False
+    ).sum(numeric_only=True)
 
     # Check unique regions in Balmorel results
     balmorel_load_unique_regions = set(balmorel_load.Region.unique())
@@ -604,7 +609,13 @@ def get_and_format_entsoe(year, elpriceaggfunc):
             warn(
                 f"{tech_category} technology category in ENTSO-E has not been mapped to overarching category in the entsoe_to_category dictionary!"
             )
+
+    # Aggregate technology groups
     entsoe_generation.Technology = entsoe_generation.Technology.map(entsoe_to_category)
+    entsoe_generation = entsoe_generation.groupby(
+        ["Region", "Technology", "Time"], as_index=False
+    ).sum(numeric_only=True)
+
     entsoe_load_unique_regions = set(entsoe_load.Region.unique())
     entsoe_elprices_unique_regions = set(entsoe_elprices.Region.unique())
     entsoe_generation_unique_regions = set(entsoe_generation.Region.unique())
