@@ -551,7 +551,7 @@ def get_and_format_balmorel(
         year,
     )
     balmorel_generation = format_balmorel_df(
-        aggregate_regions(balmorel_generation, elpriceaggfunc, ["Season", "Time"]),
+        aggregate_regions(balmorel_generation, "sum", ["Season", "Time"]),
         year,
     )
 
@@ -763,6 +763,23 @@ def plot_bar_chart(
         fig.savefig("analysis/plots/generation.png", bbox_inches="tight")
 
 
+def plot_price_profile(prices: pd.DataFrame):
+
+    prices = prices.reset_index()
+    prices.Time = pd.to_datetime(prices.Time, utc=True)
+
+    df = (
+        prices.pivot_table(index="Time", values=["ENTSOE", "BALMOREL"])
+        .resample("1D")
+        .aggregate("mean")
+    )
+
+    fig, ax = plt.subplots()
+    df.plot(ax=ax)
+    ax.set_ylabel("El. Price (€/MWh)")
+    fig.savefig("analysis/plots/prices.png", bbox_inches="tight")
+
+
 # ------------------------------- #
 #            2. Main              #
 # ------------------------------- #
@@ -818,6 +835,8 @@ def main(balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwr
 
     plot_bar_chart(generation, ["Technology"])
     plot_bar_chart(generation, ["Technology"], True)
+
+    plot_price_profile(prices)
 
 
 if __name__ == "__main__":
