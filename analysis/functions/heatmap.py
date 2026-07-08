@@ -374,7 +374,7 @@ def main():
         title="Scenario Importance — relative deviation from mean",
         scenario_labels=scenario_labels,
     )
-    fig_heat.savefig("test.png", dpi=300)
+    fig_heat.savefig("analysis/Balmorel/analysis/plots/heatmap.png", dpi=300)
 
 
 if __name__ == "__main__":
