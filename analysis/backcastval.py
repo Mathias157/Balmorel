@@ -465,6 +465,9 @@ def load_balmorel_data(
         or not path.joinpath("balmorel_load.csv").exists()
         or not path.joinpath("balmorel_generation.csv").exists()
     ) or overwrite:
+        print(
+            "Loading balmorel timeseries results (may take a while - will be cached afterwards)"
+        )
         results = MainResults(
             f"MainResults_{scenario_name}.gdx",
             paths=Path(scenario_folder_path).absolute().__str__(),
@@ -479,6 +482,9 @@ def load_balmorel_data(
         elprices.to_csv(path.joinpath("balmorel_prices.csv"), index=False)
         generation.to_csv(path.joinpath("balmorel_generation.csv"), index=False)
     else:
+        print(
+            "Loading cached Balmorel results (set overwrite=True to reload MainResults)"
+        )
         load = pd.read_csv(path.joinpath("balmorel_load.csv"))
         elprices = pd.read_csv(path.joinpath("balmorel_prices.csv"))
         generation = pd.read_csv(path.joinpath("balmorel_generation.csv"))
