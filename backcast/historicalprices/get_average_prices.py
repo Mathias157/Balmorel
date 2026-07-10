@@ -145,8 +145,8 @@ def coal():
 
         avg_price_ton = df["Price"].apply(clean).dropna().mean()
         avg_price_gj = avg_price_ton / 30.2 if avg_price_ton is not None else None
-        print(f"Rotterdam Coal Futures 2024 average price (€/t): {avg_price_ton:.2f}")
-        print(f"Rotterdam Coal Futures 2024 average price (€/GJ): {avg_price_gj:.2f}")
+        print(f"Rotterdam Coal Futures 2024 average price (USD/t): {avg_price_ton:.2f}")
+        print(f"Rotterdam Coal Futures 2024 average price (USD/GJ): {avg_price_gj:.2f}")
     except Exception as e:
         print(f"Error processing coal: {e}")
 
