@@ -516,7 +516,7 @@ def net_import(ctx):
 
     fig_heat = plot_net_import_heatmap(
         df_y,
-        title="Net Import per Country (TWh)",
+        title="Net Import per Country",
         scenario_labels=SCENARIO_LABELS,
     )
     fig_heat.savefig(
