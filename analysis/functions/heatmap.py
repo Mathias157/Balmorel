@@ -11,10 +11,13 @@ Created on 23.06.2026
 #        0. Script Settings       #
 # ------------------------------- #
 
+import click
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from cmcrameri import cm as cmc
 from decouple import config
+from matplotlib.colors import TwoSlopeNorm
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Rectangle
 from pybalmorel import Balmorel
@@ -82,14 +85,62 @@ def compute_relative_importance(
         df_y[output] = df_out.set_index("Scenario")["Value"]
 
     df_y = pd.DataFrame(df_y)  # shape: (n_scenarios, n_outputs)
+    df_y = df_y.reindex(scenarios)  # keep scenarios with no data as NaN rows
 
-    # Relative range per output: (max - min) / mean
+    return relative_deviation(df_y)
+
+
+def relative_deviation(df_y):
+    """rel_range: (max - min) / mean per output/region.
+    rel_dev: per-cell (value - mean) / mean, signed."""
     rel_range = (df_y.max() - df_y.min()) / df_y.mean()  # Series, index=outputs
-
-    # Per-cell deviation from mean: (value - mean) / mean  (signed)
     rel_dev = (df_y - df_y.mean()) / df_y.mean()  # DataFrame, same shape as df_y
 
     return rel_dev, rel_range
+
+
+def get_region_to_country(model, base_scenario="base"):
+    """RRR -> CCC mapping. Loaded from the base scenario's .inc files only,
+    since region-to-country assignment doesn't vary across scenarios."""
+    if base_scenario not in model.input_data:
+        model.load_incfiles(scenario=base_scenario)
+
+    cccrrr = model.get_input("CCCRRR")
+    countries_in_model = model.get_input("C").CCC.unique()
+    cccrrr = cccrrr.query("CCC in @countries_in_model")
+
+    return cccrrr.set_index("RRR")["CCC"].to_dict()
+
+
+def compute_net_import(res, scenarios, year, region_to_country, missing_scenarios=None):
+    df = res.get_result("X_FLOW_YCR")
+    df = df.query("Year == @year and Scenario in @scenarios")
+    country_of_to = df["To"].map(region_to_country)
+
+    net_import = {}
+    for region, country in region_to_country.items():
+        imports = df[(df["To"] == region) & (df["Country"] != country)]
+        exports = df[(df["From"] == region) & (country_of_to != country)]
+
+        import_by_scenario = imports.groupby("Scenario")["Value"].sum()
+        export_by_scenario = exports.groupby("Scenario")["Value"].sum()
+
+        net_import[region] = import_by_scenario.reindex(
+            scenarios, fill_value=0
+        ) - export_by_scenario.reindex(scenarios, fill_value=0)
+
+    df_y = pd.DataFrame(net_import)  # shape: (n_scenarios, n_regions)
+
+    # Aggregate to country level: intra-country flows were never counted as
+    # import/export above, so summing regions within a country is exact.
+    df_y = df_y.T.groupby(df_y.columns.map(region_to_country)).sum().T
+
+    # Scenarios with no MainResults file at all have no real data, so the
+    # reindex fill above is a placeholder, not an actual zero net import.
+    if missing_scenarios:
+        df_y.loc[df_y.index.intersection(missing_scenarios)] = np.nan
+
+    return df_y
 
 
 def plot_importance_heatmap(
@@ -246,12 +297,111 @@ def plot_importance_heatmap(
     return fig
 
 
+def plot_net_import_heatmap(
+    df_y,  # DataFrame: scenarios × countries, absolute net import values
+    title="Net Import Heatmap",
+    scenario_labels=None,
+    cmap=cmc.vik,
+):
+    data = df_y.T  # shape: countries × scenarios (rows=countries, cols=scenarios)
+    rows = data.index.tolist()  # countries
+    cols = data.columns.tolist()  # scenarios
+    cols_display = [scenario_labels.get(c, c) if scenario_labels else c for c in cols]
+
+    nrows, ncols = len(rows), len(cols)
+
+    values = data.to_numpy(dtype=float)
+    vmax = np.nanmax(np.abs(values))
+    norm = TwoSlopeNorm(vmin=-vmax, vcenter=0, vmax=vmax)
+
+    cmap = cmap.copy()
+    cmap.set_bad("#D9D9D9")
+    masked = np.ma.masked_invalid(values)
+
+    fig, ax = plt.subplots(figsize=(max(ncols * 0.7, 8), max(nrows * 0.35, 6)))
+    mesh = ax.pcolormesh(
+        masked, cmap=cmap, norm=norm, edgecolors="white", linewidth=0.5
+    )
+
+    ax.set_xticks(np.arange(ncols) + 0.5)
+    ax.set_xticklabels(cols_display, rotation=45, ha="right")
+    ax.set_yticks(np.arange(nrows) + 0.5)
+    ax.set_yticklabels(rows)
+    ax.invert_yaxis()
+    ax.set_title(title, fontsize=13, fontweight="bold", pad=20)
+
+    cbar = fig.colorbar(mesh, ax=ax, fraction=0.03, pad=0.02)
+    cbar.set_label("Net import (TWh)")
+
+    plt.tight_layout()
+    return fig
+
+
 # ------------------------------- #
 #            2. Main              #
 # ------------------------------- #
 
+SCENARIOS = [
+    "base_R2050",
+    "DCN_R2050",
+    "EVN_R2050",
+    "VGN_R2050",
+    "HPN_R2050",
+    "TPN_R2050",
+    "ELN_R2050",
+    "HSNSSN_R2050",
+    "HSN_R2050",
+    "SSN_R2050",
+    "EIN_R2050",
+    "H2N_R2050",
+    "ALLN_R2050",
+]
 
-def main():
+SCENARIO_LABELS = {
+    "base_R2050": "base",
+    "DCN_R2050": "DCN",
+    "EVN_R2050": "EVN",
+    "VGN_R2050": "VGN",
+    "HPN_R2050": "HPN",
+    "TPN_R2050": "TPN",
+    "ELN_R2050": "ELN",
+    "HSNSSN_R2050": "HSNSSN",
+    "HSN_R2050": "HSN",
+    "SSN_R2050": "SSN",
+    "EIN_R2050": "EIN",
+    "H2N_R2050": "H2N",
+    "ALLN_R2050": "ALLN",
+}
+
+
+def load_balmorel_model():
+    model = Balmorel(
+        "analysis/Balmorel",
+        gams_system_directory=config("GAMS_SYSTEM_DIR"),  # pyright: ignore
+    )
+    model.collect_results()
+    return model
+
+
+@click.group()
+@click.option("--year", default="2050", help="Year to plot")
+@click.option("--dark-style", is_flag=True, required=False, help="Dark plot style")
+@click.pass_context
+def cli(ctx, year: str, dark_style: bool):
+    ctx.ensure_object(dict)
+    ctx.obj["year"] = year
+    ctx.obj["dark_style"] = dark_style
+
+    if dark_style:
+        plt.style.use("dark_background")
+
+
+@cli.command("scenario-comparison")
+@click.pass_context
+def scenario_comparison(ctx):
+    year = ctx.obj["year"]
+    facecolor = "none" if ctx.obj["dark_style"] else "white"
+
     outputs = [
         "Production",
         "Generation Capacity",
@@ -318,51 +468,15 @@ def main():
         "H2 Green Production": 'Technology == "ELECTROLYZER"',
     }
 
-    scenarios = [
-        "base_R2050",
-        "DCN_R2050",
-        "EVN_R2050",
-        "HPN_R2050",
-        "TPN_R2050",
-        "ELN_R2050",
-        "HSNSSN_R2050",
-        "HSN_R2050",
-        "SSN_R2050",
-        "EIN_R2050",
-        "H2N_R2050",
-        "ALLN_R2050",
-    ]
-
-    scenario_labels = {
-        "base_R2050": "base",
-        "DCN_R2050": "DCN",
-        "EVN_R2050": "EVN",
-        "HPN_R2050": "HPN",
-        "TPN_R2050": "TPN",
-        "ELN_R2050": "ELN",
-        "HSNSSN_R2050": "HSNSSN",
-        "HSN_R2050": "HSN",
-        "SSN_R2050": "SSN",
-        "EIN_R2050": "EIN",
-        "H2N_R2050": "H2N",
-        "ALLN_R2050": "ALLN",
-    }
-
     # Load results (change to MainResults if timeseries-heavy results are required?)
-    model = Balmorel(
-        "analysis/Balmorel",
-        gams_system_directory=config("GAMS_SYSTEM_DIR"),  # pyright: ignore
-    )
-    model.collect_results()
+    model = load_balmorel_model()
     res = model.results
-
-    # Compute once, reuse for all plots
 
     rel_dev, rel_range = compute_relative_importance(
         res=res,
-        scenarios=scenarios,
+        scenarios=SCENARIOS,
         regions="all",
-        year="2050",
+        year=year,
         outputs=outputs,
         output_symbol=output_symbol,
         filters=filters,
@@ -372,10 +486,45 @@ def main():
         rel_dev,
         rel_range,
         title="Scenario Importance — relative deviation from mean",
-        scenario_labels=scenario_labels,
+        scenario_labels=SCENARIO_LABELS,
     )
-    fig_heat.savefig("analysis/Balmorel/analysis/plots/heatmap.png", dpi=300)
+    fig_heat.savefig(
+        "analysis/Balmorel/analysis/plots/heatmap.png", dpi=300, facecolor=facecolor
+    )
+
+
+@cli.command("net-import")
+@click.pass_context
+def net_import(ctx):
+    year = ctx.obj["year"]
+    facecolor = "none" if ctx.obj["dark_style"] else "white"
+
+    model = load_balmorel_model()
+    res = model.results
+
+    missing_scenarios = [s for s in SCENARIOS if s not in model.scenario_names]
+
+    region_to_country = get_region_to_country(model)
+
+    df_y = compute_net_import(
+        res=res,
+        scenarios=SCENARIOS,
+        year=year,
+        region_to_country=region_to_country,
+        missing_scenarios=missing_scenarios,
+    )
+
+    fig_heat = plot_net_import_heatmap(
+        df_y,
+        title="Net Import per Country (TWh)",
+        scenario_labels=SCENARIO_LABELS,
+    )
+    fig_heat.savefig(
+        "analysis/Balmorel/analysis/plots/net_import_heatmap.png",
+        dpi=300,
+        facecolor=facecolor,
+    )
 
 
 if __name__ == "__main__":
-    main()
+    cli()
