@@ -775,6 +775,7 @@ def scenario_overview(ctx, year: int):
     outputs = [
         "Production",
         "System Costs",
+        "Curtailment",
         "Generation Capacity",
         "Storage Power Capacity",
         "Peak Generation Production",
@@ -800,6 +801,7 @@ def scenario_overview(ctx, year: int):
     output_symbol = {
         "Production": "PRO_YCRAGF",
         "System Costs": "OBJ_YCR",
+        "Curtailment": "CURT_YCRAGF",
         "Generation Capacity": "G_CAP_YCRAF",
         "Storage Power Capacity": "G_CAP_YCRAF",
         "Peak Generation Production": "PRO_YCRAGF",
