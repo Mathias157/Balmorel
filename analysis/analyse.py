@@ -393,7 +393,7 @@ def cap(
             ax.set_ylabel("Storage Capacity [TWh]")
 
         # Apply exclusion filters
-        if filters != "":
+        if filters != None:
             df = df.query(filters)
 
         # Sort scenarios
@@ -410,7 +410,7 @@ def cap(
                 df = df.drop(columns="HYDRO-RUN-OF-RIVER")
 
             # Re-arrange technologies
-            if "Technology" not in filters:
+            if "Technology" not in str(filters):
                 cols = df.columns
                 cols = cols[
                     (cols != "WIND-OFF")
@@ -424,17 +424,13 @@ def cap(
             # Include interpreted backup capacity
             if include_backup:
                 for scenario in df.index.unique():
-                    if scenario == "N2_ZCEHX" or scenario == "N10_ZCEHX":
-                        scenario_csv = scenario.replace("ZCEHX", "synfheur")
-                    else:
-                        scenario_csv = scenario
                     df.loc[scenario, "BACKUP"] = 0
                     try:
                         f = (
                             pd
                             .read_csv(
                                 "analysis/output/%s_backcapN%d.csv"
-                                % (scenario_csv, backup_nth_max)
+                                % (scenario, backup_nth_max)
                             )
                             .drop(columns="Region")
                             .sum()
