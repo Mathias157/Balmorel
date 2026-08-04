@@ -32,6 +32,15 @@ from functions import (
     format_lole_ens_adequacy_results,
 )
 from functions.formats import individual_heating_areas, industry_heating_areas
+from functions.heatmap import (
+    SCENARIO_LABELS,
+    SCENARIOS,
+    compute_net_import,
+    compute_relative_importance,
+    get_region_to_country,
+    plot_importance_heatmap,
+    plot_net_import_heatmap,
+)
 from functions.pit_storage import get_storage_profiles
 from gams import GamsWorkspace
 from matplotlib.dates import DateFormatter
@@ -161,6 +170,8 @@ def CLI(
             "ptes-and-adequacy",
             "get-ts-res",
             "lcoe",
+            "scenario-overview",
+            "net-import",
         ]
     ) and not is_help:
         # Locate results
@@ -174,6 +185,8 @@ def CLI(
 
     ctx.obj["overwrite"] = overwrite
     ctx.obj["dark_style"] = dark_style
+    if plot_ext[0] != '.':
+        plot_ext = '.' + plot_ext
     ctx.obj["plot_ext"] = plot_ext
     ctx.obj["path"] = path
     ctx.obj["plot_path"] = Path(path) / "analysis" / "plots"
@@ -740,6 +753,155 @@ def LCOE(ctx, no_capex, lat_lims: tuple = (32, 72), lon_lims: tuple = (-11, 35))
         ax.set_ylim(lat_lims)
         ax.axes.set_axis_off()  # pyright: ignore
         plot_style(fig, ax, f"lcoe_{ind[0]}_{ind[1]}", figsize=(12, 7), legend=False)
+
+
+@CLI.command()
+@click.pass_context
+@click.option(
+    "--year",
+    type=int,
+    required=False,
+    default=2050,
+    help="Which year to plot results",
+)
+def scenario_overview(ctx, year: int):
+    """
+    Plot a heatmap of relative importance across outputs and scenarios
+    """
+    model = ctx.obj["Balmorel"]
+    model.collect_results(suffix_naming_only=True)
+    res = model.results
+
+    outputs = [
+        "Production",
+        "System Costs",
+        "Generation Capacity",
+        "Storage Power Capacity",
+        "Peak Generation Production",
+        "Elec. Battery Production",
+        "Elec. Battery Capacity",
+        "Demand Response Use",
+        "Thermal Storage Production",
+        "Hydro Production",
+        "H2 Storage Production",
+        "Elec. PV Production",
+        "Elec. Onshore Wind Production",
+        "Elec. Offshore Wind Production",
+        "Elec. Transmission Flow",
+        "Elec. Transmission Capacity",
+        "Heat Pump Capacity",
+        "Heat Pump Production",
+        "H2 Green Capacity",
+        "H2 Green Production",
+        "H2 Transmission Flow",
+        "H2 Transmission Capacity",
+    ]
+
+    output_symbol = {
+        "Production": "PRO_YCRAGF",
+        "System Costs": "OBJ_YCR",
+        "Generation Capacity": "G_CAP_YCRAF",
+        "Storage Power Capacity": "G_CAP_YCRAF",
+        "Peak Generation Production": "PRO_YCRAGF",
+        "Elec. Battery Production": "G_CAP_YCRAF",
+        "Elec. Battery Capacity": "G_CAP_YCRAF",
+        "Demand Response Use": "DR_FLEX_Y",
+        "Thermal Storage Production": "PRO_YCRAGF",
+        "Hydro Production": "PRO_YCRAGF",
+        "H2 Storage Production": "PRO_YCRAGF",
+        "Elec. PV Production": "PRO_YCRAGF",
+        "Elec. Onshore Wind Production": "PRO_YCRAGF",
+        "Elec. Offshore Wind Production": "PRO_YCRAGF",
+        "Elec. Transmission Flow": "X_FLOW_YCR",
+        "Elec. Transmission Capacity": "X_CAP_YCR",
+        "Heat Pump Capacity": "G_CAP_YCRAF",
+        "Heat Pump Production": "PRO_YCRAGF",
+        "H2 Green Capacity": "G_CAP_YCRAF",
+        "H2 Green Production": "PRO_YCRAGF",
+        "H2 Transmission Flow": "XH2_FLOW_YCR",
+        "H2 Transmission Capacity": "XH2_CAP_YCR",
+    }
+
+    filters = {
+        "Generation Capacity": 'not Technology.str.contains("STORAGE")',
+        "Storage Power Capacity": 'Technology.str.contains("STORAGE")',
+        "Elec. Battery Capacity": 'Generation.str.contains("ELEC_BAT")',
+        "Peak Generation Production": 'Generation.str.contains("BACKUP")',
+        "Elec. Battery Production": 'Generation.str.contains("ELEC_BAT")',
+        "Thermal Storage Production": 'Technology.str.contains("STORAGE") and Commodity == "HEAT"',
+        "Hydro Production": 'Technology.str.contains("HYDRO")',
+        "H2 Storage Production": 'Technology == "H2-STORAGE"',
+        "Elec. PV Production": 'Technology == "SOLAR-PV"',
+        "Elec. Onshore Wind Production": 'Technology == "WIND-ON"',
+        "Elec. Offshore Wind Production": 'Technology == "WIND-OFF"',
+        "Heat Pump Capacity": 'Generation.str.contains("HP_ELEC")',
+        "Heat Pump Production": 'Generation.str.contains("HP_ELEC")',
+        "H2 Green Capacity": 'Technology == "ELECTROLYZER"',
+        "H2 Green Production": 'Technology == "ELECTROLYZER"',
+    }
+
+    rel_dev, rel_range = compute_relative_importance(
+        res=res,
+        scenarios=SCENARIOS,
+        regions="all",
+        year=year,
+        outputs=outputs,
+        output_symbol=output_symbol,
+        filters=filters,
+    )
+
+    fig_heat = plot_importance_heatmap(
+        rel_dev,
+        rel_range,
+        title="Scenario Overview — relative deviation from mean",
+        scenario_labels=SCENARIO_LABELS,
+    )
+    fig_heat.savefig(
+        ctx.obj["plot_path"] / f"scenario_overview{ctx.obj['plot_ext']}",
+        dpi=300,
+        facecolor=ctx.obj["fc"],
+    )
+
+
+@CLI.command()
+@click.pass_context
+@click.option(
+    "--year",
+    type=int,
+    required=False,
+    default=2050,
+    help="Which year to plot results",
+)
+def net_import(ctx, year: int):
+    """
+    Plot a heatmap of net import per country across scenarios
+    """
+    model = ctx.obj["Balmorel"]
+    model.collect_results(suffix_naming_only=True)
+    res = model.results
+
+    missing_scenarios = [s for s in SCENARIOS if s not in model.scenario_names]
+
+    region_to_country = get_region_to_country(model)
+
+    df_y = compute_net_import(
+        res=res,
+        scenarios=SCENARIOS,
+        year=year,
+        region_to_country=region_to_country,
+        missing_scenarios=missing_scenarios,
+    )
+
+    fig_heat = plot_net_import_heatmap(
+        df_y,
+        title="Net Import per Country",
+        scenario_labels=SCENARIO_LABELS,
+    )
+    fig_heat.savefig(
+        ctx.obj["plot_path"] / f"net_import_heatmap{ctx.obj['plot_ext']}",
+        dpi=300,
+        facecolor=ctx.obj["fc"],
+    )
 
 
 @CLI.command()
