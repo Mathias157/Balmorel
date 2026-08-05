@@ -29,7 +29,16 @@ from functions import (
     format_backcap_adequacy_results,
     format_lole_ens_adequacy_results,
 )
-from functions.formats import individual_heating_areas, industry_heating_areas
+from functions.formats import (
+    individual_heating_areas,
+    industry_heating_areas,
+)
+from backcastval import (
+    calculate_statistics,
+    plot_bar_chart,
+    load_and_align,
+    plot_price_profile,
+)
 from pybalmorel import Balmorel, MainResults
 from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
@@ -1803,6 +1812,63 @@ def bar_chart(symbol: str, index: str, columns: str, filters: str, filename: str
     ax.legend(bbox_to_anchor=(1.01, 0.5), loc="center left")
 
     fig.savefig(f"analysis/plots/{filename}", bbox_inches="tight")
+
+
+@CLI.command()
+@click.argument("balmorel-scenario", type=str, default="backcast_SPR_R2024")
+@click.argument("balmorel-scenario-path", type=str, default="backcast/model")
+@click.argument("year", type=int, default=2024)
+@click.argument("elpriceaggfunc", type=str, default="mean")
+@click.option("--overwrite", "-o", is_flag=True, default=False)
+def backcastvalidation(
+    balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
+):
+    "Validation of backcasting runs"
+
+    load_file, price_file, generation_file = (
+        Path("analysis/output/loads.csv"),
+        Path("analysis/output/prices.csv"),
+        Path("analysis/output/generation.csv"),
+    )
+
+    if overwrite or not (
+        load_file.exists() and price_file.exists() and generation_file.exists()
+    ):
+        print("Load ENTSO-E raw csvs and Balmorel results")
+        prices, loads, generation = load_and_align(
+            balmorel_scenario, balmorel_scenario_path, year, elpriceaggfunc, overwrite
+        )
+        loads.to_csv(load_file)
+        prices.to_csv(price_file)
+        generation.to_csv(generation_file)
+    else:
+        print("Load csv's from last loading")
+        loads = pd.read_csv(load_file, index_col=[0, 1])
+        prices = pd.read_csv(price_file, index_col=[0, 1])
+        generation = pd.read_csv(generation_file, index_col=[0, 1, 2])
+
+    print("\n\n")
+    print("-" * 100)
+    print("Statistics on load in MWh")
+    calculate_statistics(loads)
+    # plot_bar_chart()
+    print("\n\n")
+    print("-" * 100)
+    print("Statistics on prices in €/MWh")
+    calculate_statistics(prices)
+    # plot_bar_chart()
+    print("\n\n")
+    print("-" * 100)
+    print("Statistics on generation in MWh")
+    for technology in generation.index.get_level_values(1).unique():
+        print(f"\n{technology}:")
+        calculate_statistics(generation.loc[(slice(None), technology, slice(None))])
+    print("-" * 100)
+
+    plot_bar_chart(generation, ["Technology"])
+    plot_bar_chart(generation, ["Technology"], True)
+
+    plot_price_profile(prices)
 
 
 # %% ------------------------------- ###

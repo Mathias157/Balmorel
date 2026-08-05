@@ -237,6 +237,7 @@ balmorel_to_category = {
     "CHP-BACK-PRESSURE - LIGNITE": "Fossil Solid",
     "CHP-EXTRACTION - LIGNITE": "Fossil Solid",
     "CONDENSING - COAL": "Fossil Solid",
+    "CONDENSING - SHALE": "Fossil Solid",
     "CONDENSING - LIGNITE": "Fossil Solid",
     "CHP-EXTRACTION - SHALE": "Fossil Solid",
     "BOILERS - COAL": "Fossil Solid",
@@ -791,7 +792,7 @@ def plot_price_profile(prices: pd.DataFrame):
 # ------------------------------- #
 
 
-@click.argument("balmorel-scenario", type=str, default="backcast_R2024")
+@click.argument("balmorel-scenario", type=str, default="backcast_SPR_R2024")
 @click.argument("balmorel-scenario-path", type=str, default="backcast/model")
 @click.argument("year", type=int, default=2024)
 @click.argument("elpriceaggfunc", type=str, default="mean")
