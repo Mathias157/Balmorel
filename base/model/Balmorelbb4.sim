@@ -259,6 +259,13 @@ OPTION Savepoint=1;
 
 $ifi not %USEOPTIONFILE%==0 BALBASE4.optfile = %USEOPTIONFILE%;
 
+* Optional warm start: reload a previous attempt's savepoint (levels and basis) before solving.
+* Used when a prior attempt at this scenario hit RESLIM before HPC wall-time ran out, so this
+* attempt can resume instead of starting the solve from scratch. Only meaningful when paired with
+* a simplex-based LPmethod (see cplex.op3) - barrier does not produce a basis to resume from.
+* See docs/adr/0001-warm-start-fullyear-timeout.md.
+$ifi %WARMSTART%==yes execute_loadpoint '%WARMSTARTGDX%';
+
 $ifi %SOLVETYPE%==LP   SOLVE BALBASE4 USING LP   MINIMIZING VOBJ;
 $ifi %SOLVETYPE%==RMIP SOLVE BALBASE4 USING RMIP MINIMIZING VOBJ;
 $ifi %SOLVETYPE%==MIP  SOLVE BALBASE4 USING MIP  MINIMIZING VOBJ;
