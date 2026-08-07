@@ -8,8 +8,6 @@
 #SBATCH --cpus-per-task=3
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
-### -- specify that we need 5GB of memory per cpu --
-#SBATCH --mem-per-cpu=5G
 ### -- set walltime limit: D-HH:MM:SS --
 #SBATCH --time=0-04:00:00
 ### -- send notification at completion --
@@ -17,6 +15,10 @@
 ### -- Specify the output and error file. %j is the job-id --
 #SBATCH --output=logs/temporal_aggregation_%j.out
 #SBATCH --error=logs/temporal_aggregation_%j.err
+
+# SLURM does not guarantee the job starts in the submission directory on this cluster - force it
+# explicitly, since everything below assumes cwd == the directory sbatch was run from.
+cd ""
 
 # Load error handling and GAMS paths
 source jobs/slurm/functions.sh
@@ -46,7 +48,7 @@ m.temporal_aggregation(\"${scenario_to_agg}\",
 
 # Make model folder
 agg_scenario="${scenario_to_agg}_S${seasons}T${terms}"
-if not [ -d "${agg_scenario}/model" ]; then
+if [ ! -d "${agg_scenario}/model" ]; then
   mkdir ${agg_scenario}/model
   cp base/model/Balmorel.gms ${agg_scenario}/model/
   cp base/model/cplex.op2 ${agg_scenario}/model/

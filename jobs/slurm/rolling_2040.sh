@@ -8,8 +8,6 @@
 #SBATCH --cpus-per-task=10
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
-### -- specify that we need 4GB of memory per cpu --
-#SBATCH --mem-per-cpu=4G
 ### -- set walltime limit: D-HH:MM:SS --
 #SBATCH --time=0-15:00:00
 ### -- send notification at completion --
@@ -18,11 +16,15 @@
 #SBATCH --output=../logs/GREAT_rolling_2040_%j.out
 #SBATCH --error=../logs/GREAT_rolling_2040_%j.err
 
+# SLURM does not guarantee the job starts in the submission directory on this cluster - force it
+# explicitly, since everything below assumes cwd == the directory sbatch was run from.
+cd ""
+
 # Load error handling and GAMS paths
 source ../jobs/slurm/functions.sh
 
 # Get run name
-source config.sh
+source ./config.sh
 
 echo "Starting rolling seasons simulation at $(date)"
 run_name="$(basename $PWD)"

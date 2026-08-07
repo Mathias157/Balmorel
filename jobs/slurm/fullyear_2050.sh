@@ -8,23 +8,25 @@
 #SBATCH --cpus-per-task=10
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
-### -- specify that we need 11GB of memory per cpu --
-#SBATCH --mem-per-cpu=11G
 ### -- set walltime limit: D-HH:MM:SS --
-### -- Cluster's wall-time ceiling is generous (up to ~7 days), so this covers even ALLN/VGN's
-### -- long-pole solve without needing a job-type-specific override. See docs/adr/0002-slurm-migration.md.
-#SBATCH --time=7-00:00:00
+### -- rome partition's MaxTime is 2 days (scontrol show partition rome) - this is the ceiling,
+### -- not a generous multi-day budget. See docs/adr/0002-slurm-migration.md.
+#SBATCH --time=2-00:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END
 ### -- Specify the output and error file. %j is the job-id --
 #SBATCH --output=../logs/GREAT_fullyear_2050_%j.out
 #SBATCH --error=../logs/GREAT_fullyear_2050_%j.err
 
+# SLURM does not guarantee the job starts in the submission directory on this cluster - force it
+# explicitly, since everything below assumes cwd == the directory sbatch was run from.
+cd ""
+
 # Load error handling and GAMS paths
 source ../jobs/slurm/functions.sh
 
 # Get run name
-source config.sh
+source ./config.sh
 
 echo "Starting fullyear simulation at $(date)"
 run_name="$(basename $PWD)"
@@ -52,8 +54,8 @@ cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_full.opt >balopt.opt
 if [[ "$warmstart_enabled" == "yes" ]]; then
-  # 7-day wall-time (see #SBATCH --time above) minus a conservative margin for data read/write.
-  reslim_seconds=$((7 * 24 * 3600 - 45 * 60))
+  # 2-day wall-time (see #SBATCH --time above) minus a conservative margin for data read/write.
+  reslim_seconds=$((2 * 24 * 3600 - 45 * 60))
   warmstart_args=""
   if [[ "$WARMSTART_HOP" -gt 0 ]]; then
     warmstart_args="--WARMSTART=yes --WARMSTARTGDX=${WARMSTART_GDX}"

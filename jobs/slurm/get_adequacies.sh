@@ -8,8 +8,6 @@
 #SBATCH --cpus-per-task=5
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
-### -- specify that we need 4.5GB of memory per cpu --
-#SBATCH --mem-per-cpu=4.5G
 ### -- set walltime limit: D-HH:MM:SS --
 #SBATCH --time=0-02:00:00
 ### -- send notification at completion --
@@ -17,6 +15,10 @@
 ### -- Specify the output and error file. %j is the job-id --
 #SBATCH --output=logs/get_adequacies_%j.out
 #SBATCH --error=logs/get_adequacies_%j.err
+
+# SLURM does not guarantee the job starts in the submission directory on this cluster - force it
+# explicitly, since everything below assumes cwd == the directory sbatch was run from.
+cd ""
 
 # Load error handling and GAMS paths
 source jobs/slurm/functions.sh

@@ -33,12 +33,12 @@ optimality_check() {
 }
 
 # Get user settings and paths to GAMS
-source ../.env
-if not [ -f "../.env" ]; then
+if [ ! -f "../.env" ]; then
   echo "No .env file found! Make one and define:
   GAMS_SYSTEM_DIR=...
   "
   exit 1
 fi
+source ../.env
 export PATH=$GAMS_SYSTEM_DIR:$PATH
-export LD_LIBRARY_PATH=$GAMS_SYSTEM_DIR:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$GAMS_SYSTEM_DIR:${LD_LIBRARY_PATH:-}
