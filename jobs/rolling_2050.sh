@@ -37,12 +37,17 @@ echo "Starting rolling seasons simulation at $(date)"
 run_name="$(basename $PWD)"
 echo "Run name: ${run_name}_R2050"
 
+# RESLIM below the job's own wall-time (see #BSUB -W above), so CPLEX stops itself and GAMS can
+# still write its savepoint/logs before HPC kills the job outright. Margin is a conservative
+# starting guess - tune once real run timings are known. See docs/adr/0001-warm-start-fullyear-timeout.md.
+reslim_seconds=$((72 * 3600 - 45 * 60))
+
 # Rolling horison simulation
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_roll.opt >balopt.opt
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_R2050" $opts
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --RESLIM=${reslim_seconds} --scenario_name="${run_name}_R2050" $opts
 cd ..
 
 optimality_check $LSB_JOBID 52
