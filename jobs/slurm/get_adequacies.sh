@@ -18,7 +18,7 @@
 
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
 # explicitly, since everything below assumes cwd == the directory sbatch was run from.
-cd ""
+cd "$SLURM_SUBMIT_DIR"
 
 # Load error handling and GAMS paths
 source jobs/slurm/functions.sh

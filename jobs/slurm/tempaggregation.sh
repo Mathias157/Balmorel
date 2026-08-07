@@ -18,7 +18,7 @@
 
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
 # explicitly, since everything below assumes cwd == the directory sbatch was run from.
-cd ""
+cd "$SLURM_SUBMIT_DIR"
 
 # Load error handling and GAMS paths
 source jobs/slurm/functions.sh
@@ -49,12 +49,12 @@ m.temporal_aggregation(\"${scenario_to_agg}\",
 # Make model folder
 agg_scenario="${scenario_to_agg}_S${seasons}T${terms}"
 if [ ! -d "${agg_scenario}/model" ]; then
-  mkdir ${agg_scenario}/model
-  cp base/model/Balmorel.gms ${agg_scenario}/model/
-  cp base/model/cplex.op2 ${agg_scenario}/model/
-  # MANUAL CHANGES:
-  rm ${agg_scenario}/data/GDATA.inc
-  rm ${agg_scenario}/data/DR_DATAINPUT.inc
+    mkdir ${agg_scenario}/model
+    cp base/model/Balmorel.gms ${agg_scenario}/model/
+    cp base/model/cplex.op2 ${agg_scenario}/model/
+    # MANUAL CHANGES:
+    rm ${agg_scenario}/data/GDATA.inc
+    rm ${agg_scenario}/data/DR_DATAINPUT.inc
 fi
 
 echo "FINAL MANUAL STUFF TO DO NOW:

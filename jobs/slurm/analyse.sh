@@ -18,7 +18,7 @@
 
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
 # explicitly, since everything below assumes cwd == the directory sbatch was run from.
-cd ""
+cd "$SLURM_SUBMIT_DIR"
 
 # Load error handling and GAMS paths
 source jobs/slurm/functions.sh
@@ -30,17 +30,17 @@ source jobs/userfunctions.sh
 source jobs/scenario_choice.sh
 
 for scenario in APS_base_allflex; do
-  for runtype in R2030 R2040 R2050; do
-    # This will fail if the scenario name is incorrect, e.g. if it's named after the scenario folder instead of MainResults suffix!
-    year=$(echo $runtype | tail -c 5)
-    echo "Plotting year ${year} for run ${scenario}_${runtype}.."
-    generate_plots "${scenario}_${runtype}" $year
+    for runtype in R2030 R2040 R2050; do
+        # This will fail if the scenario name is incorrect, e.g. if it's named after the scenario folder instead of MainResults suffix!
+        year=$(echo $runtype | tail -c 5)
+        echo "Plotting year ${year} for run ${scenario}_${runtype}.."
+        generate_plots "${scenario}_${runtype}" $year
 
-    # Remove old collected pdf to ensure no corruption errors in next colleciton
-    collected_pdf=analysis/plots/collected_plots_${scenario}_${runtype}.pdf
-    if [[ -f "$collected_pdf" ]]; then
-      rm analysis/plots/collected_plots_${scenario}_${runtype}.pdf
-    fi
-    pdfunite analysis/plots/*${scenario}_${runtype}.pdf $collected_pdf
-  done
+        # Remove old collected pdf to ensure no corruption errors in next colleciton
+        collected_pdf=analysis/plots/collected_plots_${scenario}_${runtype}.pdf
+        if [[ -f "$collected_pdf" ]]; then
+            rm analysis/plots/collected_plots_${scenario}_${runtype}.pdf
+        fi
+        pdfunite analysis/plots/*${scenario}_${runtype}.pdf $collected_pdf
+    done
 done

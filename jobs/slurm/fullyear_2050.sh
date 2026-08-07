@@ -20,7 +20,7 @@
 
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
 # explicitly, since everything below assumes cwd == the directory sbatch was run from.
-cd ""
+cd "$SLURM_SUBMIT_DIR"
 
 # Load error handling and GAMS paths
 source ../jobs/slurm/functions.sh
@@ -40,9 +40,9 @@ echo "Run name: ${run_name}_F2050"
 WARMSTART_HOP="${WARMSTART_HOP:-0}"
 MAX_WARMSTART_HOPS=3
 if [[ "$run_name" == "ALLN" || "$run_name" == "VGN" ]]; then
-  warmstart_enabled=yes
+    warmstart_enabled=yes
 else
-  warmstart_enabled=no
+    warmstart_enabled=no
 fi
 
 # Copy simex files from investment run
@@ -54,16 +54,16 @@ cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_full.opt >balopt.opt
 if [[ "$warmstart_enabled" == "yes" ]]; then
-  # 2-day wall-time (see #SBATCH --time above) minus a conservative margin for data read/write.
-  reslim_seconds=$((2 * 24 * 3600 - 45 * 60))
-  warmstart_args=""
-  if [[ "$WARMSTART_HOP" -gt 0 ]]; then
-    warmstart_args="--WARMSTART=yes --WARMSTARTGDX=${WARMSTART_GDX}"
-    echo "Warm-starting from ${WARMSTART_GDX} (hop ${WARMSTART_HOP}/${MAX_WARMSTART_HOPS})"
-  fi
-  gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=3 --RESLIM=${reslim_seconds} ${warmstart_args} --scenario_name="${run_name}_F2050" $opts
+    # 2-day wall-time (see #SBATCH --time above) minus a conservative margin for data read/write.
+    reslim_seconds=$((2 * 24 * 3600 - 45 * 60))
+    warmstart_args=""
+    if [[ "$WARMSTART_HOP" -gt 0 ]]; then
+        warmstart_args="--WARMSTART=yes --WARMSTARTGDX=${WARMSTART_GDX}"
+        echo "Warm-starting from ${WARMSTART_GDX} (hop ${WARMSTART_HOP}/${MAX_WARMSTART_HOPS})"
+    fi
+    gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=3 --RESLIM=${reslim_seconds} ${warmstart_args} --scenario_name="${run_name}_F2050" $opts
 else
-  gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
+    gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
 fi
 cd ..
 
@@ -72,18 +72,18 @@ cd ..
 # forever). Any other failure (infeasibility, GAMS error, etc.) falls through to optimality_check
 # below and hard-stops the pipeline exactly as it does today.
 if [[ "$warmstart_enabled" == "yes" ]] && rg -q 'Resource limit reached' logerror/logfile.out; then
-  if [[ "$WARMSTART_HOP" -lt "$MAX_WARMSTART_HOPS" ]]; then
-    next_hop=$((WARMSTART_HOP + 1))
-    warmstart_gdx="$(pwd)/simex/warmstart_hop${WARMSTART_HOP}.gdx"
-    cp model/BALBASE4_p.gdx "$warmstart_gdx"
-    echo "TIMEOUT: fullyear solve for ${run_name} hit RESLIM without reaching optimality."
-    echo "Resubmitting warm-started hop ${next_hop}/${MAX_WARMSTART_HOPS} from ${warmstart_gdx}."
-    sbatch --export=ALL,WARMSTART_HOP=${next_hop},WARMSTART_GDX=${warmstart_gdx} ../jobs/slurm/fullyear_2050.sh
-    exit 0
-  else
-    echo "ERROR: fullyear solve for ${run_name} still hasn't reached optimality after ${MAX_WARMSTART_HOPS} warm-started hops."
-    exit 1
-  fi
+    if [[ "$WARMSTART_HOP" -lt "$MAX_WARMSTART_HOPS" ]]; then
+        next_hop=$((WARMSTART_HOP + 1))
+        warmstart_gdx="$(pwd)/simex/warmstart_hop${WARMSTART_HOP}.gdx"
+        cp model/BALBASE4_p.gdx "$warmstart_gdx"
+        echo "TIMEOUT: fullyear solve for ${run_name} hit RESLIM without reaching optimality."
+        echo "Resubmitting warm-started hop ${next_hop}/${MAX_WARMSTART_HOPS} from ${warmstart_gdx}."
+        sbatch --export=ALL,WARMSTART_HOP=${next_hop},WARMSTART_GDX=${warmstart_gdx} ../jobs/slurm/fullyear_2050.sh
+        exit 0
+    else
+        echo "ERROR: fullyear solve for ${run_name} still hasn't reached optimality after ${MAX_WARMSTART_HOPS} warm-started hops."
+        exit 1
+    fi
 fi
 
 # optimality_check $SLURM_JOB_ID 1
