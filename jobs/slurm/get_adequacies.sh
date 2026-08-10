@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### -- specify partition --
-#SBATCH --partition=rome
+#SBATCH --partition=windq
 ### -- set the job Name --
 #SBATCH --job-name=get_adequacies
 ### -- ask for number of cpus (default: 1) --
