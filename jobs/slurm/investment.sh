@@ -11,7 +11,8 @@
 ### -- set walltime limit: D-HH:MM:SS --
 #SBATCH --time=1-00:00:00
 ### -- send notification at completion --
-#SBATCH --mail-type=END
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=mberos@dtu.dk
 ### -- Specify the output and error file. %j is the job-id --
 #SBATCH --output=../logs/GREAT_investment_%j.out
 #SBATCH --error=../logs/GREAT_investment_%j.err

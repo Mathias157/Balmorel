@@ -9,10 +9,10 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-### -- rome partition's MaxTime is 2 days (scontrol show partition rome). See docs/adr/0002-slurm-migration.md.
 #SBATCH --time=2-00:00:00
 ### -- send notification at completion --
-#SBATCH --mail-type=END
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=mberos@dtu.dk
 ### -- Specify the output and error file. %j is the job-id --
 #SBATCH --output=../logs/GREAT_rolling_2050_%j.out
 #SBATCH --error=../logs/GREAT_rolling_2050_%j.err
