@@ -658,6 +658,12 @@ class MissingScenarioResultsError(Exception):
     "--columns", required=False, default="Category", help="What to display in legend"
 )
 @click.option(
+    "--filter",
+    type=str,
+    default="",
+    help="Search string for selecting $filter_ptes_caps files",
+)
+@click.option(
     "--filename", type=str, default="combinedcosts", required=False, help="The filename"
 )
 @click.option(
@@ -667,7 +673,7 @@ class MissingScenarioResultsError(Exception):
     default=SCENARIOS,
     help="R20YY-suffixed scenario names to combine investment + operational costs for",
 )
-def combined_costs(ctx, get_df: bool, columns: str, filename: str, scenarios: tuple):
+def combined_costs(ctx, get_df: bool, columns: str, filter: str, filename: str, scenarios: tuple):
     """
     Combine capacity-related costs (from each scenario's investment run,
     MainResults_%scenario%_INV.gdx) with operational costs (from the
@@ -692,6 +698,9 @@ def combined_costs(ctx, get_df: bool, columns: str, filename: str, scenarios: tu
     scenario_names = ctx.obj["Balmorel"].scenario_names
 
     is_capex = df["Category"].isin(capex_categories)
+
+    if filter != '':
+        df = df.query(filter)
 
     missing = []
     parts = []
@@ -723,7 +732,7 @@ def combined_costs(ctx, get_df: bool, columns: str, filename: str, scenarios: tu
         # is already in the same pivoted shape a successful call returns,
         # so a caller that wants to tolerate gaps (e.g. scenario_overview)
         # can use it exactly like a normal result.
-        raise MissingScenarioResultsError(missing=missing, partial=combined)
+        print(MissingScenarioResultsError(missing=missing, partial=combined))
 
     if get_df:
         return combined
