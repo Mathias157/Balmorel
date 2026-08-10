@@ -40,6 +40,7 @@ from functions.heatmap import (
     get_region_to_country,
     plot_importance_heatmap,
     plot_net_import_heatmap,
+    relative_deviation,
 )
 from functions.pit_storage import get_storage_profiles
 from gams import GamsWorkspace
@@ -155,6 +156,7 @@ def CLI(
             "all-profiles",
             "all_maps",
             "costs",
+            "combined-costs",
             "cost-change",
             "cap",
             "map",
@@ -628,6 +630,120 @@ def production(
     fig, ax = plot_style(fig, ax, filename, legend=False)
 
 
+class MissingScenarioResultsError(Exception):
+    """Raised by combined_costs when one or more requested scenarios are
+    missing their _INV and/or R20YY-suffixed MainResults file.
+
+    partial: DataFrame of the scenarios that resolved successfully, so a
+    caller (e.g. scenario_overview) can still use what did compute.
+    missing: the R20YY-suffixed scenario names that could not be resolved.
+    """
+
+    def __init__(self, missing: list, partial: pd.DataFrame):
+        self.missing = missing
+        self.partial = partial
+        super().__init__("Missing MainResults for scenarios: %s" % ", ".join(missing))
+
+
+@CLI.command()
+@click.pass_context
+@click.option(
+    "--get-df",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Dont plot, just get the dataframe",
+)
+@click.option(
+    "--columns", required=False, default="Category", help="What to display in legend"
+)
+@click.option(
+    "--filename", type=str, default="combinedcosts", required=False, help="The filename"
+)
+@click.option(
+    "--scenarios",
+    multiple=True,
+    required=False,
+    default=SCENARIOS,
+    help="R20YY-suffixed scenario names to combine investment + operational costs for",
+)
+def combined_costs(ctx, get_df: bool, columns: str, filename: str, scenarios: tuple):
+    """
+    Combine capacity-related costs (from each scenario's investment run,
+    MainResults_%scenario%_INV.gdx) with operational costs (from the
+    corresponding rolling run, MainResults_%scenario%_R20YY.gdx) into one
+    system-cost breakdown per scenario.
+
+    Raises MissingScenarioResultsError if any scenario is missing either
+    its investment or rolling MainResults file - callers that want to
+    tolerate partial data (e.g. scenario_overview) should catch it and use
+    its .partial/.missing attributes.
+    """
+    print("\nPlotting combined costs..")
+
+    capex_categories = [
+        "GENERATION_CAPITAL_COSTS",
+        "GENERATION_FIXED_COSTS",
+        "TRANSMISSION_CAPITAL_COSTS",
+        "H2_TRANSMISSION_CAPITAL_COSTS",
+    ]
+
+    df = collect_results("OBJ_YCR")
+    scenario_names = ctx.obj["Balmorel"].scenario_names
+
+    is_capex = df["Category"].isin(capex_categories)
+
+    missing = []
+    parts = []
+    for sc in scenarios:
+        inv_scenario = re.sub(r"R20(30|40|50)$", "INV", sc)
+        if sc not in scenario_names or inv_scenario not in scenario_names:
+            missing.append(sc)
+            continue
+
+        capacity = df[(df["Scenario"] == inv_scenario) & is_capex].assign(Scenario=sc)
+        operational = df[(df["Scenario"] == sc) & ~is_capex]
+        parts.append(pd.concat([capacity, operational]))
+
+    combined = pd.concat(parts) if parts else df.iloc[0:0]
+
+    filters = ctx.obj["filters"]
+    if filters is not None:
+        combined = combined.query(filters)
+
+    combined = sort_scenarios(combined).pivot_table(
+        index=["Scenario", "Year"],
+        columns=columns,
+        values="Value",
+        aggfunc=lambda x: np.sum(x) / 1e3,
+    )
+
+    if missing:
+        # Raised even for a --get-df caller (not just plotting) - .partial
+        # is already in the same pivoted shape a successful call returns,
+        # so a caller that wants to tolerate gaps (e.g. scenario_overview)
+        # can use it exactly like a normal result.
+        raise MissingScenarioResultsError(missing=missing, partial=combined)
+
+    if get_df:
+        return combined
+
+    fig, ax = plt.subplots()
+
+    (
+        combined.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours).set_ylabel(
+            "System Costs [B€]"
+        )
+    )
+
+    # Y limits were a bit too tight
+    ylims = ax.get_ylim()
+    ax.set_ylim(ylims[0], ylims[1] * 1.05)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncols=2)
+
+    fig, ax = plot_style(fig, ax, filename, legend=False)
+
+
 @CLI.command()
 @click.pass_context
 @click.option(
@@ -801,7 +917,6 @@ def scenario_overview(ctx, year: int):
 
     output_symbol = {
         "Production": "PRO_YCRAGF",
-        "System Costs": "OBJ_YCR",
         "Curtailment": "CURT_YCRAGF",
         "Generation Capacity": "G_CAP_YCRAF",
         "Storage Power Capacity": "G_CAP_YCRAF",
@@ -844,15 +959,41 @@ def scenario_overview(ctx, year: int):
         "H2 Green Production": 'Technology == "ELECTROLYZER"',
     }
 
+    # "System Costs" is handled separately below: it needs to combine two
+    # MainResults files (_INV and _R20YY) per scenario via combined_costs,
+    # which requires a Click context that compute_relative_importance (no
+    # ctx) can't provide, so it can't go through the generic output loop.
+    compute_outputs = [output for output in outputs if output != "System Costs"]
+
     rel_dev, rel_range = compute_relative_importance(
         res=res,
         scenarios=SCENARIOS,
         regions="all",
         year=year,
-        outputs=outputs,
+        outputs=compute_outputs,
         output_symbol=output_symbol,
         filters=filters,
     )
+
+    try:
+        combined = ctx.invoke(combined_costs, get_df=True, scenarios=tuple(SCENARIOS))
+    except MissingScenarioResultsError as e:
+        print(
+            "Warning: missing MainResults for System Costs of scenario(s): %s "
+            "(will show as NaN)" % ", ".join(e.missing)
+        )
+        combined = e.partial
+
+    if str(year) in combined.index.get_level_values("Year"):
+        system_costs = combined.xs(str(year), level="Year").sum(axis=1)
+    else:
+        system_costs = pd.Series(dtype=float)
+    system_costs = system_costs.reindex(SCENARIOS)
+    system_costs.name = "System Costs"
+
+    system_rel_dev, system_rel_range = relative_deviation(system_costs.to_frame())
+    rel_dev = pd.concat([rel_dev, system_rel_dev], axis=1)[outputs]
+    rel_range = pd.concat([rel_range, system_rel_range])[outputs]
 
     fig_heat = plot_importance_heatmap(
         rel_dev,
@@ -864,6 +1005,7 @@ def scenario_overview(ctx, year: int):
         ctx.obj["plot_path"] / f"scenario_overview{ctx.obj['plot_ext']}",
         dpi=300,
         facecolor=ctx.obj["fc"],
+        bbox_inches='tight'
     )
 
 
