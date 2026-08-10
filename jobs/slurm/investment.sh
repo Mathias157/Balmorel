@@ -36,6 +36,7 @@ if [[ "${run_name}" != "ELN" ]]; then
 fi
 
 # Temporal resolution
+cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
 
