@@ -31,6 +31,7 @@ from functions import (
     format_backcap_adequacy_results,
     format_lole_ens_adequacy_results,
 )
+from functions.costs import combine_capex_opex
 from functions.formats import individual_heating_areas, industry_heating_areas
 from functions.heatmap import (
     SCENARIO_LABELS,
@@ -687,34 +688,13 @@ def combined_costs(ctx, get_df: bool, columns: str, filter: str, filename: str, 
     """
     print("\nPlotting combined costs..")
 
-    capex_categories = [
-        "GENERATION_CAPITAL_COSTS",
-        "GENERATION_FIXED_COSTS",
-        "TRANSMISSION_CAPITAL_COSTS",
-        "H2_TRANSMISSION_CAPITAL_COSTS",
-    ]
-
     df = collect_results("OBJ_YCR")
     scenario_names = ctx.obj["Balmorel"].scenario_names
-
-    is_capex = df["Category"].isin(capex_categories)
 
     if filter != '':
         df = df.query(filter)
 
-    missing = []
-    parts = []
-    for sc in scenarios:
-        inv_scenario = re.sub(r"R20(30|40|50)$", "INV", sc)
-        if sc not in scenario_names or inv_scenario not in scenario_names:
-            missing.append(sc)
-            continue
-
-        capacity = df[(df["Scenario"] == inv_scenario) & is_capex].assign(Scenario=sc)
-        operational = df[(df["Scenario"] == sc) & ~is_capex]
-        parts.append(pd.concat([capacity, operational]))
-
-    combined = pd.concat(parts) if parts else df.iloc[0:0]
+    combined, missing = combine_capex_opex(df, scenario_names, scenarios)
 
     filters = ctx.obj["filters"]
     if filters is not None:
