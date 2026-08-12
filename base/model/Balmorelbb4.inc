@@ -891,6 +891,20 @@ $label  full_timeseries_scaling_end
 IHOURSINST(SSS,TTT)=0;
 IHOURSINST(S,T)=IOF8760*WEIGHT_S(S)*WEIGHT_T(T)/(IWEIGHSUMS*IWEIGHSUMT)/IHOURFRAC;
 
+* Transfer FUELPRICE to the internal, always season/term-resolved IFUELPRICE, regardless of
+* which domain FUELPRICE was declared on (see FUELPRICE_DOL). Scenarios that do not supply
+* season/term-resolved fuel prices simply get the annual FUELPRICE value broadcast to all (S,T).
+PARAMETER IFUELPRICE(YYY,AAA,FFF,S,T)  "Fuel prices, resolved to season and term (Money/GJ)";
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF          IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF);
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF,S);
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF,S,T);
+
+* Annual, IHOURSINST-weighted average of IFUELPRICE. Used wherever only a single representative
+* annual fuel price is needed (carryover to future runs, pre-solve diagnostic printout); for the
+* default annual FUELPRICE_DOL this is identical to FUELPRICE itself.
+PARAMETER IFUELPRICE_Y(Y,AAA,FFF)      "Fuel prices, annual average across season/term (Money/GJ)";
+IFUELPRICE_Y(Y,AAA,FFF) = SUM((S,T), IFUELPRICE(Y,AAA,FFF,S,T)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
+
 *Timeseries values are not scaled and match exactly the timeseries (it requires changing quite some code) !!TO DO
 
 *Calculation of IHYRST
@@ -1080,7 +1094,9 @@ $ifi %HYDROGEN%==yes HYDROGEN_DH2_VAR_T(AAA,SSS,TTT)$((NOT IA(AAA)) OR (NOT S(SS
 
 $ifi %GKRATE_DOL%==AAA_GGG_SSS GKRATE(AAA,GGG,SSS)$((NOT IA(AAA)) OR (NOT G(GGG)) OR (NOT S(SSS))) = 0;
 $ifi %GKRATE_DOL%==AAA_GGG_SSS_TTT GKRATE(AAA,GGG,SSS,TTT)$((NOT IA(AAA)) OR (NOT G(GGG)) OR (NOT S(SSS)) OR (NOT T(TTT))) = 0;
-FUELPRICE(YYY,AAA,FFF)$(NOT(Y(YYY)))=0;
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF          FUELPRICE(YYY,AAA,FFF)$(NOT(Y(YYY)))=0;
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      FUELPRICE(YYY,AAA,FFF,SSS)$((NOT(Y(YYY))) OR (NOT S(SSS)))=0;
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  FUELPRICE(YYY,AAA,FFF,SSS,TTT)$((NOT(Y(YYY))) OR (NOT S(SSS)) OR (NOT T(TTT)))=0;
 
 * Discounting
 * One, implicitly given in ANNUITY, represent the companies' perception of financing costs, alternatives, expectations to profit, etc.
@@ -1312,7 +1328,7 @@ IOF1_ * IDISCOUNTFACTOR(Y) * IWEIGHTY(Y) * (
 
 * Cost of fuel consumption during the year:
      SUM((IAGK_HASORPOT(Y,IA,G),FFF)$(IGF(G,FFF)),
-                 FUELPRICE(Y,IA,FFF)*IHOURFRAC * IOF3P6 * SUM((IS3,T), IHOURSINST(IS3,T) * VGF_T(Y,IA,G,IS3,T)))
+                 IHOURFRAC * IOF3P6 * SUM((IS3,T), IFUELPRICE(Y,IA,FFF,IS3,T) * IHOURSINST(IS3,T) * VGF_T(Y,IA,G,IS3,T)))
 
 
 * Operation and maintainance cost:
@@ -2752,7 +2768,7 @@ GMAXFS(Y,IA,FFF,S)$GMAXF(Y,IA,FFF)=IOF3P6*SUM((T,IAGK_HASORPOT(Y,IA,G))$IGF(G,FF
 execute_unload  "../simex/GMAXFS.gdx", GMAXFS;
 
 *Fuel price to be used in future runs by addon "import_results"
-FUELPRICE_EXC(Y,IA,FFF)=FUELPRICE(Y,IA,FFF);
+FUELPRICE_EXC(Y,IA,FFF)=IFUELPRICE_Y(Y,IA,FFF);
 $ifi not %STEPWISEPRICE%==yes $goto NO_STEPWISEPRICE
 FUELPRICE_EXC(Y,IA,STEPWISEPRICE_FFF)$SUM(C$ICA(C,IA),ISTEPWISEPRICE_F(Y,C,STEPWISEPRICE_FFF))=
  +   SUM(C$ICA(C,IA),

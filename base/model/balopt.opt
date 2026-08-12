@@ -1031,6 +1031,11 @@ $setglobal XKRATE_DOL IRRRE_IRRRI_SSS
 $setglobal GKRATE_DOL AAA_GGG_SSS
 *!option  AAA_GGG_SSS
 *!option  AAA_GGG_SSS_TTT
+*
+$setglobal FUELPRICE_DOL YYY_AAA_FFF
+*!option  YYY_AAA_FFF
+*!option  YYY_AAA_FFF_SSS
+*!option  YYY_AAA_FFF_SSS_TTT
 
 $setglobal WNDFLH_DOL AAA
 *!option  AAA_GGG

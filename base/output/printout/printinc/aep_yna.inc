@@ -61,7 +61,7 @@ OSCALAR1=
 * Cost of fuel consumption during the year:
 
      SUM((IAGK_HASORPOT(IY411,IA,IGE),FFF)$IGF(IGE,FFF),
-                 FUELPRICE(IY411,IA,FFF) * IOF3P6 * SUM((IS3,T), IHOURSINST(IS3,T) *
+                 IOF3P6 * SUM((IS3,T), IFUELPRICE(IY411,IA,FFF,IS3,T) * IHOURSINST(IS3,T) *
                  VGE_T.L(IY411,IA,IGE,IS3,T)/(GDATA(IGE,"GDFE")*GEFFRATE(IA,IGE))))
 
 * Operation and maintainance cost:

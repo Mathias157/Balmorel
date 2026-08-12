@@ -704,7 +704,9 @@ $if not EXIST '../data/XMAXINV.inc' $INCLUDE '../../base/data/XMAXINV.inc';
 * Annually specified fuel prices: ---------------------------------------------
 *-------------------------------------------------------------------------------
 
-PARAMETER FUELPRICE(YYY,AAA,FFF)                   "Fuel prices (Money/GJ)"   %semislash%
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF          PARAMETER FUELPRICE(YYY,AAA,FFF)             "Fuel prices (Money/GJ)" %semislash%
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      PARAMETER FUELPRICE(YYY,AAA,FFF,SSS)         "Fuel prices, optionally varying by season (Money/GJ)" %semislash%
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  PARAMETER FUELPRICE(YYY,AAA,FFF,SSS,TTT)     "Fuel prices, optionally varying by season and term (Money/GJ)" %semislash%
 $if     EXIST '../data/FUELPRICE.inc' $INCLUDE      '../data/FUELPRICE.inc';
 $if not EXIST '../data/FUELPRICE.inc' $INCLUDE '../../base/data/FUELPRICE.inc';
 %semislash%;
