@@ -174,6 +174,36 @@ def collect_adequacy_results(nth_max: int = 1):
     df_backcap.to_csv("analysis/output/backcap_collected.csv", index=False)
 
 
+def backup_production(pro_ycragfst: pd.DataFrame, commodity: str = "ELECTRICITY") -> pd.DataFrame:
+    """BACKUP-generation rows from PRO_YCRAGFST, filtered to one commodity.
+    Balmorel only stores nonzero production in a GDX, so every row here is
+    an hour backup was actually needed."""
+    return pro_ycragfst.query('Generation.str.contains("BACKUP") and Commodity == @commodity')
+
+
+def effective_backup_capacity(backup: pd.DataFrame, nth_max: int = 1) -> pd.DataFrame:
+    """Per (Scenario, Year, Region): the nth-largest hourly backup
+    production (nth_max=1 -> the maximum). A proxy for peaker "capacity",
+    since Balmorel's own BACKUP nameplate capacity is set heuristically
+    large purely to guarantee feasibility, not a real constraint (see
+    ../../../../docs/adr/0005-peaker-effective-capacity-for-flex-option-plots.md
+    in the GREAT repo this submodule is checked out in)."""
+    return (
+        backup.groupby(["Scenario", "Year", "Region"])["Value"]
+        .apply(lambda x: x.nlargest(nth_max).iloc[-1])
+        .reset_index()
+    )
+
+
+def compute_lole_ens(backup: pd.DataFrame) -> pd.DataFrame:
+    """Per (Scenario, Year, Region): LOLE (h - count of hours backup was
+    used) and ENS (TWh - summed backup production). Same definition as the
+    `adequacy` CLI command, generalized to run in-memory across many
+    scenarios/years at once instead of one scenario with CSV round-trips."""
+    grouped = backup.groupby(["Scenario", "Year", "Region"])["Value"]
+    return pd.DataFrame({"lole_h": grouped.count(), "ens_twh": grouped.sum() / 1e6}).reset_index()
+
+
 # ------------------------------- #
 #            2. Main              #
 # ------------------------------- #
