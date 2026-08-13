@@ -718,6 +718,19 @@ $if not EXIST '../data/FUELPRICE.inc' $INCLUDE '../../base/data/FUELPRICE.inc';
 * Stays all-zero (no effect) when the relevant addon is not active.
 PARAMETER FUELPRICE_HYDROGEN(YYY,AAA,FFF) "Fuel prices from HYDROGEN addon (Money/GJ)";
 
+* Fuels whose price should stay annual (S,T-flat) even when FUELPRICE_DOL includes
+* season/term resolution. IFUELPRICE (Balmorelbb4.inc) is only densely populated
+* across the full (S,T) grid for fuels NOT in this set; fuels in it are priced
+* everywhere via the much smaller, Y/AAA/FFF-only IFUELPRICE_Y annual average
+* instead. Populate this to keep the memory/generation cost of a dense (S,T)-indexed
+* price limited to the handful of fuels that actually need it, instead of every
+* fuel in FFF. Has no effect under the default FUELPRICE_DOL=YYY_AAA_FFF (every
+* fuel is already annual-only there).
+SET FUELPRICE_CONSTANT(FFF) "Fuels priced annually, not resolved to season/term" %semislash%
+$if     EXIST '../data/FUELPRICE_CONSTANT.inc' $INCLUDE      '../data/FUELPRICE_CONSTANT.inc';
+$if not EXIST '../data/FUELPRICE_CONSTANT.inc' $INCLUDE '../../base/data/FUELPRICE_CONSTANT.inc';
+%semislash%;
+
 *------------- Any FUELPRICE additions for addon to be placed here: ----------------
 $include "../../base/addons/_hooks/fuelpriceadditions.inc"
 

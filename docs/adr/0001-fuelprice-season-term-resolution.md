@@ -1,7 +1,7 @@
 # 1. Season/term (S,T) resolution for FUELPRICE
 
 Date: 2026-08-12
-Status: Accepted, implemented for the core framework and HYDROGEN addon; open issues 2-4 remain (see Open issues)
+Status: Accepted, implemented for the core framework and HYDROGEN addon, plus a `FUELPRICE_CONSTANT` memory/performance escape hatch; open issues 2-4 remain (see Open issues)
 
 ## Context
 
@@ -83,14 +83,80 @@ Concretely:
   `IFUELPRICE(Y,AAA,FFF,S,T)$FUELPRICE_HYDROGEN(Y,AAA,FFF) =
   FUELPRICE_HYDROGEN(Y,AAA,FFF);` to override with the addon's annual value
   wherever it set one.
-- `base/data/HYDROGEN_FUELPRICE.inc` — **gitignored** (`base/data/*.inc`; not
-  tracked by git, change lives in the working tree only, same as
-  `FUELPRICE.inc`). Dropped its own `PARAMETER FUELPRICE(YYY,AAA,FFF);`
-  declaration and renamed every `FUELPRICE(...)` read/write in the file
-  (imported-H2/NATGAS_CCS broadcast, `DK1_large` fallback, 2024 backcasting
-  adjustments for FUELOIL/HEAVYFUELOIL/LIGHTOIL/COAL/NATGAS) to
-  `FUELPRICE_HYDROGEN(...)`. Pure rename, no logic change — the file no
-  longer touches the domain-overloaded `FUELPRICE` parameter at all.
+- `base/data/HYDROGEN_FUELPRICE.inc` — lives in `base/data`, which is excluded
+  from this repo's tracking (`.gitignore`: `base/data`, `base/data/*.inc`) but
+  is itself a separate git repo (`git@github.com:Mathias157/Balmorel_data.git`,
+  linked as a gitlink at `.git/modules/base/data`, no `.gitmodules` entry —
+  not a properly registered submodule, just a nested checkout). Dropped its
+  own `PARAMETER FUELPRICE(YYY,AAA,FFF);` declaration and renamed every
+  `FUELPRICE(...)` read/write in the file (imported-H2/NATGAS_CCS broadcast,
+  `DK1_large` fallback, 2024 backcasting adjustments for
+  FUELOIL/HEAVYFUELOIL/LIGHTOIL/COAL/NATGAS) to `FUELPRICE_HYDROGEN(...)`.
+  Pure rename, no logic change. Committed independently in that nested repo
+  (`3caf52a "Adapted addon fuel price for S/T index"`) — not visible in this
+  repo's `git diff`/`git log`.
+
+### `FUELPRICE_CONSTANT`: memory/performance escape hatch (2026-08-13)
+
+**Problem** (reported after using open issue 1's fix in practice): running
+with `FUELPRICE_DOL=YYY_AAA_FFF_SSS_TTT` was "incredibly RAM intensive".
+Root cause: the objective function's fuel-cost term (and
+`OUTPUT_SUMMARY.inc`'s `GENERATION_FUEL_COSTS`) moved `IFUELPRICE` *inside*
+the `(S,T)` sum for *every* fuel, unconditionally — before this ADR, price
+was a per-year scalar multiplied in front of the sum (cheap: one price
+lookup per fuel per year). Once season/term-resolved `FUELPRICE` data is
+actually supplied, `IFUELPRICE(YYY,AAA,FFF,S,T)` gets densely populated
+across the full `(S,T)` grid for *every* fuel in `FFF` — including the large
+majority of fuels whose price never actually varies by season or term — not
+just the handful (coal, natgas, ...) that do.
+
+**Fix**: new `SET FUELPRICE_CONSTANT(FFF)` (`base/model/bb4datainc.inc`,
+populated from `base/data/FUELPRICE_CONSTANT.inc` the same
+`$if EXIST '../data/...' / $if not EXIST ... '../../base/data/...'` way as
+every other addon-overridable data file). Fuels in this set are excluded
+from the dense `(S,T)` broadcast into `IFUELPRICE` entirely and are instead
+priced everywhere via `IFUELPRICE_Y` (annual, `Y×AAA×FFF`-sized only).
+Default: empty (every fuel `NO`) — zero behavioural change unless populated.
+To get the memory win, list the fuels that *don't* need S/T resolution:
+```
+FUELPRICE_CONSTANT(FFF) = YES;
+FUELPRICE_CONSTANT('COAL') = NO;
+FUELPRICE_CONSTANT('NATGAS') = NO;
+```
+
+Mechanically:
+- `IFUELPRICE`'s three domain-broadcast lines and the `FUELPRICE_HYDROGEN`
+  override (`Balmorelbb4.inc`) all gained a `$(NOT FUELPRICE_CONSTANT(FFF))`
+  guard, so `IFUELPRICE` is only ever densely populated for non-constant
+  fuels.
+- `IFUELPRICE_Y` is no longer derived from `IFUELPRICE` (it would just read 0
+  for skipped fuels) — it's now computed directly from `FUELPRICE` per
+  domain, IHOURSINST-weighted, so it's correct and cheap (`Y×AAA×FFF` only)
+  for every fuel regardless of `FUELPRICE_CONSTANT` membership. This is a
+  mathematical identity for genuinely-flat prices (weighted average of a
+  constant is that constant), so it's bit-for-bit identical to before
+  whenever the underlying data for a `FUELPRICE_CONSTANT` fuel is actually
+  flat — which it always is under the default domain, and is a documented,
+  deliberate approximation (data averaged, not dropped) if a scenario ever
+  flags a genuinely S/T-varying fuel as constant.
+- The objective's fuel-cost term and `OUTPUT_SUMMARY.inc`'s
+  `GENERATION_FUEL_COSTS` are each now two `SUM`s partitioned by
+  `FUELPRICE_CONSTANT(FFF)`: the constant branch pulls `IFUELPRICE_Y` out in
+  front of the `(S,T)` sum (the original, cheap, pre-ADR form); the
+  non-constant branch keeps `IFUELPRICE(...,S,T)` inside the sum as before.
+
+### Files changed (2026-08-13, `FUELPRICE_CONSTANT`)
+- `base/model/bb4datainc.inc` — new `SET FUELPRICE_CONSTANT(FFF)` declaration
+  + data include, next to `FUELPRICE_HYDROGEN`.
+- `base/data/FUELPRICE_CONSTANT.inc` — new, default content
+  `FUELPRICE_CONSTANT(FFF) = NO;` (must be a real assignment, not just
+  comments — see Verification, GAMS error 141).
+- `base/model/Balmorelbb4.inc` — `$(NOT FUELPRICE_CONSTANT(FFF))` guards on
+  the `IFUELPRICE` broadcasts; `IFUELPRICE_Y` recomputed directly from
+  `FUELPRICE` per domain instead of from `IFUELPRICE`; objective's fuel-cost
+  term split into `FUELPRICE_CONSTANT`/non-constant `SUM`s.
+- `base/output/OUTPUT_SUMMARY.inc` — `GENERATION_FUEL_COSTS` split the same
+  way.
 
 ## Verification
 
@@ -122,6 +188,33 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
   skipped block does not error. This is distinct from a runtime `GOTO`
   statement, which does not affect compilation. Relevant because several
   fixes above initially assumed the stricter (compile-everything) semantics.
+- **`FUELPRICE_CONSTANT` (2026-08-13)**:
+  - Compile-only (`action=c`, `--SCNAME=APS`): both the default domain (empty
+    `FUELPRICE_CONSTANT`) and a season/term test (`FUELPRICE_DOL=YYY_AAA_FFF_SSS_TTT`,
+    a temporary `FUELPRICE.inc` with real per-`(S,T)` COAL/NATGAS values, and
+    `FUELPRICE_CONSTANT(FFF)=YES` except `COAL`/`NATGAS`) gave
+    `*** Status: Normal completion`.
+  - Isolated GAMS repro (outside the full model) pinned down GAMS error 141
+    ("Symbol declared but no values have been assigned") firing on
+    `IFUELPRICE(...)$(NOT FUELPRICE_CONSTANT(FFF)) = ...;` whenever
+    `FUELPRICE_CONSTANT` had been declared but never given *any* assignment
+    statement (a purely comment-only include is not enough, even though an
+    empty set is otherwise legal with `$ONEMPTY`). Fixed by giving the
+    default `base/data/FUELPRICE_CONSTANT.inc` a real
+    `FUELPRICE_CONSTANT(FFF) = NO;` statement instead of only comments.
+  - **Real solve** (not just compile), `--SCNAME=APS iterlim=1 reslim=10
+    threads=1` (bounded to keep it fast; GAMS still generates the full model
+    and calls the LP solver to optimality on `iterlim=1` since that only caps
+    *simplex* iterations, not model generation): reached `LP status (1):
+    optimal`, `Objective: 6391233249.179111` for the season/term test case
+    above (`FUELPRICE_CONSTANT` = all fuels except COAL/NATGAS) — confirms
+    the split objective/`GENERATION_FUEL_COSTS` generate and solve without
+    error, not just compile. Did not re-run the default-domain case through
+    to a solved objective value for a bit-for-bit numeric comparison before
+    wrapping up this session — the correctness argument for that case rests
+    on the mathematical identity noted above (weighted average of a constant
+    equals that constant) rather than an empirical before/after diff; if that
+    matters, worth doing as a follow-up.
 
 ## Open issues / follow-ups
 
@@ -179,7 +272,21 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
    `backcast/data/FUELPRICE.inc` (or scenario-local equivalent) using the
    `YYY_AAA_FFF_SSS_TTT` domain, and set `FUELPRICE_DOL` accordingly in
    `backcast/model/balopt.opt` (currently still `YYY_AAA_FFF`, `HYDROGEN=YES`,
-   per grep of `backcast/model/balopt*.opt` on 2026-08-13).
+   per grep of `backcast/model/balopt*.opt` on 2026-08-13). When doing this,
+   also populate `backcast/data/FUELPRICE_CONSTANT.inc` with every fuel
+   *except* the ones the CSVs actually cover (coal, natgas, oil, CO2) — see
+   the `FUELPRICE_CONSTANT` section above; this is what makes the S/T
+   resolution affordable rather than "incredibly RAM intensive".
+
+5. **`FUELPRICE_CONSTANT` is a manually-maintained set, not auto-detected.**
+   Nothing checks that a fuel's data is actually flat when it's flagged
+   constant, or actually varies when it isn't — getting this list out of sync
+   with `FUELPRICE.inc` silently degrades a genuinely-varying fuel to its
+   annual average rather than erroring. An alternative (auto-detect variation
+   directly from the raw `FUELPRICE` data, no manual set) was considered but
+   not pursued: it would need to inspect the domain-resolved `FUELPRICE`
+   parameter itself, which is exactly the large object this feature exists to
+   avoid materializing/scanning in full.
 
 ## Consequences
 
@@ -195,3 +302,11 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
   gets true season/term resolution. `COMBTECH_FUELPRICE.inc` (issue 2),
   `stepwiseprice`, and `ADDFUELPRICE` (issue 3) remain unresolved and are
   still off by default.
+- `FUELPRICE_CONSTANT` defaults to empty, so it changes nothing until a
+  scenario populates `base/data/FUELPRICE_CONSTANT.inc` (or a scenario-local
+  equivalent). Once populated, the memory/generation cost of season/term
+  resolution scales with the number of fuels actually left *out* of
+  `FUELPRICE_CONSTANT`, not with the size of `FFF` as a whole — this is what
+  makes `FUELPRICE_DOL=YYY_AAA_FFF_SSS_TTT` practical for a scenario that
+  only has real daily/weekly data for a handful of fuels (issue 5 above notes
+  the tradeoff: this list needs to be kept in sync with the data by hand).

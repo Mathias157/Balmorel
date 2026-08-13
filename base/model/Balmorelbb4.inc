@@ -894,21 +894,31 @@ IHOURSINST(S,T)=IOF8760*WEIGHT_S(S)*WEIGHT_T(T)/(IWEIGHSUMS*IWEIGHSUMT)/IHOURFRA
 * Transfer FUELPRICE to the internal, always season/term-resolved IFUELPRICE, regardless of
 * which domain FUELPRICE was declared on (see FUELPRICE_DOL). Scenarios that do not supply
 * season/term-resolved fuel prices simply get the annual FUELPRICE value broadcast to all (S,T).
-PARAMETER IFUELPRICE(YYY,AAA,FFF,S,T)  "Fuel prices, resolved to season and term (Money/GJ)";
-$ifi %FUELPRICE_DOL%==YYY_AAA_FFF          IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF);
-$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF,S);
-$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF,S,T);
+* Fuels in FUELPRICE_CONSTANT (bb4datainc.inc) are deliberately excluded from this dense
+* (S,T)-indexed broadcast -- their price is only ever read via the annual IFUELPRICE_Y below,
+* so IFUELPRICE only has to materialize a full (S,T) grid for the fuels that actually need it.
+PARAMETER IFUELPRICE(YYY,AAA,FFF,S,T)  "Fuel prices, resolved to season and term (Money/GJ); not populated for FUELPRICE_CONSTANT fuels";
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF          IFUELPRICE(Y,AAA,FFF,S,T)$(NOT FUELPRICE_CONSTANT(FFF)) = FUELPRICE(Y,AAA,FFF);
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      IFUELPRICE(Y,AAA,FFF,S,T)$(NOT FUELPRICE_CONSTANT(FFF)) = FUELPRICE(Y,AAA,FFF,S);
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE(Y,AAA,FFF,S,T)$(NOT FUELPRICE_CONSTANT(FFF)) = FUELPRICE(Y,AAA,FFF,S,T);
 
 * Addon-supplied annual fuel prices (see FUELPRICE_HYDROGEN declaration in
 * bb4datainc.inc) override the above, broadcast flat across all (S,T), wherever
-* the addon actually set a value. No-op when the addon is inactive (all-zero).
-IFUELPRICE(Y,AAA,FFF,S,T)$FUELPRICE_HYDROGEN(Y,AAA,FFF) = FUELPRICE_HYDROGEN(Y,AAA,FFF);
+* the addon actually set a value. No-op when the addon is inactive (all-zero) or
+* for FUELPRICE_CONSTANT fuels (priced via IFUELPRICE_Y below instead).
+IFUELPRICE(Y,AAA,FFF,S,T)$(FUELPRICE_HYDROGEN(Y,AAA,FFF) AND (NOT FUELPRICE_CONSTANT(FFF))) = FUELPRICE_HYDROGEN(Y,AAA,FFF);
 
-* Annual, IHOURSINST-weighted average of IFUELPRICE. Used wherever only a single representative
-* annual fuel price is needed (carryover to future runs, pre-solve diagnostic printout); for the
-* default annual FUELPRICE_DOL this is identical to FUELPRICE itself.
+* Annual, IHOURSINST-weighted average fuel price, computed directly from FUELPRICE (whichever
+* domain is active) rather than from IFUELPRICE, so it stays correct and cheap even for
+* FUELPRICE_CONSTANT fuels that IFUELPRICE above deliberately skips. This is THE price used
+* for FUELPRICE_CONSTANT fuels everywhere (objective, OUTPUT_SUMMARY, carryover, diagnostics);
+* for non-constant fuels it remains a convenience annual summary (inter-run carryover,
+* pre-solve diagnostics) -- for the default annual FUELPRICE_DOL this is identical to FUELPRICE.
 PARAMETER IFUELPRICE_Y(Y,AAA,FFF)      "Fuel prices, annual average across season/term (Money/GJ)";
-IFUELPRICE_Y(Y,AAA,FFF) = SUM((S,T), IFUELPRICE(Y,AAA,FFF,S,T)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF          IFUELPRICE_Y(Y,AAA,FFF) = FUELPRICE(Y,AAA,FFF);
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      IFUELPRICE_Y(Y,AAA,FFF) = SUM((S,T), FUELPRICE(Y,AAA,FFF,S)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE_Y(Y,AAA,FFF) = SUM((S,T), FUELPRICE(Y,AAA,FFF,S,T)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
+IFUELPRICE_Y(Y,AAA,FFF)$FUELPRICE_HYDROGEN(Y,AAA,FFF) = FUELPRICE_HYDROGEN(Y,AAA,FFF);
 
 *Timeseries values are not scaled and match exactly the timeseries (it requires changing quite some code) !!TO DO
 
@@ -1331,8 +1341,14 @@ SUM(Y$IY411(Y),
 * Objective equation of years and with weighting of years that are in Y but not in YYY
 IOF1_ * IDISCOUNTFACTOR(Y) * IWEIGHTY(Y) * (
 
-* Cost of fuel consumption during the year:
-     SUM((IAGK_HASORPOT(Y,IA,G),FFF)$(IGF(G,FFF)),
+* Cost of fuel consumption during the year: FUELPRICE_CONSTANT fuels (bb4datainc.inc) use
+* the single annual IFUELPRICE_Y price pulled outside the (S,T) sum -- cheap, same form as
+* before season/term-resolved FUELPRICE existed; all other fuels are priced inside the (S,T)
+* sum via the densely S,T-resolved IFUELPRICE.
+     SUM((IAGK_HASORPOT(Y,IA,G),FFF)$(IGF(G,FFF) AND FUELPRICE_CONSTANT(FFF)),
+                 IHOURFRAC * IOF3P6 * IFUELPRICE_Y(Y,IA,FFF) * SUM((IS3,T), IHOURSINST(IS3,T) * VGF_T(Y,IA,G,IS3,T)))
+
+   + SUM((IAGK_HASORPOT(Y,IA,G),FFF)$(IGF(G,FFF) AND (NOT FUELPRICE_CONSTANT(FFF))),
                  IHOURFRAC * IOF3P6 * SUM((IS3,T), IFUELPRICE(Y,IA,FFF,IS3,T) * IHOURSINST(IS3,T) * VGF_T(Y,IA,G,IS3,T)))
 
 
