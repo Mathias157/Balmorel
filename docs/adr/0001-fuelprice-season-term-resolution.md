@@ -1,7 +1,7 @@
 # 1. Season/term (S,T) resolution for FUELPRICE
 
 Date: 2026-08-12
-Status: Accepted, partially implemented (see Open issues)
+Status: Accepted, implemented for the core framework and HYDROGEN addon; open issues 2-4 remain (see Open issues)
 
 ## Context
 
@@ -75,6 +75,23 @@ Concretely:
 - `base/output/printout/printinc/aep_yna.inc` — 1 reference switched to
   `IFUELPRICE` (dead code, see above).
 
+### Files changed (2026-08-13, open issue 1)
+- `base/model/bb4datainc.inc` — new unconditional
+  `PARAMETER FUELPRICE_HYDROGEN(YYY,AAA,FFF)` declared just before the
+  `fuelpriceadditions.inc` hook include.
+- `base/model/Balmorelbb4.inc` — after the core `IFUELPRICE` broadcast, added
+  `IFUELPRICE(Y,AAA,FFF,S,T)$FUELPRICE_HYDROGEN(Y,AAA,FFF) =
+  FUELPRICE_HYDROGEN(Y,AAA,FFF);` to override with the addon's annual value
+  wherever it set one.
+- `base/data/HYDROGEN_FUELPRICE.inc` — **gitignored** (`base/data/*.inc`; not
+  tracked by git, change lives in the working tree only, same as
+  `FUELPRICE.inc`). Dropped its own `PARAMETER FUELPRICE(YYY,AAA,FFF);`
+  declaration and renamed every `FUELPRICE(...)` read/write in the file
+  (imported-H2/NATGAS_CCS broadcast, `DK1_large` fallback, 2024 backcasting
+  adjustments for FUELOIL/HEAVYFUELOIL/LIGHTOIL/COAL/NATGAS) to
+  `FUELPRICE_HYDROGEN(...)`. Pure rename, no logic change — the file no
+  longer touches the domain-overloaded `FUELPRICE` parameter at all.
+
 ## Verification
 
 GAMS is available in the pixi env (`/opt/gams/53/gams`). Ran compile-only
@@ -91,6 +108,14 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
   cleanly **once `HYDROGEN_FUELPRICE.inc` was neutralized** — see Open
   issues below, that neutralization was reverted per user direction and is
   *not* in the working tree.
+- **2026-08-13 re-verification**: with open issue 1 resolved (below) and
+  `HYDROGEN=YES` left at its default (unmodified), both configs recompiled
+  cleanly with no neutralization needed:
+  - Default (`FUELPRICE_DOL=YYY_AAA_FFF`): `*** Status: Normal completion`.
+  - Season/term (`FUELPRICE_DOL=YYY_AAA_FFF_SSS_TTT`, same temporary
+    `FUELPRICE(YYY,AAA,FFF,SSS,TTT)=0;` override as above, reverted after):
+    `*** Status: Normal completion`, `HYDROGEN_FUELPRICE.inc` compiled
+    as-is.
 - Confirmed empirically (isolated test script) that GAMS `$goto`/`$label`
   (compile-time directives) truly elide the enclosed source from
   compilation — a reference with the wrong number of indices inside a
@@ -100,22 +125,23 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
 
 ## Open issues / follow-ups
 
-1. **`HYDROGEN_FUELPRICE.inc` blocks non-default `FUELPRICE_DOL`.**
+1. **RESOLVED (2026-08-13). `HYDROGEN_FUELPRICE.inc` blocked non-default
+   `FUELPRICE_DOL`.**
    `base/model/balopt.opt` sets `HYDROGEN=YES` by default (case-insensitive
    match against `$ifi %HYDROGEN%==yes`), so `base/addons/_hooks/fuelpriceadditions.inc`
-   unconditionally pulls in `base/data/HYDROGEN_FUELPRICE.inc`, which
-   redeclares `PARAMETER FUELPRICE(YYY,AAA,FFF)` and assigns into it
+   unconditionally pulls in `base/data/HYDROGEN_FUELPRICE.inc`, which used to
+   redeclare `PARAMETER FUELPRICE(YYY,AAA,FFF)` and assign into it
    (imported-H2 and NATGAS_CCS prices, plus 2024 backcasting adjustments for
    FUELOIL/HEAVYFUELOIL/LIGHTOIL/COAL/NATGAS — note this file already
    contains ad-hoc 2024 backcast values that overlap with what
-   `backcast/historicalprices/` is meant to replace properly). This hard-codes
-   3-dim `FUELPRICE` and will fail to compile the instant a scenario switches
+   `backcast/historicalprices/` is meant to replace properly). This hard-coded
+   3-dim `FUELPRICE` and failed to compile the instant a scenario switched
    `FUELPRICE_DOL` away from `YYY_AAA_FFF`.
 
    A `$goto`/`$label` skip (confirmed compile-time-safe, see Verification)
    was drafted and tested, but **explicitly rejected**: hydrogen fuel pricing
    should keep working under season/term resolution, not be silently
-   disabled. Needs a real design decision, e.g.:
+   disabled. Two options were on the table:
    - Broadcast `HYDROGEN_FUELPRICE.inc`'s annual values across all `(S,T)`
      the same way the core `IFUELPRICE` broadcast does (cheapest, keeps
      hydrogen fuels annual-flat even in a daily-price run), or
@@ -123,6 +149,18 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
      genuine additive/override layer instead of writing directly into
      `FUELPRICE`, so hydrogen fuels could eventually get their own S,T
      resolution too.
+
+   **Decision: the broadcast option**, chosen for being the minimal change
+   that unblocks non-default `FUELPRICE_DOL` today; per-addon S,T-resolved
+   fuel pricing was not a near-term need. Implemented as: `HYDROGEN_FUELPRICE.inc`
+   now writes into a new always-3-dim `FUELPRICE_HYDROGEN(YYY,AAA,FFF)`
+   (declared unconditionally in `bb4datainc.inc`, so it exists — all-zero and
+   a no-op — even when the HYDROGEN addon is off) instead of `FUELPRICE`
+   itself; `Balmorelbb4.inc` broadcasts it into `IFUELPRICE` across all
+   `(S,T)`, overriding the core domain's value wherever the addon set a
+   nonzero price. Net effect for the default domain is bit-for-bit identical
+   to before (verified by compile, see Verification); see "Files changed
+   (2026-08-13, open issue 1)" above for the exact edits.
 
 2. **`COMBTECH_FUELPRICE.inc`** (`COMBTECH=YES` by default) is currently an
    *empty* file, so it's compile-safe today by accident, not by design. It
@@ -136,11 +174,12 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
    `FUELPRICE_DOL` is currently unsupported and would need the same kind of
    fix as (1).
 
-4. **The actual backcast data**: once (1) is resolved, the remaining work is
-   on the pybalmorel side — convert `backcast/historicalprices/*.csv` into a
+4. **The actual backcast data** (now unblocked by (1)): remaining work is on
+   the pybalmorel side — convert `backcast/historicalprices/*.csv` into a
    `backcast/data/FUELPRICE.inc` (or scenario-local equivalent) using the
    `YYY_AAA_FFF_SSS_TTT` domain, and set `FUELPRICE_DOL` accordingly in
-   `backcast/model/balopt.opt`.
+   `backcast/model/balopt.opt` (currently still `YYY_AAA_FFF`, `HYDROGEN=YES`,
+   per grep of `backcast/model/balopt*.opt` on 2026-08-13).
 
 ## Consequences
 
@@ -148,6 +187,11 @@ fuel-price scenario name; `EMI_POL`/`FUELPRICE` both key off `%SCNAME%`).
   is unaffected: `FUELPRICE_DOL` defaults to the original 3-dim domain, and
   `IFUELPRICE`/`IFUELPRICE_Y` reduce exactly to the original `FUELPRICE`
   values, verified by a clean GAMS compile.
-- Enabling `FUELPRICE_DOL=YYY_AAA_FFF_SSS`/`..._SSS_TTT` for a scenario is
-  currently blocked while `HYDROGEN=YES` (the base default) until open issue
-  (1) is resolved.
+- Enabling `FUELPRICE_DOL=YYY_AAA_FFF_SSS`/`..._SSS_TTT` for a scenario now
+  compiles cleanly with `HYDROGEN=YES` (the base default) — open issue (1) is
+  resolved. Hydrogen/NATGAS_CCS fuel prices and the 2024 backcasting
+  adjustments in `HYDROGEN_FUELPRICE.inc` stay annual-flat (broadcast across
+  all `(S,T)`) regardless of domain; only the core `FUELPRICE` data itself
+  gets true season/term resolution. `COMBTECH_FUELPRICE.inc` (issue 2),
+  `stepwiseprice`, and `ADDFUELPRICE` (issue 3) remain unresolved and are
+  still off by default.

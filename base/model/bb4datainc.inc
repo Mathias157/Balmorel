@@ -710,6 +710,14 @@ $ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  PARAMETER FUELPRICE(YYY,AAA,FFF,SSS,T
 $if     EXIST '../data/FUELPRICE.inc' $INCLUDE      '../data/FUELPRICE.inc';
 $if not EXIST '../data/FUELPRICE.inc' $INCLUDE '../../base/data/FUELPRICE.inc';
 %semislash%;
+
+* Always-3-dim, annual-only fuel prices from addons (e.g. HYDROGEN_FUELPRICE.inc's
+* imported H2/NATGAS_CCS prices and 2024 backcasting adjustments). Populated by
+* fuelpriceadditions.inc below regardless of FUELPRICE_DOL, then broadcast across
+* all (S,T) into IFUELPRICE (see Balmorelbb4.inc), overriding it where nonzero.
+* Stays all-zero (no effect) when the relevant addon is not active.
+PARAMETER FUELPRICE_HYDROGEN(YYY,AAA,FFF) "Fuel prices from HYDROGEN addon (Money/GJ)";
+
 *------------- Any FUELPRICE additions for addon to be placed here: ----------------
 $include "../../base/addons/_hooks/fuelpriceadditions.inc"
 

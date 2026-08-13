@@ -899,6 +899,11 @@ $ifi %FUELPRICE_DOL%==YYY_AAA_FFF          IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF,S);
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE(Y,AAA,FFF,S,T) = FUELPRICE(Y,AAA,FFF,S,T);
 
+* Addon-supplied annual fuel prices (see FUELPRICE_HYDROGEN declaration in
+* bb4datainc.inc) override the above, broadcast flat across all (S,T), wherever
+* the addon actually set a value. No-op when the addon is inactive (all-zero).
+IFUELPRICE(Y,AAA,FFF,S,T)$FUELPRICE_HYDROGEN(Y,AAA,FFF) = FUELPRICE_HYDROGEN(Y,AAA,FFF);
+
 * Annual, IHOURSINST-weighted average of IFUELPRICE. Used wherever only a single representative
 * annual fuel price is needed (carryover to future runs, pre-solve diagnostic printout); for the
 * default annual FUELPRICE_DOL this is identical to FUELPRICE itself.
