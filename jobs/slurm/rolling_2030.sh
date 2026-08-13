@@ -32,6 +32,7 @@ run_name="$(basename $PWD)"
 echo "Run name: ${run_name}_R2030"
 
 # Rolling horison simulation
+cat ../base/data/Y_roll.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 cd model

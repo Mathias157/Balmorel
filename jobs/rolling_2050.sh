@@ -55,6 +55,6 @@ optimality_check $LSB_JOBID 52
 
 cd ..
 if [ -f ../jobs/userfunctions.sh ]; then
-  . ../jobs/userfunctions.sh
-  verifications $run_name
+    . ../jobs/userfunctions.sh
+    verifications $run_name
 fi

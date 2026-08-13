@@ -43,6 +43,7 @@ if [[ "${run_name}" != "ELN" ]]; then
 fi
 
 # Temporal resolution
+cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
 
@@ -72,3 +73,4 @@ fi
 
 # Submit fullyear runs only if we reach this point
 # bash jobs/submit_year_runs.sh
+bsub <../jobs/fullyear_2050.sh

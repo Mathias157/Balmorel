@@ -9,7 +9,7 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=2-00:00:00
+#SBATCH --time=3-00:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -49,6 +49,6 @@ cd ..
 optimality_check $SLURM_JOB_ID 52
 
 if [ -f ../jobs/userfunctions.sh ]; then
-    . ../jobs/userfunctions.sh
-    verifications $run_name
+  . ../jobs/userfunctions.sh
+  verifications $run_name
 fi
