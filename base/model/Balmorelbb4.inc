@@ -914,10 +914,16 @@ IFUELPRICE(Y,AAA,FFF,S,T)$(FUELPRICE_HYDROGEN(Y,AAA,FFF) AND (NOT FUELPRICE_CONS
 * for FUELPRICE_CONSTANT fuels everywhere (objective, OUTPUT_SUMMARY, carryover, diagnostics);
 * for non-constant fuels it remains a convenience annual summary (inter-run carryover,
 * pre-solve diagnostics) -- for the default annual FUELPRICE_DOL this is identical to FUELPRICE.
+* Under YYY_AAA_FFF_SSS_TTT specifically, FUELPRICE_CONSTANT fuels read straight from
+* FUELPRICE_CONSTANT_Y (bb4datainc.inc) instead of summing over (S,T): those fuels are never
+* densely populated into FUELPRICE in the first place (see FUELPRICE_APS.inc), so summing
+* would just read back zeros -- and forcing every constant fuel through a dense (S,T)-indexed
+* FUELPRICE just to average it back to a scalar is the actual memory blowup this avoids.
 PARAMETER IFUELPRICE_Y(Y,AAA,FFF)      "Fuel prices, annual average across season/term (Money/GJ)";
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF          IFUELPRICE_Y(Y,AAA,FFF) = FUELPRICE(Y,AAA,FFF);
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      IFUELPRICE_Y(Y,AAA,FFF) = SUM((S,T), FUELPRICE(Y,AAA,FFF,S)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
-$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE_Y(Y,AAA,FFF) = SUM((S,T), FUELPRICE(Y,AAA,FFF,S,T)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE_Y(Y,AAA,FFF)$(NOT FUELPRICE_CONSTANT(FFF)) = SUM((S,T), FUELPRICE(Y,AAA,FFF,S,T)*IHOURSINST(S,T))/SUM((S,T)$IHOURSINST(S,T),IHOURSINST(S,T));
+$ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  IFUELPRICE_Y(Y,AAA,FFF)$FUELPRICE_CONSTANT(FFF) = FUELPRICE_CONSTANT_Y(Y,AAA,FFF);
 IFUELPRICE_Y(Y,AAA,FFF)$FUELPRICE_HYDROGEN(Y,AAA,FFF) = FUELPRICE_HYDROGEN(Y,AAA,FFF);
 
 *Timeseries values are not scaled and match exactly the timeseries (it requires changing quite some code) !!TO DO

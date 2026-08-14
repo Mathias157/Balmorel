@@ -704,6 +704,14 @@ $if not EXIST '../data/XMAXINV.inc' $INCLUDE '../../base/data/XMAXINV.inc';
 * Annually specified fuel prices: ---------------------------------------------
 *-------------------------------------------------------------------------------
 
+* Always-3-dim, annual-only fuel prices, regardless of FUELPRICE_DOL. Populated directly
+* by scenario data (e.g. FUELPRICE_APS.inc) for fuels whose price never varies by season
+* or term, so it never has to be broadcast across the (S,T)-indexed FUELPRICE below just
+* to be averaged back out again -- IFUELPRICE_Y (Balmorelbb4.inc) reads FUELPRICE_CONSTANT
+* fuels straight from here instead of summing over (S,T). Declared before FUELPRICE below
+* since scenario data files write into both in the same include.
+PARAMETER FUELPRICE_CONSTANT_Y(YYY,AAA,FFF) "Annual fuel prices for FUELPRICE_CONSTANT fuels (Money/GJ)";
+
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF          PARAMETER FUELPRICE(YYY,AAA,FFF)             "Fuel prices (Money/GJ)" %semislash%
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS      PARAMETER FUELPRICE(YYY,AAA,FFF,SSS)         "Fuel prices, optionally varying by season (Money/GJ)" %semislash%
 $ifi %FUELPRICE_DOL%==YYY_AAA_FFF_SSS_TTT  PARAMETER FUELPRICE(YYY,AAA,FFF,SSS,TTT)     "Fuel prices, optionally varying by season and term (Money/GJ)" %semislash%
