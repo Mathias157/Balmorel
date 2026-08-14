@@ -1,0 +1,15 @@
+* Option file 3 for CPLEX solver - dual simplex with warm start enabled.
+* To use with CPLEX, set '$Setglobal USEOPTIONFILE 3' in balgams.opt, or pass --USEOPTIONFILE=3 on the gams command line.
+*
+* Unlike op2/op4 (barrier, advind 0, which explicitly discards any previous solution), this uses
+* dual simplex so a later solve can warm-start from a previous run's basis via execute_loadpoint.
+* This is needed for scenarios whose fullyear solve is certain to exceed a single job's HPC wall-time
+* and must resume across a chain of resubmissions instead of restarting from scratch each time.
+* See docs/adr/0001-warm-start-fullyear-timeout.md.
+*
+* "LPmethod  2": Dual simplex.
+* "advind  1": Use the previous/loaded solution as an advanced (warm) start.
+* "Threads  -1": Use all available threads except 1. If memory tight, set the Threads parameter to 1.
+
+LPmethod  2
+advind 1
