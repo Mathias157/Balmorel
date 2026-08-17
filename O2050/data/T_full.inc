@@ -1,6 +1,0 @@
-SET T(TTT)  'Time periods within a season in the simulation'                                                                                                                                                                                                                                                                                                                                                                                                                                                              
-/    
-T001 , T007 , T013 , T019 , T025 , T031 , T037 , T043 , T049 , T055 , T061 ,
-T067 , T073 , T079 , T085 , T091 , T097 , T103 , T109 , T115 , T121 , T127 ,
-T133 , T139 , T145 , T151 , T157 , T163 , T168
-/;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
