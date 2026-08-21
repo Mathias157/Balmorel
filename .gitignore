@@ -65,3 +65,7 @@ balopt.opt
 **/data/T_roll.inc
 **/data/S.inc
 **/data/Y.inc
+weatheryeardata/
+# Weather year scenario folders (scripts/preprocessing/create_weather_year_scenarios.py) -
+# mechanically reproducible from their source scenario, see docs/adr/0014.
+*_WY*/
