@@ -9,7 +9,7 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=6-00:00:00
+#SBATCH --time=3-00:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -49,7 +49,7 @@ echo "Run name: ${run_name}_F2050 (source scenario: ${source_scenario}, weather 
 cat ../base/data/Y_full.inc >data/Y.inc
 cat ../base/data/T_full.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
-cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
+/usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
 cd model
 cat balopt_full.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts

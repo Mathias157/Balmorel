@@ -45,7 +45,7 @@ reslim_seconds=$((2 * 24 * 3600 - 45 * 60))
 cat ../base/data/Y_roll.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
-cp -f ../weatheryeardata/data_raw/${weather_year}/*.inc data/
+/usr/bin/cp -f ../weatheryeardata/data_raw/${weather_year}/*.inc data/
 cd model
 cat balopt_roll.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --RESLIM=${reslim_seconds} --scenario_name="${run_name}_R2050" $opts
