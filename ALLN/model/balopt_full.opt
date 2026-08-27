@@ -212,7 +212,7 @@ $setglobal EV yes
 *!option YES
 
 * Adds V2G charging:
-$setglobal V2G yes
+$setglobal V2G
 *!option
 
 * Models EV as inter-seasonal storage (if it is not activated, then EVs are model as intra-seasonal storage):

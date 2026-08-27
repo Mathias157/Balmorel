@@ -210,9 +210,9 @@ $setglobal VRESHUTDOWN   yes
 $setglobal EV yes
 *!option YES
 
-* Adds V2G charging: 
-$setglobal V2G yes
-*!option  
+* Adds V2G charging:
+$setglobal V2G
+*!option
 
 * Models EV as inter-seasonal storage (if it is not activated, then EVs are model as intra-seasonal storage):
 * NOTE: If not INTERSEASONAL, then use EV_allreturn and profile3 or profile4
