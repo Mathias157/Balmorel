@@ -709,7 +709,7 @@ $Setglobal ADDBIOMETHSTOVOLTS  cont
 *!option none          !Text "Do not not use this addon"
 
 *Import EV state of charge from previous runs  (requires EV addon)
-$Setglobal ADDEVSTOS  cont
+$Setglobal ADDEVSTOS  none
 *!option cont          !Text "Use seasonal content from previous runs in this run ('primal decomposition') (only works if EV_INTERSEASONAL is activated)"
 *!option netcharging   !Text "Use seasonal net charging of EV in this run ('primal decomposition') (only works if EV_INTERSEASONAL is NOT activated)"
 *!option none          !Text "Do not not use this addon"
