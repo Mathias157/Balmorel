@@ -49,15 +49,22 @@ from matplotlib.dates import DateFormatter
 from matplotlib.patches import Wedge as WedgePatch
 from premailer import transform
 from pybalmorel import Balmorel, MainResults
-from pybalmorel.formatting import balmorel_colours
+from pybalmorel.formatting import balmorel_colours, mberos_colours
 from pybalmorel.utils import symbol_to_df
 from pybalmorel import geofiles
 
 
 # Some formatting
 balmorel_colours["SYNFUELPRODUCER"] = "#E8C3A8"
+balmorel_colours["DUMMY"] = "#E8C3A8"
+balmorel_colours["OTHERGAS"] = "#E8C3A8"
+balmorel_colours["RETORTGAS"] = "#E8C3A8"
+balmorel_colours["SHALE"] = "#583738"
+balmorel_colours["WOOD"] = "#D2A106"
+balmorel_colours["WOODWASTE"] = "#D2A106"
 balmorel_colours["BIOGASUPGRADING"] = "#E8C3A8"
 balmorel_colours["FUEL_TRANSPORT"] = balmorel_colours["WIND-ON"]
+balmorel_colours["BIOOIL"] = balmorel_colours["WIND-ON"]
 balmorel_colours["H2_TRANSMISSION_CAPITAL_COSTS"] = "#A8D9E8"
 balmorel_colours["H2_TRANSMISSION_OPERATIONAL_COSTS"] = "#D3EBF2"
 balmorel_colours["HEAT_TRANSMISSION_CAPITAL_COSTS"] = "#ba585b"
@@ -73,6 +80,7 @@ balmorel_colours["ELECTRICITY"] = "#FFD700"
 balmorel_colours["HEAT"] = "#BA4E00"
 balmorel_colours["GENERATION_CO2_TAX"] = "#141414"
 balmorel_colours["GENERATION_CO2_TRANSPORT"] = "#292929"
+balmorel_colours = balmorel_colours | mberos_colours
 
 # Define color and marker options
 colors = ["b", "r", "g", "c", "m", "y", "k", "orange", "purple", "brown"]
@@ -374,6 +382,12 @@ def all_maps(ctx, scenario, year):
     "--get-df", is_flag=True, default=False, help="Dont plot, just get the dataframe"
 )
 @click.option(
+    "--extra-index", type=str, default="", required=False, help="Extra, comma-separated indices other than scenario and year"
+)
+@click.option(
+    "--columns", type=str, default="Technology", required=False, help="The choice of columns for legend display"
+)
+@click.option(
     "--filename", type=str, default="capacity", required=False, help="The filename"
 )
 def cap(
@@ -385,11 +399,17 @@ def cap(
     drop_hydro: bool,
     get_df: bool,
     filename: str,
+    extra_index: str,
+    columns: str
 ):
     """
     Plot generation or storage capacities
     """
     filters = ctx.obj["filters"]
+    if extra_index != '':
+        extra_index = extra_index.replace(' ', '').split(',')
+    else:
+        extra_index = []
 
     plot_types = {"generation": gen, "storage": sto}
     for key in [key for key in plot_types if plot_types[key]]:
@@ -412,10 +432,11 @@ def cap(
         if filters != None:
             df = df.query(filters)
 
+
         # Sort scenarios
         df = sort_scenarios(df).pivot_table(
-            index=["Scenario", "Year"],
-            columns="Technology",
+            index=["Scenario", "Year"]+extra_index,
+            columns=columns,
             values="Value",
             aggfunc="sum",
         )
@@ -426,16 +447,16 @@ def cap(
                 df = df.drop(columns="HYDRO-RUN-OF-RIVER")
 
             # Re-arrange technologies
-            if "Technology" not in str(filters):
-                cols = df.columns
-                cols = cols[
-                    (cols != "WIND-OFF")
-                    & (cols != "SYNFUELPRODUCER")
-                    & (cols != "ELECTROLYZER")
-                ]
-                cols = list(cols) + ["WIND-OFF", "ELECTROLYZER"]
-            else:
-                cols = list(df.columns)
+            # if "Technology" not in str(filters):
+            #     cols = df.columns
+            #     cols = cols[
+            #         (cols != "WIND-OFF")
+            #         & (cols != "SYNFUELPRODUCER")
+            #         & (cols != "ELECTROLYZER")
+            #     ]
+            #     cols = list(cols) + ["WIND-OFF", "ELECTROLYZER"]
+            # else:
+            cols = list(df.columns)
 
             # Include interpreted backup capacity
             if include_backup:
@@ -462,9 +483,14 @@ def cap(
             df = df.loc[:, cols]
 
         if get_df:
+            df.to_csv(ctx.obj['plot_path'].joinpath('../output/get_df_output.csv'))
             return df
 
-        (df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours))
+        if columns == 'Technology' or columns == "Fuel":
+            df.plot(ax=ax, kind="bar", stacked=True, color=balmorel_colours)
+        else:
+            df.plot(ax=ax, kind="bar", stacked=True)
+
 
         ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncols=2)
 
