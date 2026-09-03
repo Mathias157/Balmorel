@@ -1278,7 +1278,14 @@ def electrolyser_vre_correlation(ctx, scenario_search_string):
     default="Technology",
     help="Which parameter to stack, either 'Technology' or 'Fuel'",
 )
-def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: str):
+@click.option(
+    "--filename",
+    type=str,
+    default="",
+    required=False,
+    help="Name of outputted figure",
+)
+def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: str, filename: str):
     """Plot energy balance of electricity, heat or hydrogen"""
 
     m = ctx.obj["Balmorel"]
@@ -1304,11 +1311,14 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
     if node != "all":
         scenario += "_" + node
 
+    if filename == "":
+        filename = f"profile_{commodity + '-' + str(year) + '-' + scenario}"
+
     for idx, _ in enumerate(figs):
         plot_style(
             figs[idx],
             axes[idx],
-            f"profile_{commodity + '-' + str(year) + '-' + str(idx) + '-' + scenario}",
+            filename + f'_{idx}'
         )
 
 
