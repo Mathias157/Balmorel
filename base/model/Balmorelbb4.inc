@@ -1264,7 +1264,7 @@ EQUATIONS
    QLIMCO2C(Y,C,GROUP)       "Limit on annual CO2-emission by year and country and group (ton)"
    QLIMSO2C(Y,C,GROUP)       "Limit on annual SO2 emission by year and country and group (ton)"
    QLIMNOXC(Y,C,GROUP)       "Limit on annual NOx emission by year and country and group (ton)"
-
+   
    QLIMCO2NA(Y,GROUP)        "Limit on annual CO2-emission by year (aggregated countries) (ton)"
 
    QMAXINVESTCF(Y,C,FFF)      "Maximal investment by country and fuel during one simulated year (MW)"
@@ -1297,6 +1297,10 @@ EQUATIONS
 *----- End: Any equations declarations for addon to be placed here -------------
 *-------------------------------------------------------------------------------
 ;
+
+$ifi not %RollingSeasons%==yes $goto NoRollingSeasons
+EQUATION   QLIMCO2ROLLS(Y,GROUP,S);
+$label NoRollingSeasons
 
 * Equation definitions:
 *----- The objective function QOBJ: --------------------------------------------
@@ -2442,6 +2446,8 @@ $ifi not %RollingSeasons%==yes  QLIMSO2C
 $ifi not %RollingSeasons%==yes  QLIMNOXC
 $ifi not %RollingSeasons%==yes  QLIMCO2NA
 
+$ifi %RollingSeasons%==yes  QLIMCO2ROLLS
+
 *---------------------------------------------------------------
 $ifi not %TechInvest%==yes $ifi not %DECOM%==yes  $goto NO_TECH_INVESTMENTS_NO_DECOMMISSIONING
 *--- Investment and decommissioning related equations ----------
@@ -2836,6 +2842,19 @@ $ifi %EV%==yes execute_unload "../simex/EV_BE_BEV.gdx", EV_BE_BEV;
 $ifi %EV%==yes execute_unload "../simex/EV_BE_PHEV.gdx", EV_BE_PHEV;
 $ifi %EV%==yes execute_unload "../simex/EV_BEV_NETCHARGING.gdx", EV_BEV_NETCHARGING;
 $ifi %EV%==yes execute_unload "../simex/EV_PHEV_NETCHARGING.gdx", EV_PHEV_NETCHARGING;
+
+
+$ifi %EV%==yes  PARAM_V2G_INFRA_CAP(Y,IR)$IHASBEV(IR)=V2G_INFRA_CAP.L(Y,IR);
+$ifi %EV%==yes  PARAM_G2V_INFRA_CAP(Y,IR)$IHASBEV(IR)=G2V_INFRA_CAP.L(Y,IR);
+$ifi %EV%==yes  PARAM_V2G_INFRA_EXTRA(Y,IR)$IHASBEV(IR)=V2G_INFRA_EXTRA.L(Y,IR);
+$ifi %EV%==yes  PARAM_V2G_INFRA_ACCUMNET(Y,IR)$IHASBEV(IR)=VV2GINFRAACCUMNET.L(Y,IR);
+$ifi %EV%==yes  PARAM_G2V_INFRA_ACCUMNET(Y,IR)$IHASBEV(IR)=VG2VINFRAACCUMNET.L(Y,IR);
+
+$ifi %EV%==yes execute_unload "../simex/PARAM_V2G_INFRA_CAP.gdx", PARAM_V2G_INFRA_CAP;
+$ifi %EV%==yes execute_unload "../simex/PARAM_G2V_INFRA_CAP.gdx", PARAM_G2V_INFRA_CAP;
+$ifi %EV%==yes execute_unload "../simex/PARAM_V2G_INFRA_EXTRA.gdx", PARAM_V2G_INFRA_EXTRA;
+$ifi %EV%==yes execute_unload "../simex/PARAM_V2G_INFRA_ACCUMNET.gdx", PARAM_V2G_INFRA_ACCUMNET;
+$ifi %EV%==yes execute_unload "../simex/PARAM_G2V_INFRA_ACCUMNET.gdx", PARAM_G2V_INFRA_ACCUMNET;
 
 *Reducing size of export files once they have been exported
 $ifi %EV%==yes EV_BEV_NETCHARGING(Y,IR,S,T)=0;
