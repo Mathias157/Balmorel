@@ -5,7 +5,7 @@
 ### -- set the job Name --
 #SBATCH --job-name=GREAT_rolling_2050
 ### -- ask for number of cpus (default: 1) --
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=5
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
