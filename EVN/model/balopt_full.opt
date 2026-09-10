@@ -178,7 +178,7 @@ $setglobal GROUP_DEMAND_SHIFT
 *-----------------END: INDIVIDUAL USERS--------------------------------------------------------------
 
 * Include seasonal variation of heat pump's COP. If not activated, heat pumps will have a constant COP during the year.
-$setglobal SEASONALCOP 
+$setglobal SEASONALCOP
 *!option yes
 
 *------------START OF: OFFSHORE GRIDS--------------------------

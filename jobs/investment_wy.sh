@@ -9,9 +9,9 @@
 ### -- specify that the cores must be on the same host --
 #BSUB -R "span[hosts=1]"
 ### -- specify that we need 4GB of memory per core/slot --
-#BSUB -R "rusage[mem=6GB]"
+#BSUB -R "rusage[mem=15GB]"
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
-#BSUB -M 6GB
+#BSUB -M 15GB
 ### -- set walltime limit: hh:mm --
 #BSUB -W 24:00
 ### -- set the email address --
@@ -33,9 +33,12 @@ source ../jobs/functions.sh
 # Get run name
 source config.sh
 
-echo "Starting investment optimisation at $(date)"
+echo "Starting weather year investment optimisation at $(date)"
 run_name="$(basename $PWD)"
-echo "Run name: ${run_name}_INV"
+# WY folder naming: <source_scenario>_WY<year> - see CONTEXT.md's "WY folder".
+source_scenario="${run_name%_WY*}"
+weather_year="${run_name##*_WY}"
+echo "Run name: ${run_name}_INV (source scenario: ${source_scenario}, weather year: ${weather_year})"
 
 # Append H2 investments if scenario != ELN
 if [[ "${run_name}" != "ELN" && "${run_name}" != "ALLN" ]]; then
@@ -46,6 +49,7 @@ fi
 cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
+# /usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
 
 # Investment optimisation
 cd model
@@ -73,4 +77,4 @@ fi
 
 # Submit fullyear runs only if we reach this point
 # bash jobs/submit_year_runs.sh
-bsub <../jobs/fullyear_2050.sh
+bsub <../jobs/fullyear_2050_wy.sh

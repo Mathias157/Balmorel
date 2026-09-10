@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### -- specify partition --
-#SBATCH --partition=windq
+#SBATCH --partition=windfatq
 ### -- set the job Name --
 #SBATCH --job-name=GREAT_investment
 ### -- ask for number of cpus (default: 1) --
@@ -9,7 +9,7 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=1-00:00:00
+#SBATCH --time=0-10:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -25,11 +25,16 @@ cd "$SLURM_SUBMIT_DIR"
 source ../jobs/slurm/functions.sh
 
 # Get run name
-source ./config.sh
+# source config.sh
 
-echo "Starting investment optimisation at $(date)"
+echo "$opts"
+
+echo "Starting weather year investment optimisation at $(date)"
 run_name="$(basename $PWD)"
-echo "Run name: ${run_name}_INV"
+# WY folder naming: <source_scenario>_WY<year> - see CONTEXT.md's "WY folder".
+source_scenario="${run_name%_WY*}"
+weather_year="${run_name##*_WY}"
+echo "Run name: ${run_name}_INV (source scenario: ${source_scenario}, weather year: ${weather_year})"
 
 # Append H2 investments if scenario != ELN
 if [[ "${run_name}" != "ELN" && "${run_name}" != "ALLN" ]]; then
@@ -40,6 +45,7 @@ fi
 cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
+/usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
 
 # Investment optimisation
 cd model
@@ -60,10 +66,10 @@ optimality_check $SLURM_JOB_ID 3
 echo "Investment optimisation completed successfully at $(date)"
 
 # Store simex files
-if [ ! -d "${PWD}/simex_INV" ]; then
+if not [ -d "${PWD}/simex_INV" ]; then
     mkdir simex_INV
 fi
 /usr/bin/cp -rf simex/* simex_INV/
 
-# Submit fullyear run only if we reach this point
-sbatch ../jobs/slurm/fullyear_2050.sh
+# Submit fullyear runs only if we reach this point
+sbatch ../jobs/slurm/fullyear_2050_wy.sh

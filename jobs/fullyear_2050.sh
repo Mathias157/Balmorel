@@ -9,9 +9,9 @@
 ### -- specify that the cores must be on the same host --
 #BSUB -R "span[hosts=1]"
 ### -- specify that we need 11GB of memory per core/slot --
-#BSUB -R "rusage[mem=11GB]"
+#BSUB -R "rusage[mem=20GB]"
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
-#BSUB -M 11GB
+#BSUB -M 20GB
 ### -- set walltime limit: hh:mm --
 ### -- ALLN and VGN's fullyear solve is certain to exceed this: submit_year_runs.sh submits those
 ### -- two scenarios with `bsub -W 72:00` instead, which overrides this default. --
