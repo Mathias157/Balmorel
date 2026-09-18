@@ -172,6 +172,7 @@ def CLI(
             "cap",
             "map",
             "production",
+            "capacity-factor",
             "profile",
             "bar-chart",
             "adequacy",
@@ -654,6 +655,134 @@ def production(
     # Y limits were a bit too tight
     ylims = ax.get_ylim()
     ax.set_ylim(ylims[0], ylims[1] * 1.05)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncols=2)
+
+    fig, ax = plot_style(fig, ax, filename, legend=False)
+
+
+@CLI.command()
+@click.pass_context
+@click.option(
+    "--technology",
+    "-t",
+    type=str,
+    default="",
+    help="Comma-separated Technology group(s) to compute capacity factor for (default: all)",
+)
+@click.option(
+    "--columns",
+    default="Technology",
+    required=False,
+    help="What to break the capacity factor down by - 'Technology' (aggregated group, default) or "
+    "'Generation' (the specific technology within a Technology group)",
+)
+@click.option(
+    "--extra-index",
+    type=str,
+    default="",
+    required=False,
+    help="Extra, comma-separated indices other than scenario and year",
+)
+@click.option(
+    "--get-df", is_flag=True, default=False, help="Dont plot, just get the dataframe"
+)
+@click.option(
+    "--filename", type=str, default="capacity_factor", required=False, help="The filename"
+)
+def capacity_factor(
+    ctx,
+    technology: str,
+    columns: str,
+    extra_index: str,
+    get_df: bool,
+    filename: str,
+):
+    """
+    Plot capacity factor of generation technologies.
+
+    Capacity factor = Production / (Capacity * hours in year), computed from
+    G_CAP_YCRAF (capacity, GW) and PRO_YCRAGF (production, TWh). Both symbols
+    share the same Year/Country/Region/Area/Generation/Fuel/Commodity/Technology
+    index, so they are summed to the requested --columns granularity separately
+    before dividing (summing capacity factors themselves would over/under-weight
+    areas and technologies unevenly).
+
+    'Technology' is the aggregated technology group (e.g. WIND-ON, SOLAR-PV);
+    'Generation' is the specific technology within that group. Use
+    --columns Generation to break capacity factor down by specific technology
+    instead of the aggregated group.
+    """
+    print("\nPlotting capacity factor..")
+
+    filters = ctx.obj["filters"]
+    if extra_index != "":
+        extra_index = extra_index.replace(" ", "").split(",")
+    else:
+        extra_index = []
+
+    cap = collect_results("G_CAP_YCRAF")
+    pro = collect_results("PRO_YCRAGF")
+
+    if technology != "":
+        techs = technology.replace(" ", "").split(",")
+        cap = cap.query("Technology in @techs")
+        pro = pro.query("Technology in @techs")
+
+    if filters is not None:
+        cap = cap.query(filters)
+        pro = pro.query(filters)
+
+    index_cols = [
+        "Scenario",
+        "Year",
+        "Country",
+        "Region",
+        "Area",
+        "Generation",
+        "Fuel",
+        "Commodity",
+        "Technology",
+    ]
+
+    cap_agg = (
+        cap.groupby(index_cols, as_index=False)["Value"]
+        .sum()
+        .rename(columns={"Value": "Capacity_GW"})
+    )
+    pro_agg = (
+        pro.groupby(index_cols, as_index=False)["Value"]
+        .sum()
+        .rename(columns={"Value": "Production_TWh"})
+    )
+
+    df = cap_agg.merge(pro_agg, on=index_cols, how="outer").fillna(0)
+
+    group_cols = ["Scenario", "Year", columns] + extra_index
+    df = sort_scenarios(df).groupby(group_cols, as_index=False)[
+        ["Capacity_GW", "Production_TWh"]
+    ].sum()
+
+    gw_to_twh_per_year = 8760 / 1e3  # 1 GW running for a full year = 8.76 TWh
+    df["CapacityFactor"] = df["Production_TWh"] / (
+        df["Capacity_GW"] * gw_to_twh_per_year
+    )
+    df.loc[df["Capacity_GW"] == 0, "CapacityFactor"] = np.nan
+
+    df = df.pivot_table(
+        index=["Scenario", "Year"] + extra_index,
+        columns=columns,
+        values="CapacityFactor",
+    )
+
+    if get_df:
+        return df
+
+    fig, ax = plt.subplots()
+    if columns in ("Technology", "Fuel"):
+        df.plot(ax=ax, kind="bar", color=balmorel_colours)
+    else:
+        df.plot(ax=ax, kind="bar")
+    ax.set_ylabel("Capacity Factor [-]")
     ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.01), ncols=2)
 
     fig, ax = plot_style(fig, ax, filename, legend=False)
