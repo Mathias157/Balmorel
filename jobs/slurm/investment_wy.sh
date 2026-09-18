@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### -- specify partition --
-#SBATCH --partition=windfatq
+#SBATCH --partition=windq
 ### -- set the job Name --
 #SBATCH --job-name=GREAT_investment
 ### -- ask for number of cpus (default: 1) --
@@ -25,7 +25,7 @@ cd "$SLURM_SUBMIT_DIR"
 source ../jobs/slurm/functions.sh
 
 # Get run name
-# source config.sh
+source ./config.sh
 
 echo "$opts"
 
@@ -70,6 +70,10 @@ if not [ -d "${PWD}/simex_INV" ]; then
     mkdir simex_INV
 fi
 /usr/bin/cp -rf simex/* simex_INV/
+
+# Put simex files in source scenario
+mv "../${source_scenario}/simex_INV" "../${source_scenario}/simex_INV_old"
+/usr/bin/cp -rf simex_INV "../${source_scenario}/"
 
 # Submit fullyear runs only if we reach this point
 sbatch ../jobs/slurm/fullyear_2050_wy.sh
