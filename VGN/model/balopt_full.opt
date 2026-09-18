@@ -217,7 +217,7 @@ $setglobal V2G
 
 * Models EV as inter-seasonal storage (if it is not activated, then EVs are model as intra-seasonal storage):
 * NOTE: If not INTERSEASONAL, then use EV_allreturn and profile3 or profile4
-$setglobal EV_INTERSEASONAL yes
+$setglobal EV_INTERSEASONAL 
 *!option yes
 
 * EV timeseries will be normalized (relevant if less than all time steps in TTT are used).
@@ -236,7 +236,7 @@ $setglobal EV_season_calc yes
 * The reason is that the EV addon is highly affected by input data.
 * Note: The value of the parameter PENALTQ should be in line with the cost assumptions in the model to obtain meaninful results
 * Note: Rule of thumb, if this is needed, something is probably wrong with the data used.
-$setglobal EV_infeas yes
+$setglobal EV_infeas
 *!option yes
 
 * Scenario where every EV return to charger after each trip. Needs specific profile as well (profile3 or profile4).

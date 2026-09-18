@@ -11,9 +11,9 @@ IEV_BEV_outofbounds(Y,S,T,RRR)             * True if EV_available went out of bo
 IEV_PHEV_outofbounds(Y,S,T,RRR)            * True if EV_available went out of bounds. Negative is lower bound and positive is upper bound.
 ;
 
-* If available_first is not calculated in season_calc, use from max avail.
-$ifi not %EV_season_calc%==yes IEV_BEV_available_first(Y,S,T,IR)$(ORD(S) EQ 1 AND ORD(T) EQ 1 AND IHASBEV(IR)) = EV_BEV_available(Y,IR);
-$ifi not %EV_season_calc%==yes IEV_PHEV_available_first(Y,S,T,IR)$(ORD(S) EQ 1 AND ORD(T) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR);
+* If available_first is not calculated in season_calc, use from max avail. Applies to every simulated season, not just the first.
+$ifi not %EV_season_calc%==yes IEV_BEV_available_first(Y,S,T,IR)$(ORD(T) EQ 1 AND IHASBEV(IR)) = EV_BEV_available(Y,IR);
+$ifi not %EV_season_calc%==yes IEV_PHEV_available_first(Y,S,T,IR)$(ORD(T) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR);
 
 *-------------------------------------------------*
 * Season Calculation - Used if S01 is not in simulation, then EV_BEV_avilable and EV_PHEV_available will be calculated to the first season in the simulation.
@@ -54,10 +54,10 @@ IEV_BEV_available_scalc(Y,SSS,TTT,IR)$(ORD(SSS) EQ 1 AND ORD(TTT) EQ 1 AND IHASB
 IEV_PHEV_available_scalc(Y,SSS,TTT,IR)$(ORD(SSS) EQ 1 AND ORD(TTT) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR) + EV_PHEV_available(Y,IR) * EV_PHEV_leave_profile(Y,SSS,TTT,IR);
 
 * Creating loop, to ensure it goes through all timesteps
-LOOP(S$(ORD(S) EQ 1),
+LOOP(S$(ORD(S) EQ CARD(S)),
     LOOP(SSS$(ORD(SSS) LE Scounter(S)),
 * Making these calculations and S loop before the rest for computational time
-* Calculating the return and leave of EVs up to first season in simulation
+* Calculating the return and leave of EVs up to the last season in simulation, so every simulated season has a starting point
         IEV_BEV_return_scalc(Y,SSS,TTT,IR)$(IHASBEV(IR)) = EV_BEV_available(Y,IR) * EV_BEV_return_profile(Y,SSS,TTT,IR);
         IEV_BEV_leave_scalc(Y,SSS,TTT,IR)$(IHASBEV(IR)) = EV_BEV_available(Y,IR) * EV_BEV_leave_profile(Y,SSS,TTT,IR);
 
@@ -74,11 +74,11 @@ LOOP(S$(ORD(S) EQ 1),
     );
 );
 
-* The available in first hour, is the available for the previous hour, due to it later getting +/- return/leave EVs.
+* The available in first hour, is the available for the previous hour, due to it later getting +/- return/leave EVs. Done per simulated season: without it, seasons after the first start from an empty charger and IEV_BEV_available is clamped to 0 for the first hours of the season.
 
 LOOP(T$(ORD(T) EQ 1),
     LOOP(TTT,
-        LOOP(S$(ORD(S) EQ 1),
+        LOOP(S,
             LOOP(SSS$(ORD(SSS) EQ Scounter(S)),
 * If first simulation timestep is T001 and not S01, then available first hour is available last hour last season
                 IF(Tcounter(T) EQ 1 AND ORD(TTT) EQ CARD(TTT) AND Scounter(S) GT 1,
