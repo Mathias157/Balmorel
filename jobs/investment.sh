@@ -37,11 +37,6 @@ echo "Starting investment optimisation at $(date)"
 run_name="$(basename $PWD)"
 echo "Run name: ${run_name}_INV"
 
-# Append H2 investments if scenario != ELN
-if [[ "${run_name}" != "ELN" && "${run_name}" != "ALLN" ]]; then
-    opts="${opts} --H2TransInvest yes"
-fi
-
 # Temporal resolution
 cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc

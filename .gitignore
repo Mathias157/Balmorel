@@ -70,3 +70,10 @@ weatheryeardata/
 # mechanically reproducible from their source scenario, see docs/adr/0014.
 *_WY*/
 .git
+# Combination scenario folders (scripts/preprocessing/create_combination_scenarios.py
+# in the GREAT repo) - generated from its config/switches.yaml, see its docs/adr/0033.
+# Singles and pairs are 3/6-character concatenations of switch codes (e.g. HPN, EVNHPN).
+/[A-Z][A-Z0-9][NY]/
+/[A-Z][A-Z0-9][NY][A-Z][A-Z0-9][NY]/
+/ALLN/
+_ev_fleet_read_*/

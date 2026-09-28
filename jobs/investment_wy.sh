@@ -40,16 +40,11 @@ source_scenario="${run_name%_WY*}"
 weather_year="${run_name##*_WY}"
 echo "Run name: ${run_name}_INV (source scenario: ${source_scenario}, weather year: ${weather_year})"
 
-# Append H2 investments if scenario != ELN
-if [[ "${run_name}" != "ELN" && "${run_name}" != "ALLN" ]]; then
-    opts="${opts} --H2TransInvest yes"
-fi
-
 # Temporal resolution
 cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
-# /usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
+/usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
 
 # Investment optimisation
 cd model

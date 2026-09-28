@@ -47,7 +47,7 @@ echo "Run name: ${run_name}_F2050 (source scenario: ${source_scenario}, weather 
 # docs/adr/0013. A weather year folder never has its own simex_INV (there's
 # no investment run to produce one), so this reads directly from the source
 # scenario's, unlike the ordinary fullyear_2050.sh's `cp simex_INV/* simex/`.
-# /usr/bin/cp -rf "../${source_scenario}/simex_INV/"* simex/
+/usr/bin/cp -rf "../${source_scenario}/simex_INV/"* simex/
 
 # Full year simulation - temporal resolution as usual, but the weather-
 # driven VAR_T-style .inc files come from this weather year's scaled

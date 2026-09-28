@@ -34,21 +34,17 @@ source_scenario="${run_name%_WY*}"
 weather_year="${run_name##*_WY}"
 echo "Run name: ${run_name}_R2050 (source scenario: ${source_scenario}, weather year: ${weather_year})"
 
-# RESLIM below the job's own wall-time (see #SBATCH --time above), so CPLEX stops itself and GAMS
-# can still write its savepoint/logs before the scheduler kills the job outright.
-# See docs/adr/0001-warm-start-fullyear-timeout.md and docs/adr/0002-slurm-migration.md.
-reslim_seconds=$((2 * 24 * 3600 - 45 * 60))
-
 # Rolling horizon simulation - this weather year's raw (8760h resolution)
 # variant, not whatever the source scenario's own base data would otherwise
 # supply - see docs/adr/0014 and CONTEXT.md's "weatheryeardata".
+/usr/bin/cp -f ../weatheryeardata/data_raw/${weather_year}/*.inc data/
+
 cat ../base/data/Y_roll.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
-/usr/bin/cp -f ../weatheryeardata/data_raw/${weather_year}/*.inc data/
 cd model
 cat balopt_roll.opt >balopt.opt
-gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --RESLIM=${reslim_seconds} --scenario_name="${run_name}_R2050" $opts
+gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_R2050" $opts
 cd ..
 
 optimality_check $SLURM_JOB_ID 52

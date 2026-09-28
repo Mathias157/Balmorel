@@ -40,6 +40,7 @@ echo "Run name: ${run_name}_F2050 (source scenario: ${source_scenario}, weather 
 # no investment run to produce one), so this reads directly from the source
 # scenario's, unlike the ordinary fullyear_2050.sh's `cp simex_INV/* simex/`.
 /usr/bin/cp -rf "../${source_scenario}/simex_INV/"* simex/
+/usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
 
 # Full year simulation - temporal resolution as usual, but the weather-
 # driven VAR_T-style .inc files come from this weather year's scaled
@@ -49,7 +50,6 @@ echo "Run name: ${run_name}_F2050 (source scenario: ${source_scenario}, weather 
 cat ../base/data/Y_full.inc >data/Y.inc
 cat ../base/data/T_full.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
-/usr/bin/cp -f ../weatheryeardata/data_scaled/${weather_year}/*.inc data/
 cd model
 cat balopt_full.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
