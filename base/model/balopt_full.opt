@@ -236,7 +236,7 @@ $setglobal EV_season_calc yes
 * The reason is that the EV addon is highly affected by input data.
 * Note: The value of the parameter PENALTQ should be in line with the cost assumptions in the model to obtain meaninful results
 * Note: Rule of thumb, if this is needed, something is probably wrong with the data used.
-$setglobal EV_infeas
+$setglobal EV_infeas yes
 *!option yes
 
 * Scenario where every EV return to charger after each trip. Needs specific profile as well (profile3 or profile4).
