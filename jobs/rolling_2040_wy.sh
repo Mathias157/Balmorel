@@ -3,7 +3,7 @@
 ### -- specify queue --
 #BSUB -q hpc
 ### -- set the job Name --
-#BSUB -J GREAT_rolling_2050
+#BSUB -J GREAT_rolling_2040
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 10
 ### -- specify that the cores must be on the same host --
@@ -24,11 +24,11 @@
 #BSUB -N
 ### -- Specify the output and error file. %J is the job-id --
 ### -- -o and -e mean append, -oo and -eo mean overwrite --
-#BSUB -o ../logs/GREAT_rolling_2050_%J.out
-#BSUB -e ../logs/GREAT_rolling_2050_%J.err
+#BSUB -o ../logs/GREAT_rolling_2040_%J.out
+#BSUB -e ../logs/GREAT_rolling_2040_%J.err
 
-# rolling_2030_wy.sh/rolling_2040_wy.sh are generated copies of this file with only the year
-# changed - keep them that way.
+# Copy of rolling_2050_wy.sh with only the year changed - edit that file and copy it over
+# again, don't let the two drift apart.
 
 # Load error handling and GAMS paths
 source ../jobs/functions.sh
@@ -36,7 +36,7 @@ source ../jobs/functions.sh
 # Get run name
 source ./config.sh
 
-year=2050
+year=2040
 optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
 require_optfile $optfile
 

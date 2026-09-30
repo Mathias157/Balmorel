@@ -13,8 +13,6 @@
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
 #BSUB -M 20GB
 ### -- set walltime limit: hh:mm --
-### -- ALLN and VGN's fullyear solve is certain to exceed this: submit_year_runs.sh submits those
-### -- two scenarios with `bsub -W 72:00` instead, which overrides this default. --
 #BSUB -W 72:00
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
@@ -29,18 +27,25 @@
 #BSUB -o ../logs/GREAT_fullyear_2050_%J.out
 #BSUB -e ../logs/GREAT_fullyear_2050_%J.err
 
+# fullyear_2030_wy.sh/fullyear_2040_wy.sh are generated copies of this file with only the year
+# changed - keep them that way.
+
 # Load error handling and GAMS paths
 source ../jobs/functions.sh
 
 # Get run name
 source ./config.sh
 
+year=2050
+optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
+require_optfile $optfile
+
 echo "Starting weather year fullyear simulation at $(date)"
 run_name="$(basename $PWD)"
 # WY folder naming: <source_scenario>_WY<year> - see CONTEXT.md's "WY folder".
 source_scenario="${run_name%_WY*}"
 weather_year="${run_name##*_WY}"
-echo "Run name: ${run_name}_F2050 (source scenario: ${source_scenario}, weather year: ${weather_year})"
+echo "Run name: ${run_name}_F${year} (source scenario: ${source_scenario}, weather year: ${weather_year}, cplex.op${optfile})"
 
 # Reuse the source scenario's already-completed investment decision instead
 # of running our own - weather year runs never re-invest, see
@@ -54,16 +59,16 @@ echo "Run name: ${run_name}_F2050 (source scenario: ${source_scenario}, weather 
 # (long-term-corrected, aggregated) variant instead of whatever the source
 # scenario's own base data would otherwise supply - see docs/adr/0014 and
 # CONTEXT.md's "weatheryeardata".
-cat ../base/data/Y_full.inc >data/Y.inc
+cat ../base/data/Y_${year}.inc >data/Y.inc
 cat ../base/data/T_full.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 
 cd model
 cat balopt_full.opt >balopt.opt
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_F${year}" $opts
 cd ..
 
-# optimality_check $SLURM_JOB_ID 1
+# optimality_check $LSB_JOBID 1
 
 # Submit rolling horizon run
-bsub <../jobs/rolling_2050_wy.sh
+bsub <../jobs/rolling_${year}_wy.sh

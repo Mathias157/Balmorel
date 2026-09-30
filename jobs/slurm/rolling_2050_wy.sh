@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### -- specify partition --
-#SBATCH --partition=windq
+#SBATCH --partition=windfatq
 ### -- set the job Name --
 #SBATCH --job-name=GREAT_rolling_2050_wy
 ### -- ask for number of cpus (default: 1) --
@@ -9,13 +9,16 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=4-00:00:00
+#SBATCH --time=2-00:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
 ### -- Specify the output and error file. %j is the job-id --
 #SBATCH --output=../logs/GREAT_rolling_2050_wy_%j.out
 #SBATCH --error=../logs/GREAT_rolling_2050_wy_%j.err
+
+# rolling_2030_wy.sh/rolling_2040_wy.sh are generated copies of this file with only the year
+# changed - keep them that way.
 
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
 # explicitly, since everything below assumes cwd == the directory sbatch was run from.
@@ -27,24 +30,28 @@ source ../jobs/slurm/functions.sh
 # Get run name
 source ./config.sh
 
+year=2050
+optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
+require_optfile $optfile
+
 echo "Starting weather year rolling seasons simulation at $(date)"
 run_name="$(basename $PWD)"
 # WY folder naming: <source_scenario>_WY<year> - see CONTEXT.md's "WY folder".
 source_scenario="${run_name%_WY*}"
 weather_year="${run_name##*_WY}"
-echo "Run name: ${run_name}_R2050 (source scenario: ${source_scenario}, weather year: ${weather_year})"
+echo "Run name: ${run_name}_R${year} (source scenario: ${source_scenario}, weather year: ${weather_year}, cplex.op${optfile})"
 
 # Rolling horizon simulation - this weather year's raw (8760h resolution)
 # variant, not whatever the source scenario's own base data would otherwise
 # supply - see docs/adr/0014 and CONTEXT.md's "weatheryeardata".
 /usr/bin/cp -f ../weatheryeardata/data_raw/${weather_year}/*.inc data/
 
-cat ../base/data/Y_roll.inc >data/Y.inc
+cat ../base/data/Y_${year}.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_roll.opt >balopt.opt
-gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_R2050" $opts
+gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_R${year}" $opts
 cd ..
 
 optimality_check $SLURM_JOB_ID 52

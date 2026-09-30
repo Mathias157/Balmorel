@@ -52,7 +52,7 @@ agg_scenario="${scenario_to_agg}_S${seasons}T${terms}"
 if [ ! -d "${agg_scenario}/model" ]; then
     mkdir ${agg_scenario}/model
     cp base/model/Balmorel.gms ${agg_scenario}/model/
-    cp base/model/cplex.op2 ${agg_scenario}/model/
+    cp base/model/cplex.op2 base/model/cplex.op4 base/model/cplex.op8 ${agg_scenario}/model/
     # MANUAL CHANGES:
     rm ${agg_scenario}/data/GDATA.inc
     rm ${agg_scenario}/data/DR_DATAINPUT.inc

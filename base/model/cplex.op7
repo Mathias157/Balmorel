@@ -1,0 +1,19 @@
+* Option file 7 for CPLEX solver - barrier WITHOUT crossover, for large rolling-season runs.
+* To use with CPLEX, set '$Setglobal USEOPTIONFILE 7' in balgams.opt, or pass --USEOPTIONFILE=7 on the gams command line.
+*
+* Same as op2 (barrier, advind 0, predual -1) except "solutiontype 2", which returns the barrier's
+* primal-dual pair directly instead of crossing over to a basic (vertex) solution. In GREAT's 2050
+* rolling runs crossover + simplex cleanup took ~55% of total solve time (~45 of ~66 solver hours for
+* D25), more than barrier itself.
+* Trade-off: the solution is interior, not basic - marginals are fine, but primal values can be split
+* across equal-cost alternatives (e.g. identical generators) where a vertex solution would pick one.
+* Test against an op2 run before adopting - see jobs/slurm/submit_cplex_test.sh.
+*
+* "LPmethod  4": Barrier method
+* "solutiontype  2": No crossover (return non-basic barrier solution)
+* Threads are set by the job script via the GAMS 'threads=' command line option.
+
+LPmethod  4
+solutiontype 2
+advind 0
+predual -1

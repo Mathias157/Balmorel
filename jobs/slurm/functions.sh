@@ -32,6 +32,16 @@ optimality_check() {
     fi
 }
 
+# Stop before GAMS runs if the scenario folder lacks the CPLEX option file the job asks for - CPLEX
+# only warns about a missing option file and then solves with its own defaults. Run from the
+# scenario folder. See docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md.
+require_optfile() {
+    if [ ! -f "model/cplex.op$1" ]; then
+        echo "model/cplex.op$1 is missing - copy it from ../base/model/ first."
+        exit 1
+    fi
+}
+
 # Get user settings and paths to GAMS
 if [ ! -f "../.env" ]; then
     echo "No .env file found! Make one and define:

@@ -1,0 +1,20 @@
+* Option file 8 for CPLEX solver - barrier WITHOUT crossover plus aggressive scaling.
+* To use with CPLEX, set '$Setglobal USEOPTIONFILE 8' in balgams.opt, or pass --USEOPTIONFILE=8 on the gams command line.
+*
+* Same as op7, plus "scaind 1" (aggressive scaling). GREAT's rolling LPs have a matrix coefficient
+* range of ~[5e-11, 1e7] and about half their solves end "optimal with unscaled infeasibilities"
+* (status 5); aggressive scaling is the solver-side mitigation. It does not replace cleaning the
+* tiny coefficients / large penalties in the model itself.
+* Used by all fullyear and rolling runs; investment runs keep op2. See GREAT's
+* docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md.
+*
+* "LPmethod  4": Barrier method
+* "solutiontype  2": No crossover (return non-basic barrier solution)
+* "scaind  1": Aggressive scaling
+* Threads are set by the job script via the GAMS 'threads=' command line option.
+
+LPmethod  4
+solutiontype 2
+scaind 1
+advind 0
+predual -1

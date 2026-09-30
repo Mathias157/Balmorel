@@ -1,11 +1,11 @@
 #!/bin/sh
 ### General options
 ### -- specify partition --
-#SBATCH --partition=windq
+#SBATCH --partition=windfatq
 ### -- set the job Name --
 #SBATCH --job-name=GREAT_fullyear_2050
 ### -- ask for number of cpus (default: 1) --
-#SBATCH --cpus-per-task=5
+#SBATCH --cpus-per-task=10
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
@@ -17,6 +17,9 @@
 #SBATCH --output=../logs/GREAT_fullyear_2050_%j.out
 #SBATCH --error=../logs/GREAT_fullyear_2050_%j.err
 
+# fullyear_2030.sh/fullyear_2040.sh are generated copies of this file with only the year changed -
+# keep them that way.
+
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
 # explicitly, since everything below assumes cwd == the directory sbatch was run from.
 cd "$SLURM_SUBMIT_DIR"
@@ -27,23 +30,27 @@ source ../jobs/slurm/functions.sh
 # Get run name
 source ./config.sh
 
+year=2050
+optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
+require_optfile $optfile
+
 echo "Starting fullyear simulation at $(date)"
 run_name="$(basename $PWD)"
-echo "Run name: ${run_name}_F2050"
+echo "Run name: ${run_name}_F${year} (cplex.op${optfile})"
 
 # Copy simex files from investment run
 /usr/bin/cp -rf simex_INV/* simex/
 
 # Full year simulation
-cat ../base/data/Y_full.inc >data/Y.inc
+cat ../base/data/Y_${year}.inc >data/Y.inc
 cat ../base/data/T_full.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_full.opt >balopt.opt
-gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_F2050" $opts
+gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_F${year}" $opts
 cd ..
 
 # optimality_check $SLURM_JOB_ID 1
 
 # Submit rolling horizon run
-sbatch ../jobs/slurm/rolling_2050.sh
+sbatch ../jobs/slurm/rolling_${year}.sh
