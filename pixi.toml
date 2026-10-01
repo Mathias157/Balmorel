@@ -1,0 +1,19 @@
+[workspace]
+authors = ["mathias157 <mathiasros@proton.me>"]
+channels = ["conda-forge"]
+name = "Balmorel"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.14.7,<3.15"
+click = ">=8.5.0,<9"
+premailer = ">=3.10.0,<4"
+
+[pypi-dependencies]
+pybalmorel = ">=1.2.4, <2"
+
+[activation.env]
+GAMS_SYSTEM_DIR = "/opt/gams/53/"

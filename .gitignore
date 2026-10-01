@@ -52,4 +52,6 @@ simex_*
 Balmorel_ReadData.gms
 Balmorelbb4_ReadData.inc
 
-*_connection-validation.*
+*_connection-validation.*# pixi environments
+.pixi/*
+!.pixi/config.toml
