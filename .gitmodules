@@ -1,0 +1,19 @@
+[submodule "base/data"]
+	path = base/data
+	url = git@github.com:Mathias157/Balmorel_data.git
+[submodule "N10/data"]
+	path = N10/data
+	url = git@github.com:Mathias157/Balmorel_data.git
+	branch = mberos-dkhighspatial-N10
+[submodule "N30/data"]
+	path = N30/data
+	url = git@github.com:Mathias157/Balmorel_data.git
+	branch = mberos-dkhighspatial-N30
+[submodule "N70/data"]
+	path = N70/data
+	url = git@github.com:Mathias157/Balmorel_data.git
+	branch = mberos-dkhighspatial-N70
+[submodule "N50/data"]
+	path = N50/data
+	url = git@github.com:Mathias157/Balmorel_data.git
+	branch = mberos-dkhighspatial-N50
