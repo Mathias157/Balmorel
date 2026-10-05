@@ -61,4 +61,4 @@ fi
 /usr/bin/cp -rf simex/* simex_INV/
 
 # Submit fullyear run only if we reach this point
-sbatch ../jobs/slurm/fullyear_2050.sh
+sbatch ../jobs/slurm/fullyear_2030.sh
