@@ -61,7 +61,7 @@ optimality_check $LSB_JOBID 3
 echo "Investment optimisation completed successfully at $(date)"
 
 # Store simex files
-if not [ -d "${PWD}/simex_INV" ]; then
+if [ ! -d "${PWD}/simex_INV" ]; then
     mkdir simex_INV
 fi
 /usr/bin/cp -rf simex/* simex_INV/
