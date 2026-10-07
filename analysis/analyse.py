@@ -1335,14 +1335,26 @@ def get(ctx, symbol: str, pars, filters: str, diff: bool):
     default=3,
     help="Which nth maximum backup production to interpret as required backup capacity Default is 3, as it could be interpreted as a LOLE = 3 h condition.",
 )
-def adequacy(ctx, scenario: str, nth_max: int):
-    "Quantify the adequacy in terms of LOLE (h) and energy not supplied (TWh)"
+@click.option(
+    "--threshold",
+    type=float,
+    required=False,
+    default=1e-5,
+    help="Backup production (MWh) at or below this value is treated as solver noise. Default is 1e-5",
+)
+def adequacy(ctx, scenario: str, nth_max: int, threshold: float):
+    """
+    Quantify the adequacy in terms of LOLE (h) and energy not supplied (TWh)
 
-    # Find path to scenario
+    LOLE counts the hours with backup production in at least one node.
+    Nodes are regions for electricity and hydrogen, and area clusters for heat.
+    Writes system indicators to _adeq.csv and per-node indicators to _nodal_adeq.csv
+    """
+
+    # Find path to scenario (pybalmorel names a scenario after its folder, if it is the only result in that folder)
     model = ctx.obj["Balmorel"]
-    model_path = os.path.join(
-        ctx.obj["path"], model.scname_to_scfolder[scenario], "model"
-    )
+    scenario_folder = model.scname_to_scfolder.get(scenario, scenario.split("_")[0])
+    model_path = os.path.join(ctx.obj["path"], scenario_folder, "model")
 
     # Get mainresults files
     res = MainResults(
@@ -1351,34 +1363,143 @@ def adequacy(ctx, scenario: str, nth_max: int):
         system_directory=ctx.obj["gams_system_directory"],
     )
 
-    # Get backup production
+    # Get backup production, without solver noise
     df = res.get_result("PRO_YCRAGFST").query(
-        'Scenario == @scenario and Generation.str.contains("BACKUP")'
+        'Scenario == @scenario and Generation.str.contains("BACKUP") and Value > @threshold'
     )
+    df = df.assign(Node=adequacy_nodes(df))
+    output_name = scenario.replace("_operun", "")
 
-    # Get backup 'capacity' based on the nth maximum production from BACKUP units (nth_max = 1 => No inadequacy, nth_max = 3 => LOLE = 3 h, perhaps)
+    # Get backup 'capacity' based on the nth maximum hourly backup production of each region (nth_max = 1 => No inadequacy, nth_max = 3 => LOLE = 3 h, perhaps)
+    regional = df.pivot_table(
+        index=["Season", "Time"],
+        columns=["Region", "Commodity"],
+        values="Value",
+        aggfunc="sum",
+    )
     if nth_max == -1:
-        cap = df.pivot_table(
-            index=["Region"], columns=["Commodity"], values="Value", aggfunc="max"
-        )
+        cap = regional.max()
     else:
-        cap = (
-            df.groupby(["Region", "Commodity"])["Value"]
-            .apply(lambda x: x.nlargest(nth_max).iloc[-1])  # Selects N'th max
-            .unstack()  # Reshapes the data into a table
-        )
-    cap.to_csv(
-        "analysis/output/%s_backcapN%d.csv" % (scenario.replace("_operun", ""), nth_max)
-    )
+        cap = regional.apply(lambda x: x.nlargest(nth_max).iloc[-1])  # Selects N'th max
+    cap.unstack().to_csv("analysis/output/%s_backcapN%d.csv" % (output_name, nth_max))
 
-    ## Get energy not served
+    ## Get energy not served and LOLE per node
+    nodal_hourly = df.groupby(["Commodity", "Node", "Season", "Time"])["Value"].sum()
+    nodal = pd.DataFrame(
+        {
+            "ENS_TWh": nodal_hourly.groupby(["Commodity", "Node"]).sum() / 1e6,
+            "LOLE_h": nodal_hourly.groupby(["Commodity", "Node"]).count(),
+        }
+    )
+    nodal.to_csv("analysis/output/%s_nodal_adeq.csv" % output_name)
+
+    ## Get energy not served and LOLE for the system
     ENS = df.pivot_table(
         index=["Season", "Time"], columns="Commodity", values="Value", aggfunc="sum"
     )
+    demand, nodes_total = adequacy_demand(res, scenario)
 
-    df_out = pd.DataFrame({"ENS_TWh": ENS.sum() / 1e6, "LOLE_h": ENS.count()})
+    df_out = pd.DataFrame(
+        {
+            "ENS_TWh": ENS.sum() / 1e6,
+            "LOLE_h": ENS.count(),
+            "ENS_share": ENS.sum() / 1e6 / demand,
+            "Nodes_with_LOLE": nodal.groupby("Commodity").size(),
+            "Nodes_total": nodes_total,
+        }
+    ).loc[ENS.columns]
+    df_out = df_out.astype({"LOLE_h": int, "Nodes_with_LOLE": int})
+    df_out["Breadth"] = df_out["Nodes_with_LOLE"] / df_out["Nodes_total"]
+    df_out.index.name = "Commodity"
 
-    df_out.to_csv("analysis/output/%s_adeq.csv" % scenario.replace("_operun", ""))
+    df_out.to_csv("analysis/output/%s_adeq.csv" % output_name)
+
+
+@CLI.command()
+@click.pass_context
+@click.argument("scenarios", type=str, required=True)
+@click.option(
+    "--commodity",
+    type=str,
+    required=False,
+    default="HEAT",
+    help="Which commodity to map, defaults to HEAT",
+)
+@click.option(
+    "--filename",
+    type=str,
+    required=False,
+    default=None,
+    help="Output filename, defaults to LOLE-map_<commodity>",
+)
+@click.option(
+    "--vmax",
+    type=float,
+    required=False,
+    default=None,
+    help="Upper limit of the colour scale, defaults to the largest nodal LOLE of the scenarios",
+)
+def lole_map(ctx, scenarios: str, commodity: str, filename: str, vmax: float):
+    """
+    Map nodal LOLE (h) from the _nodal_adeq.csv files of the @adequacy function.
+    Scenarios are separated by , and plotted side by side with a shared colour scale
+    """
+
+    scenarios = scenarios.replace(" ", "").split(",")
+    commodity = commodity.upper()
+
+    maps = []
+    for scenario in scenarios:
+        nodal = (
+            pd.read_csv("analysis/output/%s_nodal_adeq.csv" % scenario)
+            .query("Commodity == @commodity")
+            .set_index("Node")["LOLE_h"]
+        )
+        geofile = get_node_geofile(scenario, commodity)
+        unmapped = nodal.index.difference(geofile["Node"])
+        if len(unmapped) > 0:
+            print("Nodes in %s not found in geofile: %s" % (scenario, list(unmapped)))
+        geofile["LOLE_h"] = geofile["Node"].map(nodal).fillna(0)
+        maps.append(geofile)
+
+    if vmax is None:
+        vmax = max(geofile["LOLE_h"].max() for geofile in maps)
+
+    fig, axes = plt.subplots(1, len(scenarios), figsize=(3 * len(scenarios), 3.5))
+    axes = np.atleast_1d(axes)
+    for ax, scenario, geofile in zip(axes, scenarios, maps):
+        geofile.plot(
+            ax=ax,
+            column="LOLE_h",
+            cmap="Reds",
+            vmin=0,
+            vmax=vmax,
+            edgecolor="k",
+            linewidth=0.2,
+        )
+        ax.set_title(scenario)
+        ax.set_axis_off()
+
+    colorbar = fig.colorbar(
+        plt.cm.ScalarMappable(cmap="Reds", norm=plt.Normalize(vmin=0, vmax=vmax)),
+        ax=list(axes),
+        orientation="horizontal",
+        fraction=0.05,
+        pad=0.02,
+    )
+    colorbar.set_label("%s LOLE (h)" % commodity.capitalize())
+
+    if filename is None:
+        filename = "LOLE-map_%s" % commodity.lower()
+
+    plot_path = ctx.obj["plot_path"]
+    if not (os.path.exists(plot_path)):
+        os.mkdir(plot_path)
+    fig.savefig(
+        os.path.join(plot_path, filename + ctx.obj["plot_ext"]),
+        bbox_inches="tight",
+        transparent=True,
+    )
 
 
 @CLI.command()
@@ -1625,6 +1746,74 @@ def get_geofile(scenario, model_path):
         geofile_region_column = "Name"
 
     return geofile, geofile_region_column
+
+
+def get_node_geofile(scenario: str, commodity: str) -> gpd.GeoDataFrame:
+    "Get the polygons of the adequacy nodes (see @adequacy_nodes) of a scenario, named in a 'Node' column"
+
+    config = scenario.split("_")[0]
+    hierarchical = re.match(r"N(\d+)M(\d+)$", config)
+    uniform = re.match(r"N(\d+)(?:H1)?$", config)
+
+    if hierarchical and commodity == "HEAT":
+        geofile = os.path.join(config, "data", "clustering_2nd-order.gpkg")
+        column = "index"
+    elif hierarchical:
+        geofile = os.path.join(
+            config,
+            "data",
+            "DE_%scluster_geofile_2nd-order.gpkg" % hierarchical.group(2),
+        )
+        column = "cluster_name"
+    elif uniform:
+        geofile = (
+            "analysis/geofiles/DE-DH-WNDFLH-SOLEFLH_%scluster_geofile.gpkg"
+            % uniform.group(1)
+        )
+        column = "cluster_name"
+    else:
+        geofile = "analysis/geofiles/municipalities.gpkg"
+        column = "Name"
+
+    return gpd.read_file(geofile).rename(columns={column: "Node"})[
+        ["Node", "geometry"]
+    ]
+
+
+def adequacy_nodes(df: pd.DataFrame) -> pd.Series:
+    "Node of each row: the area cluster for heat (e.g. CL0 for CL0_IDVU-SPACEHEAT), otherwise the region"
+
+    if "Area" not in df.columns:
+        return df["Region"]
+
+    area_cluster = df["Area"].str.rsplit("_", n=1).str[0]
+    return df["Region"].where(df["Commodity"] != "HEAT", area_cluster)
+
+
+ADEQUACY_DEMANDS = {
+    "ELECTRICITY": "EL_DEMAND_YCR",
+    "HEAT": "H_DEMAND_YCRA",
+    "HYDROGEN": "H2_DEMAND_YCR",
+}
+
+
+def adequacy_demand(res: MainResults, scenario: str):
+    "Get the total annual demand (TWh) and the amount of adequacy nodes for each commodity"
+
+    demand = {}
+    nodes_total = {}
+    for commodity, symbol in ADEQUACY_DEMANDS.items():
+        df = (
+            res.get_result(symbol)
+            .query("Scenario == @scenario")
+            .assign(Commodity=commodity)
+        )
+        demand[commodity] = (
+            df["Value"] / df["Unit"].map({"TWh": 1, "GWh": 1e3, "MWh": 1e6})
+        ).sum()
+        nodes_total[commodity] = adequacy_nodes(df).nunique()
+
+    return pd.Series(demand), pd.Series(nodes_total)
 
 
 def sort_scenarios(df: pd.DataFrame):
