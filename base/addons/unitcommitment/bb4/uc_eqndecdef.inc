@@ -240,7 +240,12 @@ $ifi %COMBTECH%==yes +sum(IGCOMB2$GGCOMB(IGUC,IGCOMB2),VGF_T(IY411,IA,IGCOMB2,S,
 * units under start up have an expanded gradient
          GDATA(IGUC,'GDUCGMIN')*VUCU(IY411,IA,IGUC,S,T)
 * up gradient of units on at t excluding units under start up
-        + GDATA(IGUC,'GDUCRAMPU')*(VUCON(IY411,IA,IGUC,S,T) - VUCU(IY411,IA,IGUC,S,T))
+* NOTE: under LP/RMIP, uses available capacity (as in QUCVUCON) instead of VUCON, so the ramp bound cannot be inflated by a fractional/relaxed VUCON.
+* Under a true MIP the original VUCON formulation is kept, since the capacity-based bound would let offline units contribute ramping.
+$ifi     %SOLVETYPE%==MIP         + GDATA(IGUC,'GDUCRAMPU')*(VUCON(IY411,IA,IGUC,S,T) - VUCU(IY411,IA,IGUC,S,T))
+$ifi not %SOLVETYPE%==MIP + GDATA(IGUC,'GDUCRAMPU')*((GKFX(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP $ifi %DECOM%==yes   -VDECOM_EXO_ACCUM(IY411,IA,IGUC)$IGDECOMEXOPOT(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP +VGKNACCUMNET(IY411,IA,IGUC)$(IAGK_HASORPOT(IY411,IA,IGUC) AND IAGKN(IA,IGUC)))/GDATA(IGUC,'GDUCUNITSIZE')*(1$(NOT IGKRATE(IA,IGUC,S,T)) + IGKRATE(IA,IGUC,S,T)) - VUCU(IY411,IA,IGUC,S,T))
 * scale unit input capacity
      )*(GDATA(IGUC,'GDUCUNITSIZE')*(1+(1/GDATA(IGUC,'GDCB'))$IGBPR(IGUC))/(1$((NOT IGESTO(IGUC)) AND (NOT IGESTOS(IGUC)) AND (NOT IGHSTO(IGUC)) AND (NOT IGHSTOS(IGUC))) + GDATA(IGUC,'GDSTOHUNLD')$(IGESTO(IGUC) OR IGESTOS(IGUC) OR IGHSTO(IGUC) OR IGHSTOS(IGUC)))
        /(GDATA(IGUC,'GDFE')*(1$(NOT GEFFRATE(IA,IGUC))+GEFFRATE(IA,IGUC))))*CHRONOHOUR(S,T)
@@ -274,7 +279,12 @@ $ifi %COMBTECH%==yes -sum(IGCOMB2$GGCOMB(IGUC,IGCOMB2),VGF_T(IY411,IA,IGCOMB2,S,
 * units under shut down have an expanded gradient
          GDATA(IGUC,'GDUCGMIN')*VUCD(IY411,IA,IGUC,S,T)
 * up gradient of units on at t excluding units under shutdown
-        + GDATA(IGUC,'GDUCRAMPD')*VUCON(IY411,IA,IGUC,S,T)
+* NOTE: under LP/RMIP, uses available capacity (as in QUCVUCON) instead of VUCON, so the ramp bound cannot be inflated by a fractional/relaxed VUCON.
+* Under a true MIP the original VUCON formulation is kept, since the capacity-based bound would let offline units contribute ramping.
+$ifi     %SOLVETYPE%==MIP         + GDATA(IGUC,'GDUCRAMPD')*VUCON(IY411,IA,IGUC,S,T)
+$ifi not %SOLVETYPE%==MIP + GDATA(IGUC,'GDUCRAMPD')*((GKFX(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP $ifi %DECOM%==yes   -VDECOM_EXO_ACCUM(IY411,IA,IGUC)$IGDECOMEXOPOT(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP +VGKNACCUMNET(IY411,IA,IGUC)$(IAGK_HASORPOT(IY411,IA,IGUC) AND IAGKN(IA,IGUC)))/GDATA(IGUC,'GDUCUNITSIZE')*(1$(NOT IGKRATE(IA,IGUC,S,T)) + IGKRATE(IA,IGUC,S,T)))
 * scale unit input capacity
      )*(GDATA(IGUC,'GDUCUNITSIZE')*(1+(1/GDATA(IGUC,'GDCB'))$IGBPR(IGUC))/(1$((NOT IGESTO(IGUC)) AND (NOT IGESTOS(IGUC)) AND (NOT IGHSTO(IGUC)) AND (NOT IGHSTOS(IGUC))) + GDATA(IGUC,'GDSTOHUNLD')$(IGESTO(IGUC) OR IGESTOS(IGUC) OR IGHSTO(IGUC) OR IGHSTOS(IGUC)))
        /(GDATA(IGUC,'GDFE')*(1$(NOT GEFFRATE(IA,IGUC))+GEFFRATE(IA,IGUC))))*CHRONOHOUR(S,T)
@@ -311,7 +321,12 @@ $ifi %COMBTECH%==yes +sum(IGCOMB2$GGCOMB(IGUC,IGCOMB2),VGF_T(IY411,IA,IGCOMB2,S,
 * units under start up have an expanded gradient
          GDATA(IGUC,'GDUCGMIN')*VUCU(IY411,IA,IGUC,S,T)
 * up gradient of units on at t excluding units under start up
-        + GDATA(IGUC,'GDUCRAMPU')*(VUCON(IY411,IA,IGUC,S,T) - VUCU(IY411,IA,IGUC,S,T))
+* NOTE: under LP/RMIP, uses available capacity (as in QUCVUCON) instead of VUCON, so the ramp bound cannot be inflated by a fractional/relaxed VUCON.
+* Under a true MIP the original VUCON formulation is kept, since the capacity-based bound would let offline units contribute ramping.
+$ifi     %SOLVETYPE%==MIP         + GDATA(IGUC,'GDUCRAMPU')*(VUCON(IY411,IA,IGUC,S,T) - VUCU(IY411,IA,IGUC,S,T))
+$ifi not %SOLVETYPE%==MIP + GDATA(IGUC,'GDUCRAMPU')*((GKFX(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP $ifi %DECOM%==yes   -VDECOM_EXO_ACCUM(IY411,IA,IGUC)$IGDECOMEXOPOT(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP +VGKNACCUMNET(IY411,IA,IGUC)$(IAGK_HASORPOT(IY411,IA,IGUC) AND IAGKN(IA,IGUC)))/GDATA(IGUC,'GDUCUNITSIZE')*(1$(NOT IGKRATE(IA,IGUC,S,T)) + IGKRATE(IA,IGUC,S,T)) - VUCU(IY411,IA,IGUC,S,T))
 * scale unit input capacity
      )*(GDATA(IGUC,'GDUCUNITSIZE')*(1+(1/GDATA(IGUC,'GDCB'))$IGBPR(IGUC))/(1$((NOT IGESTO(IGUC)) AND (NOT IGESTOS(IGUC)) AND (NOT IGHSTO(IGUC)) AND (NOT IGHSTOS(IGUC))) + GDATA(IGUC,'GDSTOHUNLD')$(IGESTO(IGUC) OR IGESTOS(IGUC) OR IGHSTO(IGUC) OR IGHSTOS(IGUC)))
        /(GDATA(IGUC,'GDFE')*(1$(NOT GEFFRATE(IA,IGUC))+GEFFRATE(IA,IGUC))))*CHRONOHOUR(S,T)
@@ -343,7 +358,12 @@ $ifi %COMBTECH%==yes -sum(IGCOMB2$GGCOMB(IGUC,IGCOMB2),VGF_T(IY411,IA,IGCOMB2,S,
 * units under shut down have an expanded gradient
          GDATA(IGUC,'GDUCGMIN')*VUCD(IY411,IA,IGUC,S,T)
 * up gradient of units on at t excluding units under shutdown
-        + GDATA(IGUC,'GDUCRAMPD')*VUCON(IY411,IA,IGUC,S,T)
+* NOTE: under LP/RMIP, uses available capacity (as in QUCVUCON) instead of VUCON, so the ramp bound cannot be inflated by a fractional/relaxed VUCON.
+* Under a true MIP the original VUCON formulation is kept, since the capacity-based bound would let offline units contribute ramping.
+$ifi     %SOLVETYPE%==MIP         + GDATA(IGUC,'GDUCRAMPD')*VUCON(IY411,IA,IGUC,S,T)
+$ifi not %SOLVETYPE%==MIP + GDATA(IGUC,'GDUCRAMPD')*((GKFX(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP $ifi %DECOM%==yes   -VDECOM_EXO_ACCUM(IY411,IA,IGUC)$IGDECOMEXOPOT(IY411,IA,IGUC)
+$ifi not %SOLVETYPE%==MIP +VGKNACCUMNET(IY411,IA,IGUC)$(IAGK_HASORPOT(IY411,IA,IGUC) AND IAGKN(IA,IGUC)))/GDATA(IGUC,'GDUCUNITSIZE')*(1$(NOT IGKRATE(IA,IGUC,S,T)) + IGKRATE(IA,IGUC,S,T)))
 * scale unit input capacity
      )*(GDATA(IGUC,'GDUCUNITSIZE')*(1+(1/GDATA(IGUC,'GDCB'))$IGBPR(IGUC))/(1$((NOT IGESTO(IGUC)) AND (NOT IGESTOS(IGUC)) AND (NOT IGHSTO(IGUC)) AND (NOT IGHSTOS(IGUC))) + GDATA(IGUC,'GDSTOHUNLD')$(IGESTO(IGUC) OR IGESTOS(IGUC) OR IGHSTO(IGUC) OR IGHSTOS(IGUC)))
        /(GDATA(IGUC,'GDFE')*(1$(NOT GEFFRATE(IA,IGUC))+GEFFRATE(IA,IGUC))))*CHRONOHOUR(S,T)
