@@ -75,6 +75,8 @@ balmorel_colours["TRANSMISSION_CAPITAL_COSTS"] = "#BA1600"
 balmorel_colours["TRANSMISSION_OPERATIONAL_COSTS"] = "#FF2B10"
 balmorel_colours["GENERATION_CAPITAL_COSTS"] = "#FFA500"
 balmorel_colours["GENERATION_FIXED_COSTS"] = "#D2A106"
+balmorel_colours["EV_INFRASTRUCTURE_CAPITAL_COSTS"] = "#6A3D9A"
+balmorel_colours["EV_INFRASTRUCTURE_FIXED_COSTS"] = "#B39DDB"
 balmorel_colours["GENERATION_FUEL_COSTS"] = "#747474"
 balmorel_colours["GENERATION_OPERATIONAL_COSTS"] = "#E5D8D8"
 balmorel_colours["GENERATION_UC_COSTS"] = "#FF2B10"
@@ -965,7 +967,7 @@ def LCOE(ctx, no_capex, lat_lims: tuple = (32, 72), lon_lims: tuple = (-11, 35))
     )
 
     if no_capex:
-        query_string = 'Category not in ["GENERATION_CAPITAL_COSTS", "GENERATION_FIXED_COSTS", "TRANSMISSION_CAPITAL_COSTS", "H2_TRANSMISSION_CAPITAL_COSTS"]'
+        query_string = 'Category not in ["GENERATION_CAPITAL_COSTS", "GENERATION_FIXED_COSTS", "TRANSMISSION_CAPITAL_COSTS", "H2_TRANSMISSION_CAPITAL_COSTS", "EV_INFRASTRUCTURE_CAPITAL_COSTS", "EV_INFRASTRUCTURE_FIXED_COSTS"]'
         if ctx.obj["filters"] is None:
             ctx.obj["filters"] = query_string
         else:
