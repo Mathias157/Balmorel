@@ -23,7 +23,9 @@ trap cleanup EXIT SIGTERM SIGINT
 optimality_check() {
     job_id=$1
     optimal_nr=$2
-    count=$(rg -e '(LP|MIP|RMIP) status \(1\): optimal' ../logs/*_${job_id}.out --count-matches)
+    # Plain grep (not rg) so jobs don't depend on the submitting shell's PATH; || true lets a zero
+    # count reach the INFEASIBLE message instead of tripping set -e
+    count=$(cat ../logs/*_${job_id}.out | grep -cE '(LP|MIP|RMIP) status \(1\): optimal' || true)
     if [[ "$count" -eq "$optimal_nr" ]]; then
         echo "OPTIMAL: Job ${job_id} had ${count} optimal solutions as expected"
     else
