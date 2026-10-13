@@ -1037,6 +1037,11 @@ $setglobal FUELPRICE_DOL YYY_AAA_FFF_SSS_TTT
 *!option  YYY_AAA_FFF_SSS
 *!option  YYY_AAA_FFF_SSS_TTT
 
+* CO2 tax: annual from EMI_POL (YYY_CCC) or season/term resolved from TAX_CO2_ST (YYY_CCC_SSS_TTT), see docs/adr/0002
+$setglobal TAX_CO2_DOL YYY_CCC_SSS_TTT
+*!option  YYY_CCC
+*!option  YYY_CCC_SSS_TTT
+
 $setglobal WNDFLH_DOL AAA
 *!option  AAA_GGG
 *!option  AAA

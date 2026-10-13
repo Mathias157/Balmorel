@@ -751,6 +751,18 @@ $if     EXIST '../data/EMI_POL.inc' $INCLUDE         '../data/EMI_POL.inc';
 $if not EXIST '../data/EMI_POL.inc' $INCLUDE '../../base/data/EMI_POL.inc';
 %semislash%;
 
+* Season/term resolved CO2 tax (see docs/adr/0002). Under TAX_CO2_DOL=YYY_CCC_SSS_TTT it
+* replaces EMI_POL(...,'TAX_CO2') entirely in the objective and OUTPUT_SUMMARY, for all
+* areas of the country regardless of GROUP. Scenarios whose balopt.opt predates this
+* option fall back to the annual EMI_POL value.
+$if not set TAX_CO2_DOL $setglobal TAX_CO2_DOL YYY_CCC
+$ifi not %TAX_CO2_DOL%==YYY_CCC_SSS_TTT $goto NO_TAX_CO2_ST
+PARAMETER TAX_CO2_ST(YYY,CCCRRRAAA,SSS,TTT) "CO2 tax, resolved to season and term (Money/t)" %semislash%
+$if     EXIST '../data/TAX_CO2_ST.inc' $INCLUDE      '../data/TAX_CO2_ST.inc';
+$if not EXIST '../data/TAX_CO2_ST.inc' $INCLUDE '../../base/data/TAX_CO2_ST.inc';
+%semislash%;
+$label NO_TAX_CO2_ST
+
 PARAMETER EMI_POLNA(YYY,GROUP,EMIPOLSET)    "Emission policy data per group; default for the 'LIM_' entries: 0 implies irrelevant, EPS implies no emission permitted (aggregated countries)"   %semislash%
 $if     EXIST '../data/EMI_POLNA.inc' $INCLUDE         '../data/EMI_POLNA.inc';
 $if not EXIST '../data/EMI_POLNA.inc' $INCLUDE '../../base/data/EMI_POLNA.inc';
