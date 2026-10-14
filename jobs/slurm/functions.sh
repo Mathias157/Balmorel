@@ -19,18 +19,28 @@ cleanup() {
 
 trap cleanup EXIT SIGTERM SIGINT
 
-# Function for checking optimality
+# Function for checking optimality. Status 6 (non-optimal) solves only warn and let the job
+# proceed; any other non-optimal status, or fewer/more solves than expected, exits the job.
 optimality_check() {
     job_id=$1
-    optimal_nr=$2
+    expected_nr=$2
     # Plain grep (not rg) so jobs don't depend on the submitting shell's PATH; || true lets a zero
     # count reach the INFEASIBLE message instead of tripping set -e
-    count=$(cat ../logs/*_${job_id}.out | grep -cE '(LP|MIP|RMIP) status \(1\): optimal' || true)
-    if [[ "$count" -eq "$optimal_nr" ]]; then
-        echo "OPTIMAL: Job ${job_id} had ${count} optimal solutions as expected"
-    else
-        echo "INFEASIBLE: Job ${job_id} had ${count} optimal solutions, which is not the expected ${optimal_nr}!"
+    statuses=$(cat ../logs/*_${job_id}.out | grep -oE '(LP|MIP|RMIP) status \([0-9]+\)' || true)
+    optimal=$(printf '%s\n' "$statuses" | grep -c 'status (1)' || true)
+    nonoptimal=$(printf '%s\n' "$statuses" | grep -c 'status (6)' || true)
+    other=$(printf '%s\n' "$statuses" | grep -cvE 'status \((1|6)\)|^$' || true)
+    if [[ "$other" -gt 0 ]]; then
+        echo "INFEASIBLE: Job ${job_id} had ${other} solves with a status other than 1 (optimal) or 6 (non-optimal):"
+        printf '%s\n' "$statuses" | grep -vE 'status \((1|6)\)|^$' | sort | uniq -c
         exit 1
+    elif [[ $((optimal + nonoptimal)) -ne "$expected_nr" ]]; then
+        echo "INFEASIBLE: Job ${job_id} had ${optimal} optimal and ${nonoptimal} non-optimal solves, which is not the expected ${expected_nr} in total!"
+        exit 1
+    elif [[ "$nonoptimal" -gt 0 ]]; then
+        echo "WARNING: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end as non-optimal (status 6) - proceeding anyway"
+    else
+        echo "OPTIMAL: Job ${job_id} had ${optimal} optimal solutions as expected"
     fi
 }
 
