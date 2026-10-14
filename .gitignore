@@ -57,3 +57,8 @@ base_*
 **/model/Balmorelbb4_ReadData.inc
 base/evprofiles
 jobs/userfunctions.sh
+
+# Backcast: T.inc is overwritten by the job scripts from T_full.inc/T_roll.inc
+backcast/data/T.inc
+entsoedata
+weatheryear_inpu*
