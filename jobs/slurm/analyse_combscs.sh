@@ -37,108 +37,179 @@ conda activate great
 
 # snakemake -s rules/postprocess.smk
 
-python scripts/postprocessing/estimate_flexibility_needs.py --output-dir build_postprocess_COMBSC --scenarios EVNEIN_R2050 \
-    --scenarios HPNTPNEIN_R2050 \
-    --scenarios H2NTPNEIN_R2050 \
-    --scenarios H2NHPNEIN_R2050 \
-    --scenarios EVNTPN_R2050 \
-    --scenarios EVNHPN_R2050 \
-    --scenarios EVNH2N_R2050
+python analysis/analyse.py --overwrite combined-costs \
+    --scenarios ALLN \
+    --scenarios DCN \
+    --scenarios EIN \
+    --scenarios ELN \
+    --scenarios EVN \
+    --scenarios EVNEIN \
+    --scenarios EVNH2N \
+    --scenarios EVNHPN \
+    --scenarios EVNTPN \
+    --scenarios H2N \
+    --scenarios HPN \
+    --scenarios HSN \
+    --scenarios HSNSSN \
+    --scenarios NPY \
+    --scenarios SSN \
+    --scenarios TPN \
+    --scenarios logs \
+    --scenarios archiv \
+    --scenarios D100 \
+    --scenarios D25 \
+    --scenarios D25VGN \
+    --scenarios D50 \
+    --scenarios PVN \
+    --scenarios EINDCN \
+    --scenarios EINELN \
+    --scenarios EINH2N \
+    --scenarios EINHSN \
+    --scenarios EINNPY \
+    --scenarios EINSSN \
+    --scenarios EINTPN \
+    --scenarios ELNDCN \
+    --scenarios ELNHSN \
+    --scenarios ELNNPY \
+    --scenarios ELNSSN \
+    --scenarios EVNDCN \
+    --scenarios EVNELN \
+    --scenarios EVNFEN \
+    --scenarios EVNHSN \
+    --scenarios EVNNPY \
+    --scenarios EVNSSN \
+    --scenarios FEN \
+    --scenarios FENDCN \
+    --scenarios FENEIN \
+    --scenarios FENELN \
+    --scenarios FENH2N \
+    --scenarios FENHPN \
+    --scenarios FENHSN \
+    --scenarios FENNPY \
+    --scenarios FENSSN \
+    --scenarios FENTPN \
+    --scenarios H2NDCN \
+    --scenarios H2NELN \
+    --scenarios H2NHSN \
+    --scenarios H2NNPY \
+    --scenarios H2NSSN \
+    --scenarios HPNDCN \
+    --scenarios HPNEIN \
+    --scenarios HPNELN \
+    --scenarios HPNH2N \
+    --scenarios HPNHSN \
+    --scenarios HPNNPY \
+    --scenarios HPNSSN \
+    --scenarios HPNTPN \
+    --scenarios HSNDCN \
+    --scenarios NPYDCN \
+    --scenarios NPYHSN \
+    --scenarios NPYSSN \
+    --scenarios PVNDCN \
+    --scenarios PVNEIN \
+    --scenarios PVNELN \
+    --scenarios PVNEVN \
+    --scenarios PVNFEN \
+    --scenarios PVNH2N \
+    --scenarios PVNHPN \
+    --scenarios PVNHSN \
+    --scenarios PVNNPY \
+    --scenarios PVNSSN \
+    --scenarios PVNTPN \
+    --scenarios SSNDCN \
+    --scenarios TPNDCN \
+    --scenarios TPNELN \
+    --scenarios TPNH2N \
+    --scenarios TPNHSN \
+    --scenarios TPNNPY \
+    --scenarios TPNSSN \
+    --scenarios base
 
-python scripts/postprocessing/plot_flexibility_needs.py --output-dir build_postprocess_COMBSC
-
-# cd scripts/Balmorel
-# for scenario in base_WY1993 \
-#     base_WY2020 \
-#     base_WY2017 \
-#     base_WY2016 \
-#     base_WY2015 \
-#     base_WY2013 \
-#     base_WY2012 \
-#     base_WY2011 \
-#     base_WY2010 \
-#     base_WY2009 \
-#     base_WY2007 \
-#     base_WY2008 \
-#     base_WY2006 \
-#     base_WY2005 \
-#     base_WY2004 \
-#     base_WY2003 \
-#     base_WY2002 \
-#     base_WY2001 \
-#     base_WY1999 \
-#     base_WY1997 \
-#     base_WY1996 \
-#     base_WY1995 \
-#     base_WY1982 \
-#     base_WY1983 \
-#     base_WY1985 \
-#     base_WY1989 \
-#     base_WY1990 \
-#     base_WY1992 \
-#     base_WY1994 \
-#     base_WY1986 \
-#     base_WY1988 \
-#     base_WY1991 \
-#     base_WY1984 \
-#     base_WY1987 \
-#     base_WY2014 \
-#     base_WY1998 \
-#     base_WY2000 \
-#     base_WY2018 \
-#     base_WY2019; do
-#     for runtype in R2050; do
-#         # This will fail if the scenario name is incorrect, e.g. if it's named after the scenario folder instead of MainResults suffix!
-#         year=$(echo $runtype | tail -c 5)
-#         echo "Plotting year ${year} for run ${scenario}_${runtype}.."
-#         # python analysis/analyse.py combine-costs
-#         # generate_plots "${scenario}_${runtype}" $year
-#         #
-#         # # Remove old collected pdf to ensure no corruption errors in next colleciton
-#         # collected_pdf=analysis/plots/collected_plots_${scenario}_${runtype}.pdf
-#         # if [[ -f "$collected_pdf" ]]; then
-#         #     rm analysis/plots/collected_plots_${scenario}_${runtype}.pdf
-#         # fi
-#         # pdfunite analysis/plots/*${scenario}_${runtype}.pdf $collected_pdf
-#     done
-# done
-
-# python analysis/analyse.py --overwrite combined-costs --scenarios base_WY1993_R2050 \
-#     --scenarios base_WY2020_R2050 \
-#     --scenarios base_WY2017_R2050 \
-#     --scenarios base_WY2016_R2050 \
-#     --scenarios base_WY2015_R2050 \
-#     --scenarios base_WY2013_R2050 \
-#     --scenarios base_WY2012_R2050 \
-#     --scenarios base_WY2011_R2050 \
-#     --scenarios base_WY2010_R2050 \
-#     --scenarios base_WY2009_R2050 \
-#     --scenarios base_WY2007_R2050 \
-#     --scenarios base_WY2008_R2050 \
-#     --scenarios base_WY2006_R2050 \
-#     --scenarios base_WY2005_R2050 \
-#     --scenarios base_WY2004_R2050 \
-#     --scenarios base_WY2003_R2050 \
-#     --scenarios base_WY2002_R2050 \
-#     --scenarios base_WY2001_R2050 \
-#     --scenarios base_WY1999_R2050 \
-#     --scenarios base_WY1997_R2050 \
-#     --scenarios base_WY1996_R2050 \
-#     --scenarios base_WY1995_R2050 \
-#     --scenarios base_WY1982_R2050 \
-#     --scenarios base_WY1983_R2050 \
-#     --scenarios base_WY1985_R2050 \
-#     --scenarios base_WY1989_R2050 \
-#     --scenarios base_WY1990_R2050 \
-#     --scenarios base_WY1992_R2050 \
-#     --scenarios base_WY1994_R2050 \
-#     --scenarios base_WY1986_R2050 \
-#     --scenarios base_WY1988_R2050 \
-#     --scenarios base_WY1991_R2050 \
-#     --scenarios base_WY1984_R2050 \
-#     --scenarios base_WY1987_R2050 \
-#     --scenarios base_WY2014_R2050 \
-#     --scenarios base_WY1998_R2050 \
-#     --scenarios base_WY2000_R2050 \
-#     --scenarios base_WY2018_R2050 \
-#     --scenarios base_WY2019_R2050
+python scripts/postprocessing/estimate_flexibility_needs.py \
+    --output-dir build_postprocess_COMBSC \
+    --scenarios ALLN \
+    --scenarios DCN \
+    --scenarios EIN \
+    --scenarios ELN \
+    --scenarios EVN \
+    --scenarios EVNEIN \
+    --scenarios EVNH2N \
+    --scenarios EVNHPN \
+    --scenarios EVNTPN \
+    --scenarios H2N \
+    --scenarios HPN \
+    --scenarios HSN \
+    --scenarios HSNSSN \
+    --scenarios NPY \
+    --scenarios SSN \
+    --scenarios TPN \
+    --scenarios logs \
+    --scenarios archiv \
+    --scenarios D100 \
+    --scenarios D25 \
+    --scenarios D25VGN \
+    --scenarios D50 \
+    --scenarios PVN \
+    --scenarios EINDCN \
+    --scenarios EINELN \
+    --scenarios EINH2N \
+    --scenarios EINHSN \
+    --scenarios EINNPY \
+    --scenarios EINSSN \
+    --scenarios EINTPN \
+    --scenarios ELNDCN \
+    --scenarios ELNHSN \
+    --scenarios ELNNPY \
+    --scenarios ELNSSN \
+    --scenarios EVNDCN \
+    --scenarios EVNELN \
+    --scenarios EVNFEN \
+    --scenarios EVNHSN \
+    --scenarios EVNNPY \
+    --scenarios EVNSSN \
+    --scenarios FEN \
+    --scenarios FENDCN \
+    --scenarios FENEIN \
+    --scenarios FENELN \
+    --scenarios FENH2N \
+    --scenarios FENHPN \
+    --scenarios FENHSN \
+    --scenarios FENNPY \
+    --scenarios FENSSN \
+    --scenarios FENTPN \
+    --scenarios H2NDCN \
+    --scenarios H2NELN \
+    --scenarios H2NHSN \
+    --scenarios H2NNPY \
+    --scenarios H2NSSN \
+    --scenarios HPNDCN \
+    --scenarios HPNEIN \
+    --scenarios HPNELN \
+    --scenarios HPNH2N \
+    --scenarios HPNHSN \
+    --scenarios HPNNPY \
+    --scenarios HPNSSN \
+    --scenarios HPNTPN \
+    --scenarios HSNDCN \
+    --scenarios NPYDCN \
+    --scenarios NPYHSN \
+    --scenarios NPYSSN \
+    --scenarios PVNDCN \
+    --scenarios PVNEIN \
+    --scenarios PVNELN \
+    --scenarios PVNEVN \
+    --scenarios PVNFEN \
+    --scenarios PVNH2N \
+    --scenarios PVNHPN \
+    --scenarios PVNHSN \
+    --scenarios PVNNPY \
+    --scenarios PVNSSN \
+    --scenarios PVNTPN \
+    --scenarios SSNDCN \
+    --scenarios TPNDCN \
+    --scenarios TPNELN \
+    --scenarios TPNH2N \
+    --scenarios TPNHSN \
+    --scenarios TPNNPY \
+    --scenarios TPNSSN \
+    --scenarios base
