@@ -41,6 +41,7 @@ echo "Run name: ${run_name}_INV"
 cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
+cat ../base/data/CHRONOHOUR_invroll.inc >data/CHRONOHOUR.inc
 
 # Investment optimisation
 cd model

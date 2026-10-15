@@ -9,7 +9,7 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=2-00:00:00
+#SBATCH --time=3-12:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -42,6 +42,7 @@ echo "Run name: ${run_name}_R${year} (cplex.op${optfile})"
 cat ../base/data/Y_${year}.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
+cat ../base/data/CHRONOHOUR_invroll.inc >data/CHRONOHOUR.inc
 cd model
 cat balopt_roll.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_R${year}" $opts

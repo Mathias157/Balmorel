@@ -62,6 +62,7 @@ echo "Run name: ${run_name}_F${year} (source scenario: ${source_scenario}, weath
 cat ../base/data/Y_${year}.inc >data/Y.inc
 cat ../base/data/T_full.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
+cat ../base/data/CHRONOHOUR_full.inc >data/CHRONOHOUR.inc
 
 cd model
 cat balopt_full.opt >balopt.opt

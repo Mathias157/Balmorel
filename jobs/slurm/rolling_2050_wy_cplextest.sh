@@ -46,6 +46,7 @@ echo "Run name: ${SCENARIO_NAME} (weather year: ${WEATHER_YEAR}, cplex.op${OPTFI
 cat ../base/data/Y_2050.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
+cat ../base/data/CHRONOHOUR_invroll.inc >data/CHRONOHOUR.inc
 cd model
 cat balopt_roll.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${OPTFILE} --scenario_name="${SCENARIO_NAME}" \

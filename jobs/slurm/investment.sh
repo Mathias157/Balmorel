@@ -1,7 +1,7 @@
 #!/bin/sh
 ### General options
 ### -- specify partition --
-#SBATCH --partition=windq
+#SBATCH --partition=windfatq
 ### -- set the job Name --
 #SBATCH --job-name=GREAT_investment
 ### -- ask for number of cpus (default: 1) --
@@ -9,7 +9,7 @@
 ### -- specify that the cpus must be on the same node --
 #SBATCH --nodes=1
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=1-00:00:00
+#SBATCH --time=1-12:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -35,6 +35,7 @@ echo "Run name: ${run_name}_INV"
 cat ../base/data/Y_inv.inc >data/Y.inc
 cat ../base/data/T_inv.inc >data/T.inc
 cat ../base/data/S_inv.inc >data/S.inc
+cat ../base/data/CHRONOHOUR_invroll.inc >data/CHRONOHOUR.inc
 
 # Investment optimisation
 cd model
