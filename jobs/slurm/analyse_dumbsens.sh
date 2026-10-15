@@ -29,7 +29,7 @@ conda activate great
 
 # Load error handling and GAMS paths
 # source jobs/slurm/functions.sh
-
+#
 # Load user functions (generate_plots)
 # source jobs/userfunctions.sh
 # Get scenario choice and run name from jobs/scenario_choice.sh
@@ -37,11 +37,15 @@ conda activate great
 
 # snakemake -s rules/postprocess.smk
 
-python scripts/postprocessing/estimate_flexibility_needs.py --output-dir build_postprocess_DUMB --scenarios D100_INV \
-    --scenarios D50_INV \
-    --scenarios D25_INV \
-    --scenarios D50VGN_INV \
-    --scenarios D25VGN_INV
+python scripts/postprocessing/estimate_flexibility_needs.py --output-dir build_postprocess_DUMB \
+    --scenarios PVN_R2050 \
+    --scenarios base_R2050 \
+    --scenarios base_WY1982_R2050 \
+    --scenarios D25VGN_R2050 \
+    --scenarios D50VGN_R2050 \
+    --scenarios D25_R2050 \
+    --scenarios D50_R2050 \
+    --scenarios D100_R2050
 
 python scripts/postprocessing/plot_flexibility_needs.py --output-dir build_postprocess_DUMB
 

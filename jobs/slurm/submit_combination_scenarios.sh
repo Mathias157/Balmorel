@@ -16,6 +16,7 @@
 set -eu
 
 marker=".combination_scenario.json"
+# FORCE=1
 
 if [ $# -gt 0 ]; then
     scenarios="$*"

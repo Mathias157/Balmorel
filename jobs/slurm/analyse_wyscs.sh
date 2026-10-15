@@ -37,43 +37,45 @@ conda activate great
 
 # snakemake -s rules/postprocess.smk
 
-python scripts/postprocessing/estimate_flexibility_needs.py --overwrite-cache --output-dir build_postprocess_WY \
-    --scenarios base_WY1982_F2050 \
-    --scenarios base_WY1983_F2050 \
-    --scenarios base_WY1984_F2050 \
-    --scenarios base_WY1985_F2050 \
-    --scenarios base_WY1986_F2050 \
-    --scenarios base_WY1987_F2050 \
-    --scenarios base_WY1988_F2050 \
-    --scenarios base_WY1989_F2050 \
-    --scenarios base_WY1990_F2050 \
-    --scenarios base_WY1991_F2050 \
-    --scenarios base_WY1992_F2050 \
-    --scenarios base_WY1993_F2050 \
-    --scenarios base_WY1994_F2050 \
-    --scenarios base_WY1995_F2050 \
-    --scenarios base_WY1996_F2050 \
-    --scenarios base_WY1997_F2050 \
-    --scenarios base_WY1998_F2050 \
-    --scenarios base_WY1999_F2050 \
-    --scenarios base_WY2000_F2050 \
-    --scenarios base_WY2001_F2050 \
-    --scenarios base_WY2002_F2050 \
-    --scenarios base_WY2003_F2050 \
-    --scenarios base_WY2004_F2050 \
-    --scenarios base_WY2005_F2050 \
-    --scenarios base_WY2006_F2050 \
-    --scenarios base_WY2007_F2050 \
-    --scenarios base_WY2008_F2050 \
-    --scenarios base_WY2009_F2050 \
-    --scenarios base_WY2010_F2050 \
-    --scenarios base_WY2011_F2050 \
-    --scenarios base_WY2012_F2050 \
-    --scenarios base_WY2013_F2050 \
-    --scenarios base_WY2014_F2050 \
-    --scenarios base_WY2015_F2050 \
-    --scenarios base_WY2016_F2050 \
-    --scenarios base_WY2017_F2050 \
-    --scenarios base_WY2018_F2050 \
-    --scenarios base_WY2019_F2050 \
-    --scenarios base_WY2020_F2050
+python scripts/postprocessing/estimate_flexibility_needs.py \
+    --output-dir build_postprocess_WY \
+    --overwrite-cache \
+    --scenarios base_WY1982_R2050 \
+    --scenarios base_WY1983_R2050 \
+    --scenarios base_WY1984_R2050 \
+    --scenarios base_WY1985_R2050 \
+    --scenarios base_WY1986_R2050 \
+    --scenarios base_WY1987_R2050 \
+    --scenarios base_WY1988_R2050 \
+    --scenarios base_WY1989_R2050 \
+    --scenarios base_WY1990_R2050 \
+    --scenarios base_WY1991_R2050 \
+    --scenarios base_WY1992_R2050 \
+    --scenarios base_WY1993_R2050 \
+    --scenarios base_WY1994_R2050 \
+    --scenarios base_WY1995_R2050 \
+    --scenarios base_WY1996_R2050 \
+    --scenarios base_WY1997_R2050 \
+    --scenarios base_WY1998_R2050 \
+    --scenarios base_WY1999_R2050 \
+    --scenarios base_WY2000_R2050 \
+    --scenarios base_WY2001_R2050 \
+    --scenarios base_WY2002_R2050 \
+    --scenarios base_WY2003_R2050 \
+    --scenarios base_WY2004_R2050 \
+    --scenarios base_WY2005_R2050 \
+    --scenarios base_WY2006_R2050 \
+    --scenarios base_WY2007_R2050 \
+    --scenarios base_WY2008_R2050 \
+    --scenarios base_WY2009_R2050 \
+    --scenarios base_WY2010_R2050 \
+    --scenarios base_WY2011_R2050 \
+    --scenarios base_WY2012_R2050 \
+    --scenarios base_WY2013_R2050 \
+    --scenarios base_WY2014_R2050 \
+    --scenarios base_WY2015_R2050 \
+    --scenarios base_WY2016_R2050 \
+    --scenarios base_WY2017_R2050 \
+    --scenarios base_WY2018_R2050 \
+    --scenarios base_WY2019_R2050 \
+    --scenarios base_WY2020_R2050
