@@ -29,6 +29,6 @@ numpy = ">=2.4.3,<3"
 openpyxl = ">=3.1.5,<4"
 
 [pypi-dependencies]
-pybalmorel = ">=1.1.6, <2"
+pybalmorel = { version = ">=1.1.6, <2", extras = ["entso-e", "weatheryear"] }
 tsam = ">=2.3.9, <3"
 ripgrepy = ">=2.2.0, <3"
