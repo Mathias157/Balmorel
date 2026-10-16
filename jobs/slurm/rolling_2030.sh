@@ -42,7 +42,6 @@ echo "Run name: ${run_name}_R${year} (cplex.op${optfile})"
 cat ../base/data/Y_${year}.inc >data/Y.inc
 cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
-cat ../base/data/CHRONOHOUR_invroll.inc >data/CHRONOHOUR.inc
 cd model
 cat balopt_roll.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_R${year}" $opts
