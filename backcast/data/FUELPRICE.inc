@@ -1,3 +1,6 @@
+$if     EXIST '../data/FUELPRICE_%SCNAME%.inc' $INCLUDE         '../data/FUELPRICE_%SCNAME%.inc';
+$if not EXIST '../data/FUELPRICE_%SCNAME%.inc' $INCLUDE '../../base/data/FUELPRICE_%SCNAME%.inc';
+
 * Historical (S,T)-resolved fuel prices from backcast/historicalprices
 * (see docs/adr/0001-fuelprice-season-term-resolution.md) - generated, do not hand-edit
 

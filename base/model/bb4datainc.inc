@@ -782,12 +782,12 @@ $if     EXIST '../data/WEIGHT_T.inc' $INCLUDE         '../data/WEIGHT_T.inc';
 $if not EXIST '../data/WEIGHT_T.inc' $INCLUDE '../../base/data/WEIGHT_T.inc';
 %semislash%;
 
-PARAMETER CHRONOHOUR(SSS,TTT) 'Meaning/size of each time step in each season (1 means 1 hour)'  %semislash%
+PARAMETER CHRONOHOUR(SSS,TTT) 'Real hours from time step T to the next simulated time step (1 means consecutive hours)'  %semislash%
 $if     EXIST '../data/CHRONOHOUR.inc' $INCLUDE         '../data/CHRONOHOUR.inc';
 $if not EXIST '../data/CHRONOHOUR.inc' $INCLUDE '../../base/data/CHRONOHOUR.inc';
 %semislash%;
 
-PARAMETER SSIZE(SSS)      'The number of Seasons that are aggregated into Season S'  %semislash%
+PARAMETER SSIZE(SSS)      'Real time between consecutive simulated seasons divided by the simulated time in season S'  %semislash%
 $if     EXIST '../data/SSIZE.inc' $INCLUDE         '../data/SSIZE.inc';
 $if not EXIST '../data/SSIZE.inc' $INCLUDE '../../base/data/SSIZE.inc';
 %semislash%;

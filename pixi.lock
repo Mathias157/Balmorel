@@ -184,6 +184,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/20/c2/247c150f5ca12f8593c20e39115db551b18de5c6cb383006de21b57399e4/pyogrio-0.13.0-cp311-abi3-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/22/01/ea300895919ea436ca1e3597abbf0e3d5b1f5e331d4b4e50219c6afc4874/entsoe_py-0.8.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/22/a6/858897256d0deac81a172289110f31629fc4cee19b6f01283303e18c8db3/ptyprocess-0.7.0-py2.py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/25/36/93d3fd664566c220387bb62eace3ad33dffc92ea2dfcca5223fe7c0c7bf3/pybalmorel-1.3.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2d/1e/65b59cf518c106aa755e7f7da3099027738687a862ec785060702a481320/ipython-9.17.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/33/ef/6d27fc118f58cb24886da413545a7efb0853d405fddbfd8b2d9ac09fbed4/jupyterlab_widgets-3.0.17-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/34/95/40e17e20046b7bc820d29d09ae84ec157ec8dd6e6f6cd722626292c31b2e/widgetsnbextension-4.0.16-py3-none-any.whl
@@ -224,7 +225,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/d4/2b/04b8a15f3a1c77bc79ddf5c73875327f34b4fa75982df2b76e45e402d364/asttokens-3.0.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d9/33/1f075bf72b0b747cb3288d011319aaf64083cf2efef8354174e3ed4540e2/ipython_pygments_lexers-1.1.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/db/6c/f940133c71427c208575910e981942bd78c98b1f7cd0d1425ca4b7457c04/wcwidth-0.9.2-cp310-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/ed/a0/d687d593dd6e86dcb48122807cd0db00f7d8cb746788879faefca0d68b7a/pybalmorel-1.3.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -2912,6 +2912,26 @@ packages:
   name: ptyprocess
   version: 0.7.0
   sha256: 4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35
+- pypi: https://files.pythonhosted.org/packages/25/36/93d3fd664566c220387bb62eace3ad33dffc92ea2dfcca5223fe7c0c7bf3/pybalmorel-1.3.4-py3-none-any.whl
+  name: pybalmorel
+  version: 1.3.4
+  sha256: f477eea6fd368aa06261dbfcecc6ad7fd36299543c3adbc9c92d2e1968b4dbbc
+  requires_dist:
+  - pandas>=2.1.4
+  - matplotlib>=3.9.0
+  - geopandas>=0.14.4
+  - gamsapi[transfer]>=45.7.0
+  - ipywidgets>=8.1.3
+  - cartopy
+  - requests
+  - xlsxwriter>=3.2.0 ; extra == 'weatheryear'
+  - openpyxl>=3.1.5 ; extra == 'weatheryear'
+  - pyyaml>=6.0 ; extra == 'weatheryear'
+  - entsoe-py>=0.8.0,<0.9 ; extra == 'entso-e'
+  - python-decouple>=3.8,<4 ; extra == 'entso-e'
+  - click>=8 ; extra == 'entso-e'
+  - openpyxl>=3.1.5 ; extra == 'entso-e'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/2d/1e/65b59cf518c106aa755e7f7da3099027738687a862ec785060702a481320/ipython-9.17.1-py3-none-any.whl
   name: ipython
   version: 9.17.1
@@ -3553,26 +3573,6 @@ packages:
   version: 0.9.2
   sha256: 751bef0ab404b6a1dc028b56b4b85d46486be1c55833f80da533e42dc691f389
   requires_python: '>=3.9'
-- pypi: https://files.pythonhosted.org/packages/ed/a0/d687d593dd6e86dcb48122807cd0db00f7d8cb746788879faefca0d68b7a/pybalmorel-1.3.3-py3-none-any.whl
-  name: pybalmorel
-  version: 1.3.3
-  sha256: f7af36dab5a1b1f8c3b307f1d6c9ee9b8d69096a6750c05250e5399e60f4e5df
-  requires_dist:
-  - pandas>=2.1.4
-  - matplotlib>=3.9.0
-  - geopandas>=0.14.4
-  - gamsapi[transfer]>=45.7.0
-  - ipywidgets>=8.1.3
-  - cartopy
-  - requests
-  - xlsxwriter>=3.2.0 ; extra == 'weatheryear'
-  - openpyxl>=3.1.5 ; extra == 'weatheryear'
-  - pyyaml>=6.0 ; extra == 'weatheryear'
-  - entsoe-py>=0.8.0,<0.9 ; extra == 'entso-e'
-  - python-decouple>=3.8,<4 ; extra == 'entso-e'
-  - click>=8 ; extra == 'entso-e'
-  - openpyxl>=3.1.5 ; extra == 'entso-e'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl
   name: stack-data
   version: 0.6.3

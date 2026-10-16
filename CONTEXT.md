@@ -31,14 +31,17 @@ generation for the same backcast year.
 _Avoid_: Backcast preprocessing
 
 **Observed load**:
-Electricity demand as actually measured, taken from ENTSO-E. It is the
+Electricity demand as actually measured, taken from ENTSO-E. It includes
+whatever EV charging and power-to-heat happened that year. It is the
 reference that a backcast is validated against.
 _Avoid_: Demand (ambiguous)
 
 **Modelled demand**:
-The electricity demand profile produced by CorRES for a weather year and used
-as Balmorel input. Comparing it with observed load is part of backcast
-validation.
+The exogenous electricity demand profile produced by CorRES for a weather year
+and used as Balmorel input. It excludes the consumption Balmorel decides
+endogenously (power-to-heat, EV charging), so it is not compared with observed
+load on its own. Observed load is compared with modelled demand plus that
+endogenous consumption, which is how the power-to-heat share is validated.
 _Avoid_: Demand (ambiguous), load
 
 **Historical price series**:

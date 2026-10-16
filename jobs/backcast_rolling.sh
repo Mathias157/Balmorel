@@ -30,6 +30,14 @@
 # Load error handling and GAMS paths
 source ../jobs/functions.sh
 
+# The year comes from data/Y.inc, written by backcast_fullyear.sh, whose
+# results this run imports
+year=$(grep -oE '^[0-9]{4}' data/Y.inc)
+if [ "$(echo "$year" | wc -l)" -ne 1 ] || [ -z "$year" ]; then
+  echo "data/Y.inc must contain exactly one year, found: '$year'"
+  exit 1
+fi
+
 scenario='APS'
 run_name='backcast'
 
@@ -37,7 +45,7 @@ run_name='backcast'
 cat data/T_roll.inc >data/T.inc
 cd model
 cat balopt_roll.opt >balopt.opt
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_R2024"
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_R${year}"
 cd ../
 
 optimality_check $LSB_JOBID 52

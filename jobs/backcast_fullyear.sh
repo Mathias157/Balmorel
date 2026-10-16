@@ -28,7 +28,13 @@
 #BSUB -e ../logs/backcasting_fullyear_%J.err
 
 # Load error handling and GAMS paths
-source ../jobs/functions.sh
+# source ../jobs/functions.sh
+
+# Backcast year and seasons - change these. The year is written to data/Y.inc,
+# so the model aborts if the inputs (e.g. TAX_CO2_ST) have no data for it.
+# A seasons subset (e.g. 'S20') is a smoke test: no rolling run is submitted.
+year=2023
+seasons='S20'
 
 scenario='APS'
 run_name='backcast'
@@ -38,14 +44,20 @@ if not [ -d "simex" ]; then
   mkdir simex
 fi
 
+# Years and seasons in the simulation
+printf 'SET Y(YYY) "Years in the simulation"\n/\n%s\n/;\n' "$year" >data/Y.inc
+printf 'SET S(SSS) "Seasons in the simulation"\n/\n%s\n/;\n' "$seasons" >data/S.inc
+
 # Full year simulation
 cat data/T_full.inc >data/T.inc
 cd model
 cat balopt_full.opt >balopt.opt
-gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_F2024"
+gams Balmorel threads=$LSB_DJOB_NUMPROC --USEOPTIONFILE=2 --SCNAME=$scenario --scenario_name="${run_name}_F${year}"
 cd ../
 
 optimality_check $LSB_JOBID 1
 
-# Submit rolling horizon run
-bsub <../jobs/rolling_2024.sh
+# Submit rolling horizon run (reads the year from data/Y.inc written above)
+if [ "$seasons" = 'S01*S52' ]; then
+  bsub <../jobs/backcast_rolling.sh
+fi
