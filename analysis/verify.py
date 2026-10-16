@@ -210,5 +210,73 @@ def ramp_bound(ctx, scenario, generations, ramp_rate, chronohour, swing):
         warnings.warn("RAMP BOUND VIOLATED ON INSTALLED CAPACITY!")
 
 
+@main.command()
+@click.pass_context
+@click.option('--scenario', type=str, default='', help="Check a specific MainResults file in the folder")
+@click.option('--gdata-gdx', type=str, default='',
+              help="GDX with GDATA, used to limit the check to unit-commitment technologies (GDUC = 1) [default: <sc-folder>/model/all_endofmodel.gdx if it exists, otherwise all generations are checked]")
+@click.option('--tolerance', type=float, default=0.01, show_default=True, help="Relative tolerance above installed capacity")
+@click.option('--top', type=int, default=20, show_default=True, help="Number of worst area-generations to print")
+def capacity_bound(ctx, scenario, gdata_gdx, tolerance, top):
+    """
+    Check that electricity output never exceeds installed capacity
+
+    Before Balmorel ADR 0004, existing unit-commitment units were counted as
+    CEIL(GKFX/GDUCUNITSIZE) under LP/RMIP, so output could reach the next
+    whole unit above installed capacity. Compares the largest electricity
+    output of each area-generation (PRO_YCRAGFST, MW per time step) with its
+    installed capacity (G_CAP_YCRAF).
+    """
+
+    sc_folder = ctx.obj['sc-folder']
+    res = find_result(sc_folder, scenario)
+
+    # Unit-commitment technologies and their unit size, if GDATA is available
+    gdata_gdx = Path(gdata_gdx or f'{sc_folder}/model/all_endofmodel.gdx')
+    unit_size = None
+    if gdata_gdx.exists():
+        ws = GamsWorkspace()
+        db = ws.add_database_from_gdx(str(gdata_gdx.absolute()))
+        gdata = {(rec.keys[0], rec.keys[1]): rec.value for rec in db['GDATA']}
+        unit_size = pd.Series({g: gdata.get((g, 'GDUCUNITSIZE'), 0) for (g, p), v in gdata.items()
+                               if p == 'GDUC' and v == 1}, name='UnitSize')
+        print(f"Checking {len(unit_size)} unit-commitment technologies from {gdata_gdx}")
+    else:
+        print(f"{gdata_gdx} not found - checking all generations")
+
+    cap = (
+        res
+        .get_result('G_CAP_YCRAF')
+        .query('Commodity == "ELECTRICITY"')
+        .groupby(['Year', 'Area', 'Generation'])
+        .Value.sum()
+        .mul(1e3)  # GW -> MW, PRO_YCRAGFST is MW per time step
+        .rename('Capacity')
+    )
+    pro = (
+        res
+        .get_result('PRO_YCRAGFST')
+        .query('Commodity == "ELECTRICITY"')
+        .groupby(['Year', 'Area', 'Generation'])
+        .Value.max()
+        .rename('MaxOutput')
+    )
+    df = pd.concat([cap, pro], axis=1, join='inner')
+    df = df[df.Capacity > 0]
+    if unit_size is not None:
+        df = df[df.index.get_level_values('Generation').isin(unit_size.index)]
+        df['UnitSize'] = df.index.get_level_values('Generation').map(unit_size)
+    df['Excess'] = df.MaxOutput - df.Capacity
+    df['MaxOutput/Cap'] = df.MaxOutput / df.Capacity
+    over = df[df['MaxOutput/Cap'] > 1 + tolerance]
+
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 250):
+        print(over.sort_values('Excess', ascending=False).head(top).round(2))
+    print(f"\n{len(over)} of {len(df)} area-generations above installed capacity, "
+          f"{over.Excess.sum() / 1e3:.1f} GW in total at their maximum output")
+    if len(over):
+        warnings.warn("ELECTRICITY OUTPUT ABOVE INSTALLED CAPACITY!")
+
+
 if __name__ == '__main__':
     main()
