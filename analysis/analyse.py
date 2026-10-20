@@ -11,6 +11,7 @@ Created on 06.10.2024
 #           0. Main CLI           #
 # ------------------------------- #
 
+import fnmatch
 import itertools
 import os
 import pickle
@@ -790,6 +791,23 @@ def capacity_factor(
     fig, ax = plot_style(fig, ax, filename, legend=False)
 
 
+def expand_scenario_patterns(scenarios: tuple, scenario_names: list) -> tuple:
+    """Expand glob patterns (e.g. '*_R2040') against located scenario names.
+
+    Plain names are kept as-is, so a missing one is still reported as missing.
+    """
+    expanded = []
+    for sc in scenarios:
+        if any(char in sc for char in "*?["):
+            matches = sorted(fnmatch.filter(scenario_names, sc))
+            if not matches:
+                print("Warning: --scenarios pattern '%s' matched no results" % sc)
+            expanded.extend(matches)
+        else:
+            expanded.append(sc)
+    return tuple(dict.fromkeys(expanded))
+
+
 class MissingScenarioResultsError(Exception):
     """Raised by combined_costs when one or more requested scenarios are
     missing their _INV and/or R20YY-suffixed MainResults file.
@@ -831,7 +849,8 @@ class MissingScenarioResultsError(Exception):
     multiple=True,
     required=False,
     default=SCENARIOS,
-    help="R20YY-suffixed scenario names to combine investment + operational costs for",
+    help="R20YY-suffixed scenario names to combine investment + operational costs for. "
+    "Glob patterns are expanded against the located results, e.g. --scenarios '*_R2040'",
 )
 def combined_costs(ctx, get_df: bool, columns: str, filter: str, filename: str, scenarios: tuple):
     """
@@ -849,6 +868,7 @@ def combined_costs(ctx, get_df: bool, columns: str, filter: str, filename: str, 
 
     df = collect_results("OBJ_YCR")
     scenario_names = ctx.obj["Balmorel"].scenario_names
+    scenarios = expand_scenario_patterns(scenarios, scenario_names)
 
     if filter != '':
         df = df.query(filter)
