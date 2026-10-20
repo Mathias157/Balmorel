@@ -12,7 +12,7 @@
 ### -- memory: CR_CORE does not reserve it, only picks nodes with this much in total --
 #SBATCH --mem=100G
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=3-12:00:00
+#SBATCH --time=2-12:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -54,6 +54,7 @@ gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario
 cd ..
 
 optimality_check $SLURM_JOB_ID 52
+penalty_check $SLURM_JOB_ID
 
 if [ -f ../jobs/userfunctions.sh ]; then
     . ../jobs/userfunctions.sh

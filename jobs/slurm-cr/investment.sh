@@ -55,6 +55,7 @@ fi
 
 cd ..
 optimality_check $SLURM_JOB_ID 3
+penalty_check $SLURM_JOB_ID
 echo "Investment optimisation completed successfully at $(date)"
 
 # Store simex files

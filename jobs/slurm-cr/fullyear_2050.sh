@@ -12,7 +12,7 @@
 ### -- memory: CR_CORE does not reserve it, only picks nodes with this much in total --
 #SBATCH --mem=100G
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=2-00:00:00
+#SBATCH --time=0-12:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -21,7 +21,7 @@
 #SBATCH --error=../logs/GREAT_fullyear_2050_%j.err
 
 # Computerome copy of jobs/slurm/fullyear_2050.sh. fullyear_2030.sh/fullyear_2040.sh are generated
-# copies of this file with only the year (and walltime) changed - keep them that way.
+# copies of this file with only the year changed - keep them that way.
 # Runs either in a scenario folder or in one of its Year copies, see functions.sh.
 
 # SLURM does not guarantee the job starts in the submission directory on this cluster - force it
@@ -57,6 +57,7 @@ cd ..
 
 # Don't spend days of rolling on a non-optimal fullyear's storage levels
 optimality_check $SLURM_JOB_ID 1
+penalty_check $SLURM_JOB_ID
 
 # Submit rolling horizon run
 sbatch ../jobs/slurm-cr/rolling_${year}.sh

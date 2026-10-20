@@ -40,11 +40,14 @@ LOOP(Y,
             IF ((SUM(DEUSER,DE(Y,IR,DEUSER)) AND ILOOPBREAK=0),
                ILOOPBREAK=1;
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_ELECTRICITY)=1000000;
-               GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_HEAT)=1000000;
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BIOGASUPGRADING)=1000000;
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BIOGASMETHANATION)=1000000;
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_BIOMETHANE)=1000000;
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_ELECTRICITY AND GDATA(G, 'GDFUEL') EQ BIOMETHANE)=1000000;
+            );
+* Heat cannot move between areas, so backup heat must sit in every area with heat demand (incl. IDVU areas)
+            IF (SUM(DHUSER,DH(Y,IA,DHUSER)),
+               GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_HEAT)=1000000;
             );
 
          );

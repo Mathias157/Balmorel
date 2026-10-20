@@ -14,6 +14,7 @@ Created on 19.03.2026
 from pathlib import Path
 from pybalmorel.utils import symbol_to_df
 from gams import GamsWorkspace
+import gams.transfer as gt
 from functions import find_result
 import click
 import warnings
@@ -276,6 +277,57 @@ def capacity_bound(ctx, scenario, gdata_gdx, tolerance, top):
           f"{over.Excess.sum() / 1e3:.1f} GW in total at their maximum output")
     if len(over):
         warnings.warn("ELECTRICITY OUTPUT ABOVE INSTALLED CAPACITY!")
+
+
+@main.command()
+@click.pass_context
+@click.option('--scenario', type=str, default='', help="Check a specific MainResults file in the folder")
+@click.option('--threshold', type=float, default=1e4, show_default=True,
+              help="Price (money/MWh) above which an hour counts as penalty-set - backup generators cost at most 3000")
+def penalty_prices(ctx, scenario, threshold):
+    """
+    Check that no commodity price is set by an infeasibility penalty
+
+    Every VQ*/slack variable enters QOBJ at PENALTYQ (1e9), so when one binds,
+    the duals - and every price derived from them - jump to 1e5-1e7 money/MWh,
+    while volumes can still look normal. Counts such hours per price symbol and
+    lists the seasons they occur in. See docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
+    """
+
+    sc_folder = ctx.obj['sc-folder']
+    res = find_result(sc_folder, scenario)
+    gdx = str(Path(res.paths[0], res.files[0]).absolute())
+    print(f"Checking {gdx}")
+
+    # Read only the price symbols - rolling MainResults are several GB
+    symbols = ['EL_PRICE_YCRST', 'H_PRICE_YCRAST', 'H2_PRICE_YCRST', 'BIOMETH_PRICE_YST']
+    container = gt.Container()
+    container.read(gdx, records=False)
+    present = [symbol for symbol in symbols if symbol in container]
+    container = gt.Container()
+    container.read(gdx, symbols=present + ['H_DEMAND_YCRA'])
+
+    # Areas without heat demand are empty heat nodes whose price is an arbitrary dual
+    heat_demand = container['H_DEMAND_YCRA'].records
+    heat_areas = set(heat_demand.loc[heat_demand[heat_demand.columns[-1]] > 0, 'AAA'])
+
+    found = False
+    for symbol in symbols:
+        if symbol not in present:
+            print(f"{symbol}: not in results")
+            continue
+        df = container[symbol].records
+        if symbol == 'H_PRICE_YCRAST':
+            df = df[df['AAA'].isin(heat_areas)]
+        value = df.columns[-1]
+        season = next(col for col in df.columns if df[col].astype(str).str.fullmatch(r'S\d+').all())
+        high = df[df[value] > threshold]
+        print(f"{symbol}: {len(high)} of {len(df)} entries above {threshold:g} (max {df[value].max():.3g})")
+        if len(high):
+            found = True
+            print(f"  seasons: {' '.join(sorted(high[season].unique()))}")
+    if found:
+        warnings.warn("PRICES SET BY INFEASIBILITY PENALTIES - CHECK VQ* SLACKS IN all_endofmodel.gdx!")
 
 
 if __name__ == '__main__':

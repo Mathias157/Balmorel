@@ -48,6 +48,21 @@ optimality_check() {
     fi
 }
 
+# Warn when a solve paid infeasibility penalties: QOBJ is in MMoney (a clean year is ~1e5-1e6), but
+# every VQ*/slack term enters it at PENALTYQ (1e9) per unit, so an objective above 1e9 means some
+# slack was active and prices in that solve are not meaningful. Rolling logs are split per season
+# so the warning names them. Only warns - see docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
+penalty_check() {
+    job_id=$1
+    cat ../logs/*_${job_id}.out | awk '
+        /IS3LOOPSET = / { season = $NF }
+        /^Objective:/ { n++; if ($2 + 0 > 1e9) { bad++; list = list " " (season == "" ? "full" : season); if ($2 + 0 > max) max = $2 + 0 } }
+        END {
+            if (bad > 0) printf "WARNING: Job %s had %d of %d solves with objective > PENALTYQ (max %.3g) - infeasibility slacks active in:%s\n", "'"$job_id"'", bad, n, max, list
+            else printf "PENALTY-FREE: Job %s had no solve with objective > PENALTYQ\n", "'"$job_id"'"
+        }'
+}
+
 # Stop before GAMS runs if the scenario folder lacks the CPLEX option file the job asks for - CPLEX
 # only warns about a missing option file and then solves with its own defaults. Run from the
 # scenario folder. See docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md.

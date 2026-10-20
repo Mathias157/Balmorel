@@ -12,7 +12,7 @@
 ### -- memory: CR_CORE does not reserve it, only picks nodes with this much in total --
 #SBATCH --mem=100G
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=1-00:00:00
+#SBATCH --time=0-12:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -57,6 +57,7 @@ cd ..
 
 # Don't spend days of rolling on a non-optimal fullyear's storage levels
 optimality_check $SLURM_JOB_ID 1
+penalty_check $SLURM_JOB_ID
 
 # Submit rolling horizon run
 sbatch ../jobs/slurm-cr/rolling_${year}.sh
