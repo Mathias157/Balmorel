@@ -77,6 +77,7 @@ weatheryeardata/
 /[A-Z][A-Z0-9][NY]/
 /[A-Z][A-Z0-9][NY][A-Z][A-Z0-9][NY]/
 /ALLN/
+/ALLNNPY/
 # Year copies (jobs/slurm-cr/functions.sh) - temporary, deleted once their results are moved back
 /*_Y20[0-9][0-9]/
 _ev_fleet_read_*/

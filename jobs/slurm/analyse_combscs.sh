@@ -54,8 +54,6 @@ python analysis/analyse.py --overwrite combined-costs \
     --scenarios NPY \
     --scenarios SSN \
     --scenarios TPN \
-    --scenarios logs \
-    --scenarios archiv \
     --scenarios D100 \
     --scenarios D25 \
     --scenarios D25VGN \
