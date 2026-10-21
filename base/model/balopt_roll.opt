@@ -400,7 +400,7 @@ $setglobal TRANS_RAMP
 
 *-----------------------ANCILLARY SERVICES----------------------------------------------------------------------------------------------------
 * Ancillary services addon (it requires UnitComm to be active). The other options require this one to be activated.
-$setglobal ANC_SERV yes
+$setglobal ANC_SERV
 *!option yes
 
 * FCR reserve requirement activated
@@ -774,7 +774,7 @@ $setglobal ADDTERMTRANSPORTDEMAND
 *!option yes
 
 *Import seasonal demand from the transport sector
-$setglobal ADDSEASONALTRANSPORTDEMAND
+$setglobal ADDSEASONALTRANSPORTDEMAND yes
 *!option yes
 
 *Import peak demand from the transport sector

@@ -342,9 +342,10 @@ def slacks(ctx, gdx, tolerance, top):
 
     Lists every VQ* variable plus VG2VINFRASLACK and VHYDROGEN_QH2EQ with a
     level above the tolerance, by symbol, region and direction (IPLUSMINUS).
-    Levels are in the symbol's own unit (MW or MWh per time step). Each slack
-    unit costs PENALTYQ (1e9) in QOBJ, so the job scripts' check for
-    objectives above 1e13 misses fewer than ~1e4 slack units. Backup
+    Levels are in the symbol's own unit (MW or MWh per time step, t CO2 for
+    VQLIMCO2NA/VQLIMCO2ROLLS). Each slack unit costs PENALTYQ (1e9) in QOBJ,
+    a tonne of CO2 only 1e6, so the job scripts' check for objectives above
+    1e13 misses fewer than ~1e4 slack units or 10 Mt CO2 per solve. Backup
     generation is cost, not slack - see the backup command.
     """
 
@@ -360,7 +361,8 @@ def slacks(ctx, gdx, tolerance, top):
     container = gt.Container()
     container.read(gdx, symbols=symbols)
 
-    region_sets = ['C', 'CCC', 'IR', 'RRR', 'IA', 'AAA', 'CCCRRRAAA', 'IRRRE', 'IRRRI']
+    # GROUP locates the CO2 limit slacks VQLIMCO2NA and VQLIMCO2ROLLS
+    region_sets = ['C', 'CCC', 'IR', 'RRR', 'IA', 'AAA', 'CCCRRRAAA', 'IRRRE', 'IRRRI', 'GROUP']
     used = []
     for symbol in symbols:
         df = container[symbol].records

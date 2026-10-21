@@ -8,3 +8,5 @@ $ifi %CCS%==yes  $ifi %RollingSeasons%==yes  $include   "../../base/addons/CCS/b
 
 
 
+$ifi %vqdebug%==yes   $setglobal equation qlimco2rolls
+$ifi %vqdebug%==yes   $include   "../../base/addons/vqdebug/bb4/vqdebug_equations.inc";

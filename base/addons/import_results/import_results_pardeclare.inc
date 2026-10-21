@@ -14,6 +14,7 @@ $ifi %EV%==yes PARAMETER PARAM_G2V_INFRA_CAP(YYY,RRR) 'G2V infrastructure capaci
 $ifi %EV%==yes PARAMETER PARAM_V2G_INFRA_EXTRA(YYY,RRR) 'Extra V2G infrastructure capacity to be used in future runs';
 $ifi %EV%==yes PARAMETER PARAM_V2G_INFRA_ACCUMNET(YYY,RRR) 'Accumulated V2G infrastructure capacity to be used in future runs';
 $ifi %EV%==yes PARAMETER PARAM_G2V_INFRA_ACCUMNET(YYY,RRR) 'Accumulated G2V infrastructure capacity to be used in future runs';
+$ifi %DEMANDRESPONSE%==yes PARAMETER DRKN_ACCUMNET(YYY,AAA,DR_TECHNOLOGIES) 'Accumulated demand response capacity to be used in future runs (MW)';
 *Unit Commitemnt data
 PARAMETER UCON(YYY,AAA,GGG,SSS,TTT)     "Unit commitment (0,1) on electricity generation to be used in future runs";
 PARAMETER UCON_STOLOAD(YYY,AAA,GGG,SSS,TTT)     "Unit commitment (0,1) on storage loading to be used in future runs";

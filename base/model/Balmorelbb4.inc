@@ -2167,15 +2167,15 @@ QLIMCO2C(IY411,C,GROUP)$(EMI_POL(IY411,C,GROUP,'LIM_CO2') AND (EMI_POL(IY411,C,G
 $include "../../base/addons/_hooks/qlimco2c.inc"
 ;
 
-* TODO: Move this hardcoding of seasonal emission restrictions to data input
+* Rolling limits each week to fullyear's net emissions in that week (written by OUTPUT_SUMMARY.inc),
+* so the weeks add up to the annual limit - see docs/adr/0060
 $ifi not %RollingSeasons%==yes $goto skip
 PARAMETER EMI_POLNA_S(YYY,SSS, GROUP,EMIPOLSET);
 PARAMETER EMI_POLNA_S2(YYY,SSS, GROUP,EMIPOLSET);
 execute_load '../simex/EMI_POLNA_S.gdx',    EMI_POLNA_S;
-EMI_POLNA_S(YYY,SSS, GROUP,EMIPOLSET)= 0;
-EMI_POLNA_S2('2050',SSS, GROUP,EMIPOLSET)= EPS;
-* EMI_POLNA_S2('2050','S03', GROUP,EMIPOLSET)= 10000000;
-* EMI_POLNA_S2('2050','S07', GROUP,EMIPOLSET)= 10000000;
+EMI_POLNA_S2(Y,SSS,GROUP,'LIM_CO2')$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF))= EMI_POLNA_S(Y,SSS,GROUP,'LIM_CO2');
+* An empty or other-year EMI_POLNA_S.gdx would silently force net zero in every week
+abort$SUM((Y,GROUP)$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF) AND NOT SUM(SSS$EMI_POLNA_S(Y,SSS,GROUP,'LIM_CO2'), 1)), 1) "EMI_POLNA_S.gdx has no weekly CO2 emissions for a year with a CO2 limit - run fullyear for that year first", EMI_POLNA;
 
 QLIMCO2ROLLS(IY411,GROUP,IS3)$(EMI_POLNA(IY411,GROUP,'LIM_CO2') AND (EMI_POLNA(IY411,GROUP,'LIM_CO2') LT INF))..
       SUM(C,
@@ -2877,6 +2877,10 @@ $ifi %TechInvest%==yes $ifi %EV%==yes execute_unload "../simex/PARAM_G2V_INFRA_C
 $ifi %TechInvest%==yes $ifi %EV%==yes execute_unload "../simex/PARAM_V2G_INFRA_EXTRA.gdx", PARAM_V2G_INFRA_EXTRA;
 $ifi %TechInvest%==yes $ifi %EV%==yes execute_unload "../simex/PARAM_V2G_INFRA_ACCUMNET.gdx", PARAM_V2G_INFRA_ACCUMNET;
 $ifi %TechInvest%==yes $ifi %EV%==yes execute_unload "../simex/PARAM_G2V_INFRA_ACCUMNET.gdx", PARAM_G2V_INFRA_ACCUMNET;
+
+* Demand response capacity is an investment decision too: only runs that optimise it export it, and runs without investments fix it (docs/adr/0056)
+$ifi %TechInvest%==yes $ifi %DEMANDRESPONSE%==yes DRKN_ACCUMNET(Y,IA,DR_TECH)$(IADR(Y,IA,DR_TECH) AND DR_DATA(DR_TECH,'DRINVCOST')) = VDRKN_ACCUMNET.L(Y,IA,DR_TECH);
+$ifi %TechInvest%==yes $ifi %DEMANDRESPONSE%==yes execute_unload "../simex/DRKN_ACCUMNET.gdx", DRKN_ACCUMNET;
 
 *Reducing size of export files once they have been exported
 $ifi %EV%==yes EV_BEV_NETCHARGING(Y,IR,S,T)=0;

@@ -52,17 +52,25 @@ optimality_check() {
 # a clean rolling week ~5e9), and every VQ*/slack term enters it at PENALTYQ (1e9) per unit, so an
 # objective above 1e13 means at least ~1e4 units of slack (heat-backup failures gave 1e15-1e16) and
 # prices in that solve are not meaningful. Smaller slacks (e.g. the G2V infrastructure slack, ~8e12)
-# stay below it. Rolling logs are split per season so the warning names them. Only warns - see
+# stay below it. Rolling logs are split per season so the warning names them. See
 # docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
+# Above PENALTY_FAIL_ABOVE (default 1e14, ~1e5 slack units) the job lists the slacks and exits, so
+# no later run is submitted and a Year copy is not returned (docs/adr/0057).
 penalty_check() {
     job_id=$1
-    cat ../logs/*_${job_id}.out | awk '
+    fail_above=${PENALTY_FAIL_ABOVE:-1e14}
+    if ! cat ../logs/*_${job_id}.out | awk -v fail="$fail_above" '
         /IS3LOOPSET = / { season = $NF }
         /^Objective:/ { n++; if ($2 + 0 > 1e13) { bad++; list = list " " (season == "" ? "full" : season); if ($2 + 0 > max) max = $2 + 0 } }
         END {
             if (bad > 0) printf "WARNING: Job %s had %d of %d solves with objective > 1e13 (max %.3g) - infeasibility slacks active in:%s\n", "'"$job_id"'", bad, n, max, list
             else printf "PENALTY-FREE: Job %s had no solve with objective > 1e13\n", "'"$job_id"'"
-        }'
+            if (max > fail + 0) exit 1
+        }'; then
+        echo "ERROR: objective above PENALTY_FAIL_ABOVE=${fail_above} - largest slacks:"
+        pixi run verify "$PWD" slacks --top 5 || true
+        exit 1
+    fi
 }
 
 # Stop before GAMS runs if the scenario folder lacks the CPLEX option file the job asks for - CPLEX
