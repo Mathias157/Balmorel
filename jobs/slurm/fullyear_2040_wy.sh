@@ -62,7 +62,8 @@ cat balopt_full.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_F${year}" $opts
 cd ..
 
-# optimality_check $SLURM_JOB_ID 1
+# Don't spend days of rolling on a non-optimal fullyear's storage levels (status 6 only warns)
+optimality_check $SLURM_JOB_ID 1
 
 # Submit rolling horizon run
 sbatch ../jobs/slurm/rolling_${year}_wy.sh
