@@ -47,8 +47,8 @@ cat balopt_roll.opt >balopt.opt
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_R${year}" $opts
 cd ..
 
-# Submit rolling horizon run
-sbatch ../jobs/slurm/fullyear_2050.sh
-
-# Check optimality
+# Check optimality before chaining on, so a failed rolling run doesn't start the next year
 optimality_check $SLURM_JOB_ID 52
+
+# Submit next year's fullyear run
+sbatch ../jobs/slurm/fullyear_2050.sh

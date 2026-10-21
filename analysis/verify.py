@@ -330,5 +330,106 @@ def penalty_prices(ctx, scenario, threshold):
         warnings.warn("PRICES SET BY INFEASIBILITY PENALTIES - CHECK VQ* SLACKS IN all_endofmodel.gdx!")
 
 
+@main.command()
+@click.pass_context
+@click.option('--gdx', type=str, default='', help="GDX to check [default: <sc-folder>/model/all_endofmodel.gdx]")
+@click.option('--tolerance', type=float, default=1e-3, show_default=True,
+              help="Level above which a slack counts as used - barrier noise is ~1e-9")
+@click.option('--top', type=int, default=10, show_default=True, help="Number of largest locations to print per symbol")
+def slacks(ctx, gdx, tolerance, top):
+    """
+    Check that no slack variable is used - exits with status 1 if one is
+
+    Lists every VQ* variable plus VG2VINFRASLACK and VHYDROGEN_QH2EQ with a
+    level above the tolerance, by symbol, region and direction (IPLUSMINUS).
+    Levels are in the symbol's own unit (MW or MWh per time step). Each slack
+    unit costs PENALTYQ (1e9) in QOBJ, so the job scripts' check for
+    objectives above 1e13 misses fewer than ~1e4 slack units. Backup
+    generation is cost, not slack - see the backup command.
+    """
+
+    sc_folder = ctx.obj['sc-folder']
+    gdx = str(Path(gdx or f'{sc_folder}/model/all_endofmodel.gdx').absolute())
+    print(f"Checking {gdx}")
+
+    # Read only the slack variables - all_endofmodel.gdx is over 1 GB
+    container = gt.Container()
+    container.read(gdx, records=False)
+    symbols = [name for name in container.listVariables()
+               if name.startswith('VQ') or name in ['VG2VINFRASLACK', 'VHYDROGEN_QH2EQ']]
+    container = gt.Container()
+    container.read(gdx, symbols=symbols)
+
+    region_sets = ['C', 'CCC', 'IR', 'RRR', 'IA', 'AAA', 'CCCRRRAAA', 'IRRRE', 'IRRRI']
+    used = []
+    for symbol in symbols:
+        df = container[symbol].records
+        if df is None:
+            continue
+        df = df[df['level'].abs() > tolerance]
+        if df.empty:
+            continue
+        used.append(symbol)
+        dims = container[symbol].domain_labels
+        where = [dim for dim in dims if dim in region_sets or dim == 'IPLUSMINUS']
+        print(f"\n{symbol}: {len(df)} entries above {tolerance:g} "
+              f"(sum {df['level'].sum():.4g}, max {df['level'].max():.4g})")
+        if where:
+            by_location = (
+                df
+                .groupby(where, observed=True)['level']
+                .agg(['count', 'sum', 'max'])
+                .sort_values('sum', ascending=False)
+            )
+            print(by_location.head(top).to_string(float_format='{:.4g}'.format))
+            if len(by_location) > top:
+                print(f"... {len(by_location) - top} more")
+
+    if used:
+        print(f"\n{len(used)} slack variables used: {' '.join(used)}")
+        ctx.exit(1)
+    print(f"No slack variable above {tolerance:g} ({len(symbols)} checked)")
+
+
+@main.command()
+@click.pass_context
+@click.option('--scenario', type=str, default='', help="Check a specific MainResults file in the folder")
+@click.option('--fail-above', type=float, default=None,
+              help="Exit with status 1 if backup generation in a year exceeds this (TWh) [default: report only]")
+def backup(ctx, scenario, fail_above):
+    """
+    Report production of the backup generators (GNR_BACKUP_*) by country
+
+    Backup generators (ADDBACKUPGEN) cover unserved electricity, heat,
+    hydrogen and biomethane demand at a high variable cost (GDOMVCOST0 up to
+    3000 money/MWh). That is cost, not slack, so neither the job scripts'
+    objective check nor the slacks command sees it. Prints PRO_YCRAGF by
+    year, country and commodity (TWh).
+    """
+
+    sc_folder = ctx.obj['sc-folder']
+    res = find_result(sc_folder, scenario)
+    print(f"Checking {Path(res.paths[0], res.files[0])}")
+
+    df = res.get_result('PRO_YCRAGF')
+    df = df[df.Generation.str.startswith('GNR_BACKUP')]
+    if df.empty:
+        print("No backup generation")
+        return
+
+    by_country = df.pivot_table(index=['Year', 'Country'], columns='Commodity', values='Value',
+                                aggfunc='sum', fill_value=0, observed=True)
+    shown = by_country[by_country.sum(axis=1) >= 1e-3]
+    total = df.groupby('Year', observed=True).Value.sum()
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 250):
+        print(shown.round(3))
+    if len(shown) < len(by_country):
+        print(f"({len(by_country) - len(shown)} year-countries below 0.001 TWh not shown)")
+    print("\nTotal backup generation (TWh): " + ", ".join(f"{year} {value:.3f}" for year, value in total.items()))
+    warnings.warn("BACKUP GENERATORS PRODUCE - UNSERVED DEMAND COVERED AT PENALTY COST!")
+    if fail_above is not None and (total > fail_above).any():
+        ctx.exit(1)
+
+
 if __name__ == '__main__':
     main()
