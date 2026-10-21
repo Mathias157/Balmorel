@@ -12,8 +12,8 @@ IEV_PHEV_outofbounds(Y,S,T,RRR)            * True if EV_available went out of bo
 ;
 
 * If available_first is not calculated in season_calc, use from max avail. Applies to every simulated season, not just the first.
-$ifi not %EV_season_calc%==yes IEV_BEV_available_first(Y,S,T,IR)$(ORD(T) EQ 1 AND IHASBEV(IR)) = EV_BEV_available(Y,IR);
-$ifi not %EV_season_calc%==yes IEV_PHEV_available_first(Y,S,T,IR)$(ORD(T) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR);
+$ifi not %EV_season_calc%==yes IEV_BEV_available_first(Y,S,T,IR)$(ORD(T) EQ 1 AND IHASBEV(IR)) = EV_BEV_available(Y,IR) * EV_BEV_start_share(Y,IR);
+$ifi not %EV_season_calc%==yes IEV_PHEV_available_first(Y,S,T,IR)$(ORD(T) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR) * EV_PHEV_start_share(Y,IR);
 
 *-------------------------------------------------*
 * Season Calculation - Used if S01 is not in simulation, then EV_BEV_avilable and EV_PHEV_available will be calculated to the first season in the simulation.
@@ -50,8 +50,8 @@ LOOP(S,
 
 
 * First hour in first season outside loop.
-IEV_BEV_available_scalc(Y,SSS,TTT,IR)$(ORD(SSS) EQ 1 AND ORD(TTT) EQ 1 AND IHASBEV(IR)) = EV_BEV_available(Y,IR) + EV_BEV_available(Y,IR) * EV_BEV_leave_profile(Y,SSS,TTT,IR);
-IEV_PHEV_available_scalc(Y,SSS,TTT,IR)$(ORD(SSS) EQ 1 AND ORD(TTT) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR) + EV_PHEV_available(Y,IR) * EV_PHEV_leave_profile(Y,SSS,TTT,IR);
+IEV_BEV_available_scalc(Y,SSS,TTT,IR)$(ORD(SSS) EQ 1 AND ORD(TTT) EQ 1 AND IHASBEV(IR)) = EV_BEV_available(Y,IR) * EV_BEV_start_share(Y,IR) + EV_BEV_available(Y,IR) * EV_BEV_leave_profile(Y,SSS,TTT,IR);
+IEV_PHEV_available_scalc(Y,SSS,TTT,IR)$(ORD(SSS) EQ 1 AND ORD(TTT) EQ 1 AND IHASPHEV(IR)) = EV_PHEV_available(Y,IR) * EV_PHEV_start_share(Y,IR) + EV_PHEV_available(Y,IR) * EV_PHEV_leave_profile(Y,SSS,TTT,IR);
 
 * Creating loop, to ensure it goes through all timesteps
 LOOP(S$(ORD(S) EQ CARD(S)),
@@ -85,10 +85,10 @@ LOOP(T$(ORD(T) EQ 1),
                     IEV_BEV_available_first(Y,S,T,IR)$(IHASBEV(IR)) = IEV_BEV_available_scalc(Y,SSS-1,TTT,IR);
                     IEV_PHEV_available_first(Y,S,T,IR)$(IHASPHEV(IR)) = IEV_PHEV_available_scalc(Y,SSS-1,TTT,IR);
                 );
-* If first simulation timestep is T001 S01, then available is max available
+* If first simulation timestep is T001 S01, then available is max available (times the start share, see EV_pardefine.inc)
                 IF(Tcounter(T) EQ 1 AND Scounter(S) EQ 1,
-                    IEV_BEV_available_first(Y,S,T,IR)$(IHASBEV(IR)) = EV_BEV_available(Y,IR);
-                    IEV_PHEV_available_first(Y,S,T,IR)$(IHASPHEV(IR)) = EV_PHEV_available(Y,IR);
+                    IEV_BEV_available_first(Y,S,T,IR)$(IHASBEV(IR)) = EV_BEV_available(Y,IR) * EV_BEV_start_share(Y,IR);
+                    IEV_PHEV_available_first(Y,S,T,IR)$(IHASPHEV(IR)) = EV_PHEV_available(Y,IR) * EV_PHEV_start_share(Y,IR);
                 );
 * If first simulation timestep is not T001, then use T-1 as available.
                 IF(Tcounter(T) EQ ORD(TTT) AND ORD(TTT) GT 1,
