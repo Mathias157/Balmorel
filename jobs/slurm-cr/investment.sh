@@ -12,7 +12,7 @@
 ### -- memory: CR_CORE does not reserve it, only picks nodes with this much in total --
 #SBATCH --mem=100G
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=1-12:00:00
+#SBATCH --time=0-16:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk

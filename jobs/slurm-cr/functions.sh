@@ -48,18 +48,20 @@ optimality_check() {
     fi
 }
 
-# Warn when a solve paid infeasibility penalties: QOBJ is in MMoney (a clean year is ~1e5-1e6), but
-# every VQ*/slack term enters it at PENALTYQ (1e9) per unit, so an objective above 1e9 means some
-# slack was active and prices in that solve are not meaningful. Rolling logs are split per season
-# so the warning names them. Only warns - see docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
+# Warn when a solve paid large infeasibility penalties. QOBJ is in money (a clean year is ~2-3e11,
+# a clean rolling week ~5e9), and every VQ*/slack term enters it at PENALTYQ (1e9) per unit, so an
+# objective above 1e13 means at least ~1e4 units of slack (heat-backup failures gave 1e15-1e16) and
+# prices in that solve are not meaningful. Smaller slacks (e.g. the G2V infrastructure slack, ~8e12)
+# stay below it. Rolling logs are split per season so the warning names them. Only warns - see
+# docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
 penalty_check() {
     job_id=$1
     cat ../logs/*_${job_id}.out | awk '
         /IS3LOOPSET = / { season = $NF }
-        /^Objective:/ { n++; if ($2 + 0 > 1e9) { bad++; list = list " " (season == "" ? "full" : season); if ($2 + 0 > max) max = $2 + 0 } }
+        /^Objective:/ { n++; if ($2 + 0 > 1e13) { bad++; list = list " " (season == "" ? "full" : season); if ($2 + 0 > max) max = $2 + 0 } }
         END {
-            if (bad > 0) printf "WARNING: Job %s had %d of %d solves with objective > PENALTYQ (max %.3g) - infeasibility slacks active in:%s\n", "'"$job_id"'", bad, n, max, list
-            else printf "PENALTY-FREE: Job %s had no solve with objective > PENALTYQ\n", "'"$job_id"'"
+            if (bad > 0) printf "WARNING: Job %s had %d of %d solves with objective > 1e13 (max %.3g) - infeasibility slacks active in:%s\n", "'"$job_id"'", bad, n, max, list
+            else printf "PENALTY-FREE: Job %s had no solve with objective > 1e13\n", "'"$job_id"'"
         }'
 }
 
