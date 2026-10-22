@@ -129,7 +129,11 @@ option optcr = 0.000001
 
 * RESLIM specifies the maximum time (seconds) that the computer can run during execution of a solver.
 * Default value is 1000.
-option RESLIM = 1209600
+* Overridable per job via --RESLIM=<seconds> on the gams command line (same pattern as USEOPTIONFILE above),
+* so a job script can set RESLIM below its own HPC wall-time and let the solver stop gracefully - with a
+* savepoint and logs written - instead of being killed outright when wall-time runs out.
+$Setglobal RESLIM 1209600
+option RESLIM = %RESLIM%
 
 * Set default upper bound on integer variables
 option intVarUp = 0

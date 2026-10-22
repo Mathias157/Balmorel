@@ -179,12 +179,12 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/six-1.17.0-pyhe01879c_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/urllib3-2.8.0-pyhd8ed1ab_0.conda
+      - pypi: ../pybalmorel
       - pypi: https://files.pythonhosted.org/packages/15/7e/ccee7d6b307bb635b47dbd96eb3471c3a7d6053b8f903723756f8a3ba00a/pyproj-3.8.0-cp314-cp314-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/18/53/84099323c2ec4be98d935f63c033ac4151ee83836ca1050ede3b3aadf155/joblib-1.6.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/20/c2/247c150f5ca12f8593c20e39115db551b18de5c6cb383006de21b57399e4/pyogrio-0.13.0-cp311-abi3-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/22/01/ea300895919ea436ca1e3597abbf0e3d5b1f5e331d4b4e50219c6afc4874/entsoe_py-0.8.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/22/a6/858897256d0deac81a172289110f31629fc4cee19b6f01283303e18c8db3/ptyprocess-0.7.0-py2.py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/25/36/93d3fd664566c220387bb62eace3ad33dffc92ea2dfcca5223fe7c0c7bf3/pybalmorel-1.3.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2d/1e/65b59cf518c106aa755e7f7da3099027738687a862ec785060702a481320/ipython-9.17.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/33/ef/6d27fc118f58cb24886da413545a7efb0853d405fddbfd8b2d9ac09fbed4/jupyterlab_widgets-3.0.17-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/34/95/40e17e20046b7bc820d29d09ae84ec157ec8dd6e6f6cd722626292c31b2e/widgetsnbextension-4.0.16-py3-none-any.whl
@@ -2848,6 +2848,24 @@ packages:
   run_exports: {}
   size: 107485
   timestamp: 1789566710244
+- pypi: ../pybalmorel
+  name: pybalmorel
+  requires_dist:
+  - pandas>=2.1.4
+  - matplotlib>=3.9.0
+  - geopandas>=0.14.4
+  - gamsapi[transfer]>=45.7.0
+  - ipywidgets>=8.1.3
+  - cartopy
+  - requests
+  - xlsxwriter>=3.2.0 ; extra == 'weatheryear'
+  - openpyxl>=3.1.5 ; extra == 'weatheryear'
+  - pyyaml>=6.0 ; extra == 'weatheryear'
+  - entsoe-py>=0.8.0,<0.9 ; extra == 'entso-e'
+  - python-decouple>=3.8,<4 ; extra == 'entso-e'
+  - click>=8 ; extra == 'entso-e'
+  - openpyxl>=3.1.5 ; extra == 'entso-e'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/15/7e/ccee7d6b307bb635b47dbd96eb3471c3a7d6053b8f903723756f8a3ba00a/pyproj-3.8.0-cp314-cp314-manylinux_2_28_x86_64.whl
   name: pyproj
   version: 3.8.0
@@ -2912,26 +2930,6 @@ packages:
   name: ptyprocess
   version: 0.7.0
   sha256: 4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35
-- pypi: https://files.pythonhosted.org/packages/25/36/93d3fd664566c220387bb62eace3ad33dffc92ea2dfcca5223fe7c0c7bf3/pybalmorel-1.3.4-py3-none-any.whl
-  name: pybalmorel
-  version: 1.3.4
-  sha256: f477eea6fd368aa06261dbfcecc6ad7fd36299543c3adbc9c92d2e1968b4dbbc
-  requires_dist:
-  - pandas>=2.1.4
-  - matplotlib>=3.9.0
-  - geopandas>=0.14.4
-  - gamsapi[transfer]>=45.7.0
-  - ipywidgets>=8.1.3
-  - cartopy
-  - requests
-  - xlsxwriter>=3.2.0 ; extra == 'weatheryear'
-  - openpyxl>=3.1.5 ; extra == 'weatheryear'
-  - pyyaml>=6.0 ; extra == 'weatheryear'
-  - entsoe-py>=0.8.0,<0.9 ; extra == 'entso-e'
-  - python-decouple>=3.8,<4 ; extra == 'entso-e'
-  - click>=8 ; extra == 'entso-e'
-  - openpyxl>=3.1.5 ; extra == 'entso-e'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/2d/1e/65b59cf518c106aa755e7f7da3099027738687a862ec785060702a481320/ipython-9.17.1-py3-none-any.whl
   name: ipython
   version: 9.17.1

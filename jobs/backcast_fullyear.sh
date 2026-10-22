@@ -9,11 +9,11 @@
 ### -- specify that the cores must be on the same host --
 #BSUB -R "span[hosts=1]"
 ### -- specify that we need 4GB of memory per core/slot --
-#BSUB -R "rusage[mem=6.5GB]"
+#BSUB -R "rusage[mem=10GB]"
 ### -- specify that we want the job to get killed if it exceeds 5 GB per core/slot --
-#BSUB -M 6.5GB
+#BSUB -M 10GB
 ### -- set walltime limit: hh:mm --
-#BSUB -W 8:00
+#BSUB -W 72:00
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
 # if you want to receive e-mail notifications on a non-default address
@@ -34,7 +34,7 @@
 # so the model aborts if the inputs (e.g. TAX_CO2_ST) have no data for it.
 # A seasons subset (e.g. 'S20') is a smoke test: no rolling run is submitted.
 year=2023
-seasons='S20'
+seasons='S01*S52'
 
 scenario='APS'
 run_name='backcast'

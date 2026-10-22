@@ -521,7 +521,7 @@ $setglobal STEPWISE_RAMPING_UC  ramp_const
 *!option ramp_const  !Text "With ramping constraints but without ramping costs"
 *!option no_ramping  !Text "Neither ramping constraints nor ramping costs"
 * Adds optimisation of planned maintenance of the generation and storage technologies
-$setglobal PLANNED_MAINTENANCE yes
+$setglobal PLANNED_MAINTENANCE
 *!option yes
 
 * Seasonal link is on for all UC options activated. This means that past seasons will influence future seasons.

@@ -62,3 +62,5 @@ jobs/userfunctions.sh
 backcast/data/T.inc
 entsoedata
 weatheryear_inpu*
+backcastoutput
+backcast/weatheryear/output
