@@ -14,8 +14,10 @@ QEV_INFRA_G2V_EXTRA_BIS(Y,RRR)
 QEV_INFRA_V2G_PEAK(IY411,IR,S,T)$(IHASBEV(IR) AND IS3(S) AND IY411.val>2019)..
     VV2GINFRAACCUMNET(IY411,IR)  =G=VEV_V2G_BEV(IY411,IR,S,T);
 
+* INV builds EV_G2V_INFRA_MARGIN above the charging it sees, for hours and weeks it doesn't (docs/adr/0066)
 QEV_INFRA_G2V_PEAK(IY411,IR,S,T)$(IHASBEV(IR) AND IS3(S) AND IY411.val>2019)..
     VG2VINFRAACCUMNET(IY411,IR) =G=
+$ifi     %TechInvest%==yes (1 + EV_G2V_INFRA_MARGIN) *
     VEV_G2V_BEV(IY411,IR,S,T)
 $ifi not %TechInvest%==yes - VG2VINFRASLACK(IY411,IR,S,T)
     ;

@@ -67,6 +67,20 @@ PARAMETER EV_PHEV_leave_profile(YYY,SSS,TTT,RRR);
 $if     EXIST '../data/EV_PHEV_leave_profile1.inc' $INCLUDE         '../data/EV_PHEV_leave_profile1.inc';
 $if not EXIST '../data/EV_PHEV_leave_profile1.inc' $INCLUDE '../../base/data/EV_PHEV_leave_profile1.inc';
 
+* Regions without Monte Carlo profiles of their own can use another region's: EV_PROFILE_PROXY(region, source),
+* set in the optional data file EV_PROFILE_PROXY.inc. Copied before the year-edge fix below, which then covers them too.
+SET EV_PROFILE_PROXY(RRR,RRR) 'Region (first) uses the EV profiles of region (second)';
+EV_PROFILE_PROXY(RRR,IRRRE) = NO;
+$if     EXIST '../data/EV_PROFILE_PROXY.inc' $INCLUDE         '../data/EV_PROFILE_PROXY.inc';
+$if not EXIST '../data/EV_PROFILE_PROXY.inc' $if EXIST '../../base/data/EV_PROFILE_PROXY.inc' $INCLUDE '../../base/data/EV_PROFILE_PROXY.inc';
+LOOP((RRR,IRRRE)$EV_PROFILE_PROXY(RRR,IRRRE),
+    EV_BEV_return_profile(YYY,SSS,TTT,RRR)  = EV_BEV_return_profile(YYY,SSS,TTT,IRRRE);
+    EV_BEV_leave_profile(YYY,SSS,TTT,RRR)   = EV_BEV_leave_profile(YYY,SSS,TTT,IRRRE);
+    EV_PHEV_return_profile(YYY,SSS,TTT,RRR) = EV_PHEV_return_profile(YYY,SSS,TTT,IRRRE);
+    EV_PHEV_leave_profile(YYY,SSS,TTT,RRR)  = EV_PHEV_leave_profile(YYY,SSS,TTT,IRRRE);
+$ifi %EV_allreturn%==yes    EV_BEV_return_energy(TTT,RRR) = EV_BEV_return_energy(TTT,IRRRE);
+);
+
 * The Monte Carlo profiles simulate a closed year: every EV starts S01/T001 and ends S52/T168 on the charger
 * (Balanza et al., Appendix D), so S01 holds a start-up transient (~2x the weekly driving energy) and S52 a return spike.
 * That only cancels out when all 52 weeks are simulated and linked. For representative weeks, intra-seasonal weeks
@@ -101,6 +115,7 @@ PARAMETER   EV_PHEV_NETCHARGING(YYY,RRR,SSS,TTT)      'Net charging of PHEV vehi
 
 PARAMETER PARAM_V2G_INFRA_CAP(YYY,RRR) 'V2G infrastructure capacity to be used in future runs';
 PARAMETER PARAM_G2V_INFRA_CAP(YYY,RRR) 'G2V infrastructure capacity to be used in future runs';
+SCALAR EV_G2V_INFRA_MARGIN 'G2V infrastructure INV builds above peak charging (fraction, docs/adr/0066)' /0.05/;
 PARAMETER PARAM_V2G_INFRA_EXTRA(YYY,RRR) 'Extra V2G infrastructure capacity to be used in future runs';
 PARAMETER PARAM_G2V_INFRA_ACCUMNET(YYY,RRR) 'Accumulated G2V infrastructure capacity to be used in future runs';
 PARAMETER PARAM_V2G_INFRA_ACCUMNET(YYY,RRR) 'Accumulated V2G infrastructure capacity to be used in future runs';

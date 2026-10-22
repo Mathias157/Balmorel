@@ -19,12 +19,13 @@ from functions import find_result
 import click
 import warnings
 import pandas as pd
+import os
 
 # ------------------------------- #
 #          1. Functions           #
 # ------------------------------- #
 
-
+GAMS_SYSTEM_DIR=os.getenv('GAMS_SYSTEM_DIR')
 
 # ------------------------------- #
 #            2. Main              #
@@ -37,10 +38,10 @@ def main(ctx, sc_folder):
     """
     CLI for verifications
     """
-    
+
     ctx.ensure_object(dict)
     ctx.obj['sc-folder'] = sc_folder
-    
+
 
 @main.command()
 @click.pass_context
@@ -48,7 +49,7 @@ def check_all(ctx):
     """
     Run all verifications
     """
-    
+
     ctx.invoke(debug_vars, sc_folder=ctx.obj['sc-folder'])
 
 
@@ -60,7 +61,7 @@ def debug_vars(ctx):
     """
 
     sc_folder = ctx.obj["sc-folder"]
-    ws=GamsWorkspace()
+    ws=GamsWorkspace(system_directory=GAMS_SYSTEM_DIR)
     db=ws.add_database_from_gdx(str(Path(f'{sc_folder}/model/all_endofmodel.gdx').absolute()))
 
     for var in ['VQHEQ', 'VQHYRSMINVOL', 'VQHYRSSEQ']:
@@ -83,12 +84,12 @@ def ev_results(ctx, scenario):
     """
     Check EV results
     """
-    
+
     # Get MainResults file
     sc_folder=ctx.obj['sc-folder']
-    res = find_result(sc_folder, scenario)
+    res = find_result(sc_folder, scenario, GAMS_SYSTEM_DIR)
 
-    # Load results 
+    # Load results
     df = (
         res
         .get_result('EL_DEMAND_YCRST')
@@ -157,7 +158,7 @@ def ramp_bound(ctx, scenario, generations, ramp_rate, chronohour, swing):
     """
 
     sc_folder = ctx.obj['sc-folder']
-    res = find_result(sc_folder, scenario)
+    res = find_result(sc_folder, scenario, GAMS_SYSTEM_DIR)
 
     pro = (
         res
@@ -230,13 +231,13 @@ def capacity_bound(ctx, scenario, gdata_gdx, tolerance, top):
     """
 
     sc_folder = ctx.obj['sc-folder']
-    res = find_result(sc_folder, scenario)
+    res = find_result(sc_folder, scenario, GAMS_SYSTEM_DIR)
 
     # Unit-commitment technologies and their unit size, if GDATA is available
     gdata_gdx = Path(gdata_gdx or f'{sc_folder}/model/all_endofmodel.gdx')
     unit_size = None
     if gdata_gdx.exists():
-        ws = GamsWorkspace()
+        ws = GamsWorkspace(system_directory=GAMS_SYSTEM_DIR)
         db = ws.add_database_from_gdx(str(gdata_gdx.absolute()))
         gdata = {(rec.keys[0], rec.keys[1]): rec.value for rec in db['GDATA']}
         unit_size = pd.Series({g: gdata.get((g, 'GDUCUNITSIZE'), 0) for (g, p), v in gdata.items()
@@ -295,16 +296,16 @@ def penalty_prices(ctx, scenario, threshold):
     """
 
     sc_folder = ctx.obj['sc-folder']
-    res = find_result(sc_folder, scenario)
+    res = find_result(sc_folder, scenario, GAMS_SYSTEM_DIR)
     gdx = str(Path(res.paths[0], res.files[0]).absolute())
     print(f"Checking {gdx}")
 
     # Read only the price symbols - rolling MainResults are several GB
     symbols = ['EL_PRICE_YCRST', 'H_PRICE_YCRAST', 'H2_PRICE_YCRST', 'BIOMETH_PRICE_YST']
-    container = gt.Container()
+    container = gt.Container(system_directory=GAMS_SYSTEM_DIR)
     container.read(gdx, records=False)
     present = [symbol for symbol in symbols if symbol in container]
-    container = gt.Container()
+    container = gt.Container(system_directory=GAMS_SYSTEM_DIR)
     container.read(gdx, symbols=present + ['H_DEMAND_YCRA'])
 
     # Areas without heat demand are empty heat nodes whose price is an arbitrary dual
@@ -354,11 +355,11 @@ def slacks(ctx, gdx, tolerance, top):
     print(f"Checking {gdx}")
 
     # Read only the slack variables - all_endofmodel.gdx is over 1 GB
-    container = gt.Container()
+    container = gt.Container(system_directory=GAMS_SYSTEM_DIR)
     container.read(gdx, records=False)
     symbols = [name for name in container.listVariables()
                if name.startswith('VQ') or name in ['VG2VINFRASLACK', 'VHYDROGEN_QH2EQ']]
-    container = gt.Container()
+    container = gt.Container(system_directory=GAMS_SYSTEM_DIR)
     container.read(gdx, symbols=symbols)
 
     # GROUP locates the CO2 limit slacks VQLIMCO2NA and VQLIMCO2ROLLS
@@ -410,7 +411,7 @@ def backup(ctx, scenario, fail_above):
     """
 
     sc_folder = ctx.obj['sc-folder']
-    res = find_result(sc_folder, scenario)
+    res = find_result(sc_folder, scenario, GAMS_SYSTEM_DIR)
     print(f"Checking {Path(res.paths[0], res.files[0])}")
 
     df = res.get_result('PRO_YCRAGF')

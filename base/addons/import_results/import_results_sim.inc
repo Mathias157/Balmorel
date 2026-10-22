@@ -14,6 +14,9 @@ G2V_INFRA_CAP.FX(IY411,IR)$(IHASBEV(IR) AND IY411.val>2019) = PARAM_G2V_INFRA_CA
 $ifi %V2G%==yes V2G_INFRA_EXTRA.FX(IY411,IR)$(IHASBEV(IR) AND IY411.val>2019) = PARAM_V2G_INFRA_EXTRA(IY411,IR);
 
 VG2VINFRAACCUMNET.FX(IY411,IR)$(IHASBEV(IR) AND IY411.val>2019) = PARAM_G2V_INFRA_ACCUMNET(IY411,IR);
+* Dumb charging can't exceed the infrastructure fixed from INV. INV sizes it on 4-hourly availability, so the hourly dumb-charging
+* floor (EV_sim.inc) broke it in rolling (2030: up to +19 % in 14 regions), which only VG2VINFRASLACK could absorb (docs/adr/0063)
+$ifi %EV%==yes VEV_G2V_BEV.LO(IY411,IR,S,T)$(IHASBEV(IR) AND IY411.val>2019) = MIN(VEV_G2V_BEV.LO(IY411,IR,S,T), VG2VINFRAACCUMNET.L(IY411,IR));
 $ifi %V2G%==yes VV2GINFRAACCUMNET.FX(IY411,IR)$(IHASBEV(IR) AND IY411.val>2019) = PARAM_V2G_INFRA_ACCUMNET(IY411,IR);
 * Without V2G all infrastructure is unidirectional: no V2G capacity, and the extra G2V-only capacity is all of G2V (cf. QEV_INFRA_G2V_EXTRA, docs/adr/0037)
 $ifi not %V2G%==yes V2G_INFRA_CAP.FX(IY411,IR)$(IHASBEV(IR) AND IY411.val>2019) = 0;

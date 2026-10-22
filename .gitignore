@@ -81,3 +81,4 @@ weatheryeardata/
 # Year copies (jobs/slurm-cr/functions.sh) - temporary, deleted once their results are moved back
 /*_Y20[0-9][0-9]/
 _ev_fleet_read_*/
+_industry_read_*/

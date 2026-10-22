@@ -1,3 +1,10 @@
+*Intraseasonal EVs need none of these pins: QEV_BEV_BEBALANCE wraps T--1 inside each week, so every
+*rolling week is already cyclic. Pinning T001 and T168 on top made the T001 hour bridge two levels
+*taken from the previous week's availability, ~1e4 MWh per week on the EV_infeas slack in R2040/R2050
+*(S01, solved before any pin is set, was the only clean week). Interseasonal EVs keep them to link
+*one rolling week to the next. See docs/adr/0063 in the GREAT repo.
+$ifi not %EV_INTERSEASONAL%==yes $goto NO_EV_INTERSEASONAL_PINS
+
 *Fixing values relevant for next iteration
 VEV_BE_BEV.FX(IY411,IR,IS3LOOPSET+1,T)$(IHASBEV(IR)  AND ORD(T) EQ CARD(T) )=IEV_BEV_available(IY411, IS3LOOPSET,T, IR)*(EV_BEV_batsize(IY411)- 0.01)/1.1;
 VEV_BE_BEV.FX(IY411,IR,IS3LOOPSET+1,T)$(IHASBEV(IR)  AND ORD(T) EQ 1 )=IEV_BEV_available(IY411, IS3LOOPSET,T, IR)*(EV_BEV_batsize(IY411)- 0.01)/1.1;
@@ -16,4 +23,6 @@ VEV_BE_BEV.FX(IY411,IR,'S02','T001')$(IHASBEV(IR)) = IEV_BEV_available(IY411,'S0
 *returns its trip energy there. Pinning that hour to the previous week's level leaves ~1.8 TWh of
 *return energy with nowhere to go and makes QEV_BEV_BEBALANCE(S52,T168) infeasible.
 VEV_BE_BEV.FX(IY411,IR,'S52','T168')$(IHASBEV(IR)) = IEV_BEV_available(IY411,'S52','T168',IR)*(EV_BEV_batsize(IY411)- 0.01)/1.1;
+
+$label NO_EV_INTERSEASONAL_PINS
 

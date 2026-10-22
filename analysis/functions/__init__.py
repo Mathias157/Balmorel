@@ -33,7 +33,7 @@ def find_most_recent_result(sc_folder: str):
     return path.name, str(path.parent)
 
 
-def find_result(sc_folder: str, scenario: str = ""):
+def find_result(sc_folder: str, scenario: str = "", system_directory: str | None = None):
     if scenario != "":
         # If input, choose inputted scenario
         path = Path(f"{sc_folder}/model/MainResults_{scenario}.gdx")
@@ -43,7 +43,7 @@ def find_result(sc_folder: str, scenario: str = ""):
         # If nothing input, find most recent MainResults
         file, path = find_most_recent_result(sc_folder)
 
-    res = MainResults(file, path)
+    res = MainResults(file, path, system_directory=system_directory)
 
     return res
 

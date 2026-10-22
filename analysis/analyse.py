@@ -64,6 +64,7 @@ balmorel_colours["SHALE"] = "#583738"
 balmorel_colours["WOOD"] = "#D2A106"
 balmorel_colours["WOODWASTE"] = "#D2A106"
 balmorel_colours["BIOGASUPGRADING"] = "#E8C3A8"
+balmorel_colours["BIOMETHANE"] = "#E8C3A8"
 balmorel_colours["BIOGASMETHANATION"] = "#E8C3A8"
 balmorel_colours["BIOMETH-DAC"] = "#E8C3A8"
 balmorel_colours["FUEL_TRANSPORT"] = balmorel_colours["WIND-ON"]
@@ -1362,7 +1363,7 @@ def electrolyser_vre_correlation(ctx, scenario_search_string):
     ]
 
     for i, scenario in enumerate(files):
-        res = MainResults(scenario, paths[i])
+        res = MainResults(scenario, paths[i], system_directory=ctx.obj["gams_system_directory"])
         df = res.get_result("PRO_YCRAGFST")
         df = df.query(
             '(Generation.str.contains("BACKUP") and Commodity == "ELECTRICITY") or Technology in ["ELECTROLYZER", "WIND-OFF", "WIND-ON", "SOLAR-PV", "SYNFUELPRODUCER"]'
@@ -1558,7 +1559,11 @@ def find_h2_synfuel_location(ctx, scenario: str, commodity: str, year: int = 205
     model_path = os.path.join(
         ctx.obj["path"], model.scname_to_scfolder[scenario], "model"
     )
-    results = MainResults("MainResults_%s.gdx" % scenario, paths=model_path)
+    results = MainResults(
+        "MainResults_%s.gdx" % scenario,
+        paths=model_path,
+        system_directory=ctx.obj["gams_system_directory"],
+    )
 
     # Get geofile
     geofile, geofile_region_column = get_geofile(scenario, model_path)
