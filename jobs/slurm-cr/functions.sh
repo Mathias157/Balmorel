@@ -71,6 +71,10 @@ penalty_check() {
         pixi run verify "$PWD" slacks --top 5 || true
         exit 1
     fi
+    # Slacks below 1e13 (e.g. under 10 Mt CO2 per solve) pass the objective check, and the next run
+    # overwrites all_endofmodel.gdx, so list them now. Report only - some rolling CO2 slack is expected
+    # (ADR 0060)
+    pixi run verify "$PWD" slacks --top 5 || true
 }
 
 # Stop before GAMS runs if the scenario folder lacks the CPLEX option file the job asks for - CPLEX

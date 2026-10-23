@@ -15,6 +15,9 @@
 # investment run would overwrite it (one run per type per scenario folder).
 # Set FORCE=1 to submit anyway. Plain sbatch loop, no concurrency cap.
 #
+# Set SKIP_FROM_BASE_INV=1 to hold back every scenario with a switch whose caps are recalibrated
+# from base_INV (from_base_inv in config/switches.yaml, docs/adr/0040), e.g. while base is re-run.
+#
 # Every scenario to submit is checked first: if old target-year results (_F/_R) or Year copies
 # (_Y20xx) exist, fan_out_target_years would refuse at the end of the investment run, so nothing
 # is submitted and the paths to archive are listed.
@@ -22,8 +25,9 @@ set -eu
 
 marker=".combination_scenario.json"
 # FORCE=1
-# Scenarios with at least this many switches get a longer walltime: ALLN's investment run took
-# over 1.5 days, past investment.sh's 16 h
+# SKIP_FROM_BASE_INV=1
+# Scenarios with at least this many switches get a longer walltime: ALLN's op2 investment run was
+# still in 2050 after 1.5 days, past investment.sh's 16 h (docs/adr/0076 in the GREAT repo)
 long_switches=3
 long_time="2-00:00:00"
 
@@ -79,6 +83,25 @@ for scenario in $scenarios; do
     fi
 done
 
+held=0
+if [ "${SKIP_FROM_BASE_INV:-0}" = 1 ]; then
+    kept=""
+    for scenario in $scenarios; do
+        # base's marker (no switches) is not generated, so it has no from_base_inv
+        if [ "$(switch_count "$scenario")" -gt 0 ] && ! grep -q '"from_base_inv"' "$scenario/$marker"; then
+            echo "ERROR: $scenario/$marker has no from_base_inv - run 'pixi run create-combination-scenarios' first"
+            exit 1
+        fi
+        if grep -q '"from_base_inv": true' "$scenario/$marker"; then
+            echo "Holding back $scenario - its caps are recalibrated from base_INV (SKIP_FROM_BASE_INV=1)"
+            held=$((held + 1))
+        else
+            kept="$kept $scenario"
+        fi
+    done
+    scenarios="$kept"
+fi
+
 to_submit=""
 skipped=0
 for scenario in $scenarios; do
@@ -121,4 +144,4 @@ for scenario in $to_submit; do
     submitted=$((submitted + 1))
 done
 
-echo "Submitted $submitted, skipped $skipped"
+echo "Submitted $submitted, skipped $skipped, held back $held"

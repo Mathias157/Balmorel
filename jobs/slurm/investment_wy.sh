@@ -29,12 +29,15 @@ source ./config.sh
 
 echo "$opts"
 
+optfile=8 # barrier without crossover, see docs/adr/0076-investment-runs-use-cplex-op8.md
+require_optfile $optfile
+
 echo "Starting weather year investment optimisation at $(date)"
 run_name="$(basename $PWD)"
 # WY folder naming: <source_scenario>_WY<year> - see CONTEXT.md's "WY folder".
 source_scenario="${run_name%_WY*}"
 weather_year="${run_name##*_WY}"
-echo "Run name: ${run_name}_INV (source scenario: ${source_scenario}, weather year: ${weather_year})"
+echo "Run name: ${run_name}_INV (source scenario: ${source_scenario}, weather year: ${weather_year}, cplex.op${optfile})"
 
 # Temporal resolution
 cat ../base/data/Y_inv.inc >data/Y.inc
@@ -47,7 +50,7 @@ cd model
 cat balopt_inv.opt >balopt.opt
 
 # Run GAMS - if this fails, set -e will cause immediate exit via the trap
-gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=2 --scenario_name="${run_name}_INV" $opts
+gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_INV" $opts
 gams_exit_code=$?
 
 # Explicitly check GAMS exit code
