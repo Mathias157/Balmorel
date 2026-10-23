@@ -30,7 +30,7 @@ source ../jobs/slurm-cr/functions.sh
 # Get run name
 source ./config.sh
 
-optfile=8 # barrier without crossover, see docs/adr/0076-investment-runs-use-cplex-op8.md
+optfile=2 # barrier with crossover, see docs/adr/0080-investment-runs-return-to-cplex-op2.md
 require_optfile $optfile
 
 echo "Starting investment optimisation at $(date)"
