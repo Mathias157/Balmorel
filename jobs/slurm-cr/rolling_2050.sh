@@ -55,6 +55,7 @@ cd ..
 
 optimality_check $SLURM_JOB_ID 52
 penalty_check $SLURM_JOB_ID
+ccs_storage_check "${run_name}_R${year}"
 
 if [ -f ../jobs/userfunctions.sh ]; then
     . ../jobs/userfunctions.sh

@@ -77,6 +77,14 @@ penalty_check() {
     pixi run verify "$PWD" slacks --top 5 || true
 }
 
+# Rolling runs solve one season at a time, so QCCS_STORAGE (the annual CO2 storage limit) is only an
+# equation in investment and fullyear runs. Report the rolling year's captured CO2 against it. Report
+# only - the rolling year follows the fullyear capacities, which respect the limit. Run from the
+# scenario folder. See GREAT docs/adr/0084.
+ccs_storage_check() {
+    pixi run verify "$PWD" ccs-storage --scenario "$1" --top 5 || true
+}
+
 # Stop before GAMS runs if the scenario folder lacks the CPLEX option file the job asks for - CPLEX
 # only warns about a missing option file and then solves with its own defaults. Run from the
 # scenario folder. See docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md.

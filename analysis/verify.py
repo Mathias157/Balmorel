@@ -344,7 +344,7 @@ def slacks(ctx, gdx, tolerance, top):
     Lists every VQ* variable plus VG2VINFRASLACK and VHYDROGEN_QH2EQ with a
     level above the tolerance, by symbol, region and direction (IPLUSMINUS).
     Levels are in the symbol's own unit (MW or MWh per time step, t CO2 for
-    VQLIMCO2NA/VQLIMCO2ROLLS). Each slack unit costs PENALTYQ (1e9) in QOBJ,
+    VQLIMCO2NA/VQLIMCO2ROLLS/VQCCS_STORAGE). Each slack unit costs PENALTYQ (1e9) in QOBJ,
     a tonne of CO2 only 1e6, so the job scripts' check for objectives above
     1e13 misses fewer than ~1e4 slack units or 10 Mt CO2 per solve. Backup
     generation is cost, not slack - see the backup command.
@@ -431,6 +431,69 @@ def backup(ctx, scenario, fail_above):
     print("\nTotal backup generation (TWh): " + ", ".join(f"{year} {value:.3f}" for year, value in total.items()))
     warnings.warn("BACKUP GENERATORS PRODUCE - UNSERVED DEMAND COVERED AT PENALTY COST!")
     if fail_above is not None and (total > fail_above).any():
+        ctx.exit(1)
+
+
+@main.command()
+@click.pass_context
+@click.option('--scenario', type=str, default='', help="Check a specific MainResults file in the folder")
+@click.option('--gdx', type=str, default='',
+              help="GDX holding CCS_STORAGE_MAX and CCS_TRANSPORTCOST [default: <sc-folder>/model/all_endofmodel.gdx]")
+@click.option('--tolerance', type=float, default=1e-3, show_default=True, help="Relative tolerance above the limit")
+@click.option('--top', type=int, default=10, show_default=True, help="Number of largest capturing countries to print per year")
+def ccs_storage(ctx, scenario, gdx, tolerance, top):
+    """
+    Check captured CO2 against the storage limit - exits with status 1 if above
+
+    QCCS_STORAGE caps the CO2 captured per year by all CCS_G (CCS_STORAGE_MAX,
+    t CO2) in investment and fullyear runs only: rolling runs solve one season
+    at a time, so the annual limit can't be an equation there. This checks the
+    rolling result afterwards. MainResults has no captured-CO2 symbol, so the
+    captured tonnes are the CO2 transport cost (OBJ_YCR
+    GENERATION_CO2_TRANSPORT, Mmoney) divided by CCS_TRANSPORTCOST, which
+    QOBJ charges per tonne captured. See GREAT docs/adr/0084.
+    """
+
+    sc_folder = ctx.obj['sc-folder']
+    res = find_result(sc_folder, scenario, GAMS_SYSTEM_DIR)
+    gdx = str(Path(gdx or f'{sc_folder}/model/all_endofmodel.gdx').absolute())
+    print(f"Checking {Path(res.paths[0], res.files[0])} against {gdx}")
+
+    container = gt.Container(system_directory=GAMS_SYSTEM_DIR)
+    container.read(gdx, records=False)
+    if 'CCS_STORAGE_MAX' not in container:
+        print("CCS_STORAGE_MAX not in the GDX - run predates the storage limit")
+        ctx.exit(1)
+    container = gt.Container(system_directory=GAMS_SYSTEM_DIR)
+    container.read(gdx, symbols=['CCS_STORAGE_MAX', 'CCS_TRANSPORTCOST'])
+    limit = container['CCS_STORAGE_MAX'].records
+    limit = limit.set_index(limit.columns[0])[limit.columns[-1]] / 1e6
+    transport_cost = container['CCS_TRANSPORTCOST'].toValue()
+
+    df = res.get_result('OBJ_YCR')
+    df = df[df.Category == 'GENERATION_CO2_TRANSPORT']
+    if df.empty:
+        print("No CO2 captured")
+        return
+    # Mmoney / (money/t) = Mt
+    df = df.assign(Value=df.Value / transport_cost)
+
+    above = False
+    for year, captured in df.groupby('Year', observed=True):
+        total = captured.Value.sum()
+        cap = limit.get(str(year))
+        if cap is None:
+            print(f"\n{year}: {total:.2f} Mt captured, no limit")
+            continue
+        exceeded = total > cap * (1 + tolerance)
+        above |= exceeded
+        print(f"\n{year}: {total:.2f} Mt captured, limit {cap:.2f} Mt ({total / cap:.1%})"
+              + (" - ABOVE THE LIMIT" if exceeded else ""))
+        by_country = captured.groupby('Country', observed=True).Value.sum().sort_values(ascending=False)
+        print(by_country[by_country > 0].head(top).to_string(float_format='{:.2f}'.format))
+
+    if above:
+        warnings.warn("CAPTURED CO2 ABOVE THE STORAGE LIMIT CCS_STORAGE_MAX!")
         ctx.exit(1)
 
 

@@ -47,6 +47,7 @@ $ifi %equation%==qtranspeakdemand        + VQTRANSPEAKDEMAND(IY411,IR,IS3,T,'IMI
 $ifi %equation%==qhyrsseqcurt            + VQHYRSSEQCURT(IY411,IA,S,'IPLUS') - VQHYRSSEQCURT(IY411,IA,S,'IMINUS')
 $ifi %equation%==qlimco2na               + VQLIMCO2NA(IY411,GROUP)
 $ifi %equation%==qlimco2rolls            + VQLIMCO2ROLLS(IY411,GROUP,IS3)
+$ifi %equation%==qccs_storage            + VQCCS_STORAGE(IY411)
 
 
 $ifi not %equation%==qobj  $goto endoffile
@@ -132,6 +133,8 @@ $ifi %import_results%==yes  $ifi %HYRSBB123%==price   +SUM((IA,IS3)$(SUM(IGHYRS,
 * CO2 slacks cost PENALTYQ per kt (1e6 money/t), so a CO2 limit is relaxed before energy is shed - docs/adr/0060
 $ifi not %RollingSeasons%==yes  +IOF0001*SUM(GROUP$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF)), VQLIMCO2NA(Y,GROUP))
 $ifi %RollingSeasons%==yes      +IOF0001*SUM((GROUP,IS3)$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF)), VQLIMCO2ROLLS(Y,GROUP,IS3))
+* Same for CO2 stored above the storage limit (GREAT docs/adr/0084)
+$ifi %CCS%==yes $ifi not %RollingSeasons%==yes  +IOF0001*VQCCS_STORAGE(Y)$CCS_STORAGE_MAX(Y)
 
 
 )
