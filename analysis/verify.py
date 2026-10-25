@@ -337,9 +337,19 @@ def penalty_prices(ctx, scenario, threshold):
 @click.option('--tolerance', type=float, default=1e-3, show_default=True,
               help="Level above which a slack counts as used - barrier noise is ~1e-9")
 @click.option('--top', type=int, default=10, show_default=True, help="Number of largest locations to print per symbol")
-def slacks(ctx, gdx, tolerance, top):
+@click.option('--fail-on', type=str, multiple=True,
+              help="Only these slack variables fail the check, the rest are reported [default: all]. Repeatable")
+@click.option('--fail-above', type=float, default=0, show_default=True,
+              help="Fail only if a --fail-on variable's summed level exceeds this")
+def slacks(ctx, gdx, tolerance, top, fail_on, fail_above):
     """
     Check that no slack variable is used - exits with status 1 if one is
+
+    With --fail-on, only the listed variables fail the check, and only if
+    their summed level is above --fail-above, and then exit with status 3,
+    so a crash (status 1) can be told apart. The job scripts use this to
+    stop on G2V infrastructure slack but not on the rolling CO2 slack that
+    ADR 0060 expects.
 
     Lists every VQ* variable plus VG2VINFRASLACK and VHYDROGEN_QH2EQ with a
     level above the tolerance, by symbol, region and direction (IPLUSMINUS).
@@ -390,7 +400,15 @@ def slacks(ctx, gdx, tolerance, top):
 
     if used:
         print(f"\n{len(used)} slack variables used: {' '.join(used)}")
-        ctx.exit(1)
+        if not fail_on:
+            ctx.exit(1)
+        failed = [symbol for symbol in used if symbol in fail_on
+                  and container[symbol].records['level'].sum() > fail_above]
+        if failed:
+            print(f"Above --fail-above {fail_above:g}: {' '.join(failed)}")
+            ctx.exit(3)
+        print(f"None of {' '.join(fail_on)} sums above {fail_above:g}")
+        return
     print(f"No slack variable above {tolerance:g} ({len(symbols)} checked)")
 
 

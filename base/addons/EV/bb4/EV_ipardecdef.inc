@@ -122,6 +122,10 @@ IEV_BEV_leave_profile(Y,S,T,RRR)           * Placeholder for normalization
 IEV_BEV_return_profile(Y,S,T,RRR)          * Placeholder for normalization
 IEV_PHEV_leave_profile(Y,S,T,RRR)          * Placeholder for normalization
 IEV_PHEV_return_profile(Y,S,T,RRR)         * Placeholder for normalization
+IEV_BEV_leave_scale(Y,S,RRR)               * Rescaling of normalized BEV leave flows to the hourly weekly total
+IEV_BEV_return_scale(Y,S,RRR)              * Rescaling of normalized BEV return flows to the hourly weekly total
+IEV_PHEV_leave_scale(Y,S,RRR)              * Rescaling of normalized PHEV leave flows to the hourly weekly total
+IEV_PHEV_return_scale(Y,S,RRR)             * Rescaling of normalized PHEV return flows to the hourly weekly total
 $ifi not %EV_season_calc%==yes Tcounter(T)                                * Numerical value of T
 ;
 if (CARD(T) = 168,
@@ -160,6 +164,25 @@ $label EV_season_calc2
         IEV_PHEV_leave_profile(Y,S,T,IR)$(NOT ORD(T) EQ 1 AND NOT ORD(T) EQ CARD(T) AND NOT CARD(T) EQ 1 AND IHASPHEV(IR)) = SUM(ITTTALIAS$(ORD(ITTTALIAS) GE (Tcounter(T-1) + FLOOR((Tcounter(T) - Tcounter(T-1) - 1)/2) + 1) AND ORD(ITTTALIAS) LE (Tcounter(T) + FLOOR((Tcounter(T+1) - Tcounter(T) - 1)/2))), EV_PHEV_leave_profile(Y,S,ITTTALIAS,IR))/(((Tcounter(T) + FLOOR((Tcounter(T+1) - Tcounter(T) - 1)/2)) - (Tcounter(T-1) + FLOOR((Tcounter(T) - Tcounter(T-1) - 1)/2) + 1)) + 1);
         IEV_PHEV_return_profile(Y,S,T,IR)$(NOT ORD(T) EQ 1 AND NOT ORD(T) EQ CARD(T) AND NOT CARD(T) EQ 1 AND IHASPHEV(IR)) = SUM(ITTTALIAS$(ORD(ITTTALIAS) GE (Tcounter(T-1) + FLOOR((Tcounter(T) - Tcounter(T-1) - 1)/2) + 1) AND ORD(ITTTALIAS) LE (Tcounter(T) + FLOOR((Tcounter(T+1) - Tcounter(T) - 1)/2))), EV_PHEV_return_profile(Y,S,ITTTALIAS,IR))/(((Tcounter(T) + FLOOR((Tcounter(T+1) - Tcounter(T) - 1)/2)) - (Tcounter(T-1) + FLOOR((Tcounter(T) - Tcounter(T-1) - 1)/2) + 1)) + 1);
     );
+
+* The SOC balance weights each T by CHRONOHOUR, but a window can be longer than its CHRONOHOUR (T_full's T045 and T137 average 49 hours
+* and count 6), so window averages alone gave F -8..+36 % of the weekly driving energy per country. Rescale each week's leave and return
+* flows to the hourly week's totals, times the share of the week the selected T cover (docs/adr/0087).
+* INV's uniform windows are already within ~1 %, and leaving INV out keeps its existing results reproducible.
+$ifi %TechInvest%==yes $goto NO_EV_normalization_rescale
+    IEV_BEV_leave_scale(Y,S,IR)$(IHASBEV(IR) AND SUM(T, IEV_BEV_leave_profile(Y,S,T,IR)*CHRONOHOUR(S,T)))
+        = SUM(ITTTALIAS, EV_BEV_leave_profile(Y,S,ITTTALIAS,IR)) * SUM(T, CHRONOHOUR(S,T))/CARD(ITTTALIAS) / SUM(T, IEV_BEV_leave_profile(Y,S,T,IR)*CHRONOHOUR(S,T));
+    IEV_BEV_return_scale(Y,S,IR)$(IHASBEV(IR) AND SUM(T, IEV_BEV_return_profile(Y,S,T,IR)*CHRONOHOUR(S,T)))
+        = SUM(ITTTALIAS, EV_BEV_return_profile(Y,S,ITTTALIAS,IR)) * SUM(T, CHRONOHOUR(S,T))/CARD(ITTTALIAS) / SUM(T, IEV_BEV_return_profile(Y,S,T,IR)*CHRONOHOUR(S,T));
+    IEV_PHEV_leave_scale(Y,S,IR)$(IHASPHEV(IR) AND SUM(T, IEV_PHEV_leave_profile(Y,S,T,IR)*CHRONOHOUR(S,T)))
+        = SUM(ITTTALIAS, EV_PHEV_leave_profile(Y,S,ITTTALIAS,IR)) * SUM(T, CHRONOHOUR(S,T))/CARD(ITTTALIAS) / SUM(T, IEV_PHEV_leave_profile(Y,S,T,IR)*CHRONOHOUR(S,T));
+    IEV_PHEV_return_scale(Y,S,IR)$(IHASPHEV(IR) AND SUM(T, IEV_PHEV_return_profile(Y,S,T,IR)*CHRONOHOUR(S,T)))
+        = SUM(ITTTALIAS, EV_PHEV_return_profile(Y,S,ITTTALIAS,IR)) * SUM(T, CHRONOHOUR(S,T))/CARD(ITTTALIAS) / SUM(T, IEV_PHEV_return_profile(Y,S,T,IR)*CHRONOHOUR(S,T));
+    IEV_BEV_leave_profile(Y,S,T,IR)$IEV_BEV_leave_scale(Y,S,IR) = IEV_BEV_leave_profile(Y,S,T,IR) * IEV_BEV_leave_scale(Y,S,IR);
+    IEV_BEV_return_profile(Y,S,T,IR)$IEV_BEV_return_scale(Y,S,IR) = IEV_BEV_return_profile(Y,S,T,IR) * IEV_BEV_return_scale(Y,S,IR);
+    IEV_PHEV_leave_profile(Y,S,T,IR)$IEV_PHEV_leave_scale(Y,S,IR) = IEV_PHEV_leave_profile(Y,S,T,IR) * IEV_PHEV_leave_scale(Y,S,IR);
+    IEV_PHEV_return_profile(Y,S,T,IR)$IEV_PHEV_return_scale(Y,S,IR) = IEV_PHEV_return_profile(Y,S,T,IR) * IEV_PHEV_return_scale(Y,S,IR);
+$label NO_EV_normalization_rescale
 
 
 * Replace data with the internal normalized parameters

@@ -58,6 +58,9 @@ optimality_check() {
 # docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
 # Above PENALTY_FAIL_ABOVE (default 1e14, ~1e5 slack units) the job lists the slacks and exits, so
 # no later run is submitted and a Year copy is not returned (docs/adr/0057).
+# G2V infrastructure slack summed above G2V_SLACK_FAIL_ABOVE (default 1e3 MW over all time steps,
+# ~1e12 in QOBJ) also exits: it means INV's charging infrastructure can't carry this run's EV
+# energy, and base F2050's 2.2e12 passed the objective check (GREAT docs/adr/0087).
 penalty_check() {
     job_id=$1
     fail_above=${PENALTY_FAIL_ABOVE:-1e14}
@@ -74,9 +77,14 @@ penalty_check() {
         exit 1
     fi
     # Slacks below 1e13 (e.g. under 10 Mt CO2 per solve) pass the objective check, and the next run
-    # overwrites all_endofmodel.gdx, so list them now. Report only - some rolling CO2 slack is expected
-    # (ADR 0060)
-    pixi run verify "$PWD" slacks --top 5 || true
+    # overwrites all_endofmodel.gdx, so list them now. Only G2V slack fails - some rolling CO2 slack is
+    # expected (ADR 0060). Status 3 is that failure, anything else (e.g. a crash) only reports
+    status=0
+    pixi run verify "$PWD" slacks --top 5 --fail-on VG2VINFRASLACK --fail-above "${G2V_SLACK_FAIL_ABOVE:-1e3}" || status=$?
+    if [[ $status -eq 3 ]]; then
+        echo "ERROR: G2V infrastructure slack above G2V_SLACK_FAIL_ABOVE=${G2V_SLACK_FAIL_ABOVE:-1e3}"
+        exit 1
+    fi
 }
 
 # Rolling runs solve one season at a time, so QCCS_STORAGE (the annual CO2 storage limit) is only an
