@@ -2169,7 +2169,10 @@ $include "../../base/addons/_hooks/qlimco2c.inc"
 ;
 
 * Rolling limits each week to fullyear's net emissions in that week (written by OUTPUT_SUMMARY.inc),
-* so the weeks add up to the annual limit - see docs/adr/0060
+* so the weeks add up to the annual limit - see docs/adr/0060.
+* The left side is annualised (rolling's IHOURSINST sums to 8760 over IS3), F's weekly tonnes are not,
+* so the limit is scaled by the ratio of their hours, SUM(S, WEIGHT_S)/IWEIGHSUMS (52 for one week).
+* This assumes F and R use the same seasons and weights (S_all.inc) - see docs/adr/0089
 $ifi not %RollingSeasons%==yes $goto skip
 PARAMETER EMI_POLNA_S(YYY,SSS, GROUP,EMIPOLSET);
 PARAMETER EMI_POLNA_S2(YYY,SSS, GROUP,EMIPOLSET);
@@ -2182,7 +2185,7 @@ QLIMCO2ROLLS(IY411,GROUP,IS3)$(EMI_POLNA(IY411,GROUP,'LIM_CO2') AND (EMI_POLNA(I
       SUM(C,
          SUM((IA,G)$(IAGK_HASORPOT(IY411,IA,G) AND ICA(C,IA) AND GROUP_AAA(GROUP,IA)), SUM((T), IHOURSINST(IS3,T)*IHOURFRAC * (IM_CO2(G) * IOF0001) * IOF3P6 * VGF_T(IY411,IA,G,IS3,T)))
          )
-      =L= EMI_POLNA_S2(IY411,IS3, GROUP,'LIM_CO2')
+      =L= EMI_POLNA_S2(IY411,IS3, GROUP,'LIM_CO2') * SUM(S, WEIGHT_S(S)) / IWEIGHSUMS
 $include "../../base/addons/_hooks/qlimco2rolls.inc"
 ;
 $label skip

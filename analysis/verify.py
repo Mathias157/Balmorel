@@ -354,9 +354,11 @@ def slacks(ctx, gdx, tolerance, top, fail_on, fail_above):
     Lists every VQ* variable plus VG2VINFRASLACK and VHYDROGEN_QH2EQ with a
     level above the tolerance, by symbol, region and direction (IPLUSMINUS).
     Levels are in the symbol's own unit (MW or MWh per time step, t CO2 for
-    VQLIMCO2NA/VQLIMCO2ROLLS/VQCCS_STORAGE). Each slack unit costs PENALTYQ (1e9) in QOBJ,
-    a tonne of CO2 only 1e6, so the job scripts' check for objectives above
-    1e13 misses fewer than ~1e4 slack units or 10 Mt CO2 per solve. Backup
+    VQLIMCO2NA/VQCCS_STORAGE). VQLIMCO2ROLLS is annualised like the rest of a
+    rolling solve, so the week's tonnes are its level / 52 (ADR 0089). Each
+    slack unit costs PENALTYQ (1e9) in QOBJ, a tonne of CO2 only 1e6, so the
+    job scripts' check for objectives above 1e13 misses fewer than ~1e4 slack
+    units or 10 Mt CO2 per solve (~0.2 Mt in a rolling week). Backup
     generation is cost, not slack - see the backup command.
     """
 
