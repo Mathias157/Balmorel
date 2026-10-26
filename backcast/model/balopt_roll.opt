@@ -375,7 +375,7 @@ $setglobal DFLEXQUANT
 *!option yes
 
 * Allow demand response (requires NETDEMAND) (it should be checked before using it)
-$setglobal DEMANDRESPONSE yes
+$setglobal DEMANDRESPONSE 
 *!option yes
 
 * Permit exchange of electricity with third regions using a price interface (in contrast to X3FX) (it should be checked before using it)

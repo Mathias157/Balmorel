@@ -9,7 +9,7 @@ version = "0.1.0"
 analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
 sync-down = { cmd = "rsync -avzu --filter=':- .gitignore' mberos@login2.hpc.dtu.dk:/work3/mberos/Balmorel/ .", description = "Syncs repository to local, including .git folder, but without gitignored files" }
-sync-up = { cmd = "rsync -avzu --filter=':- .gitignore'  ./ mberos@login2.hpc.dtu.dk:/work3/mberos/Balmorel", description = "Syncs repository to remote, including .git folder, but without gitignored files" }
+sync-up = { cmd = "rsync -avzu --filter=':- .gitignore'  ./ mberos@login2.hpc.dtu.dk:/work3/mberos/Balmorel && rsync -avzu --filter=':- .gitignore' base/data/ mberos@login2.hpc.dtu.dk:/work3/mberos/Balmorel/base/data", description = "Syncs repository to remote, including .git folder, but without gitignored files" }
 sync-plots = { cmd = "rsync -avzu mberos@login2.hpc.dtu.dk:'/work3/mberos/Balmorel/analysis/plots/*' analysis/plots/", description = "Download everything from analysis/plots" }
 sync-output = { cmd = "rsync -avzu mberos@login2.hpc.dtu.dk:'/work3/mberos/Balmorel/analysis/output/*' analysis/output/", description = "Download everything from analysis/output" }
 
@@ -29,6 +29,9 @@ numpy = ">=2.4.3,<3"
 openpyxl = ">=3.1.5,<4"
 
 [pypi-dependencies]
-pybalmorel = { path = "../pybalmorel", editable = true, extras = ["entso-e", "weatheryear"] }
+pybalmorel = { path = "../pybalmorel", editable = true, extras = [
+  "entso-e",
+  "weatheryear",
+] }
 tsam = ">=2.3.9, <3"
 ripgrepy = ">=2.2.0, <3"

@@ -13,6 +13,7 @@ All commands run from the repository root in the pixi environment
 | Input | Files in `data/` | How |
 |---|---|---|
 | Weather year | `WND_VAR_T`, `WNDFLH`, `SOLE_VAR_T`, `SOLEFLH`, `DE_VAR_T`, `DH*`, `INDIVUSERS_DH*`, `WTRRRVAR_T`, `WTRRSVAR_S` | `cd backcast/weatheryear && python run_weatheryear.py 2023` (config `weatheryear_2023.yml`). The script ends with pybalmorel's `write_scenario_data`, which writes these files and the hydro ones below straight into `data/` from `output/2023/to_balmorel/CapDev/raw`, overwriting them. It also adds `WND_VAR_T.inc`'s fallback lines for areas without their own profile. Don't edit those files by hand, since the next run overwrites them. |
+| Electricity demand profile | `DE_VAR_T_ENTSOE.inc` (included at the end of `DE_VAR_T.inc`) | `pixi run python backcast/entsoe_demand_profile.py 2023`, after every weather-year run. **Stopgap:** the weather-year `DE_VAR_T.inc` profiles are corrupt from 2022 onwards (`classic_demand.csv`: LV and LT negative almost every hour, negative hours in the UK, ES, IT and BE, spikes of 20–60× the median in NL, EE and SK, which made NL demand peak at 136 GW). The script overrides `OTHER` and `RESE` with the hourly ENTSO-E actual load on the Backcast Calendar (bidding zones summed, DE4-* taking DE), interpolating hours outside 0.2–3× the median. A region with more than 2% such hours keeps base's profile: AL, BA and IE (IE_SEM is missing S13–S22) in 2023. The UK has no ENTSO-E load and keeps its weather-year profile with 70 hours interpolated. `run_weatheryear.py` overwrites `DE_VAR_T.inc` and with it the `$include`, which the script adds back. Handover: `../pybalmorel/docs/handover-backcast-validation-categories-and-demand.md`. |
 | Hydro inflow level | `WTRRSFLH.inc`, `WTRRRFLH.inc` | Made with the weather year above, in the absolute mode set by `hydro_flh` in `weatheryear_2023.yml` (pybalmorel ADR 0011): the full-load hours are the CorRES 2023 inflow ÷ this scenario's 2023 `GKFX`. The earlier relative mode multiplied base's placeholder full-load hours (4000 h for AT and CH, 3300 h for IT, in both reservoir and run-of-river), which made hydro far too high. Run-of-river inflow above the area's run-of-river capacity moves to its reservoir (PT, and all of ES's, which has no run-of-river `GKFX`). Countries whose CorRES inflow fails the plausibility check get the hydro inflow fallback instead: against Eurostat that is DE, FI, SE and LV (duplicated series, see `docs/handover-corres-hydro-inflow.md`), CH, IT, UK and AT (level; AT at −21% against a ±20% limit). So do the countries CorRES covers only partly (GR, HR, RS) or not at all (17 countries, TR the largest at 31.5 GW). Only BG, ES, FR, NO, PT and RO keep CorRES's level. The mode reads `GKFX` and `IGHYRS` from `model/backcast_input_data.gdx` and the base full-load hours from `base/model/base_input_data.gdx`, reusing either file if it exists (see Regenerating the inputs). |
 | Fuel prices | `FUELPRICE.inc`, `FUELPRICE_CONSTANT.inc` | `python -m pybalmorel.backcasting fuelprices backcast backcast/historicalprices 2023`. NATGAS (TTF) and COAL (Rotterdam) are daily; every other fuel stays annual from `FUELPRICE_APS.inc`. **Manual fix:** the generated `FUELPRICE.inc` leaves out the `$INCLUDE` of `FUELPRICE_%SCNAME%.inc`. Without it, every annual fuel has no price, and nothing aborts. Add the two `$if EXIST ... FUELPRICE_%SCNAME%.inc` lines back at the top after each regeneration. |
 | CO2 tax | `TAX_CO2_ST.inc` | `python -m pybalmorel.backcasting co2-tax backcast backcast/historicalprices 2023 --co2-override UNITED_KINGDOM=84.31 --co2-override ALBANIA=0 --co2-override BOSNIA_AND_HERZEGOVINA=0 --co2-override MONTENEGRO=0 --co2-override NORTH_MACEDONIA=0 --co2-override SERBIA=0 --co2-override TURKEY=0` (the reasons are below). |
@@ -37,9 +38,24 @@ The job scripts copy `model/balopt_full.opt` or `model/balopt_roll.opt` to
   maintenance schedule from `simex/UCONMAINT.gdx`, which only a full-year run
   with `PLANNED_MAINTENANCE` on writes. With that option off, it would read a
   stale schedule left by an earlier run.
+- `ADDBACKUPGEN` is on in both runs. It gives every area with electricity
+  or heat demand expensive backup capacity (`import_results_backupgen.inc`).
+  It used to work only with `import_results`, so the full-year run had no
+  backup: 303 of its 439 heat areas were at penalty prices (about 780 TWh
+  of unserved heat, mostly in `*_IND-*` and `*_IDVU-*` areas, whose base
+  2023 capacity is too small without investment), and the rolling run
+  imported hydro, storage and fuel-use levels from that solution.
+- `DEMANDRESPONSE` is off in both runs. In the rolling run alone it let
+  Balmorel invest in demand-response capacity that the full-year run did
+  not have.
 
 ## Known limitations
 
+- The electricity demand profile is ENTSO-E's total load, which includes
+  demand Balmorel models endogenously (heat pumps, electric boilers, EVs).
+  Part of their variation is therefore counted twice. Because the profile
+  is an input, the load-shape correlation from `statistics` is no longer
+  evidence, only the annual level is.
 - The annual electricity demand level (`DE`) for 2023 comes unchanged from
   `base/data`, and so do capacities apart from the nuclear corrections in
   `GKFX.inc`. To be revisited if validation is far off.
@@ -99,7 +115,8 @@ cached ReadData output:
 3. Weather year and hydro: `cd backcast/weatheryear && python run_weatheryear.py 2023`.
    It writes its files into `data/` itself. The first run rebuilds
    `model/backcast_input_data.gdx` (about half an hour).
-4. `transmission-flow-limit` and `nuclear-availability`, as in the table.
+4. `transmission-flow-limit`, `nuclear-availability` and
+   `entsoe_demand_profile.py`, as in the table.
 5. Fuel prices and CO2 tax only when their source data changes.
 
 ## Running

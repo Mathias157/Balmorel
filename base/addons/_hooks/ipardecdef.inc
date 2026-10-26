@@ -7,6 +7,7 @@ $ifi not %BB4%==yes $goto endoffile
 
 $label  beginbb4
 $ifi %import_results%==yes  $include   "../../base/addons/import_results/import_results_ipardecdef.inc";
+$ifi not %import_results%==yes $ifi %ADDBACKUPGEN%==yes  $include   "../../base/addons/import_results/import_results_backupgen.inc";
 
 $ifi %HYDROGEN%==yes   $include   "../../base/addons/hydrogen/bb4/hydrogen_ipardecdef.inc";
 $ifi %UnitComm%==yes  $include   "../../base/addons/unitcommitment/bb4/uc_ipardecdef.inc";
