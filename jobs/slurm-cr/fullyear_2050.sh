@@ -56,7 +56,7 @@ gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario
 cd ..
 
 # Don't spend days of rolling on a non-optimal fullyear's storage levels
-optimality_check $SLURM_JOB_ID 1
+optimality_check $SLURM_JOB_ID 1 strict
 penalty_check $SLURM_JOB_ID
 
 # Submit rolling horizon run
