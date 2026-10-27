@@ -131,10 +131,13 @@ $ifi %TRANSPORT%==yes   +SUM((IR,IS3,T)$SUM(RRR,TRANSDEMAND_Y(Y,RRR)), (VQTRANSP
 $ifi %import_results%==yes  $ifi %HYRSBB123%==price   +SUM((IA,IS3)$(SUM(IGHYRS,IAGK_HASORPOT(Y,IA,IGHYRS))),(VQHYRSSEQCURT(Y,IA,IS3,'IMINUS')+VQHYRSSEQCURT(Y,IA,IS3,'IPLUS')))
 
 * CO2 slacks cost PENALTYQ per kt (1e6 money/t), so a CO2 limit is relaxed before energy is shed - docs/adr/0060
-$ifi not %RollingSeasons%==yes  +IOF0001*SUM(GROUP$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF)), VQLIMCO2NA(Y,GROUP))
-$ifi %RollingSeasons%==yes      +IOF0001*SUM((GROUP,IS3)$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF)), VQLIMCO2ROLLS(Y,GROUP,IS3))
+* VQCO2PRICE replaces that with a finite price per t; the coefficient sits inside PENALTYQ*(...), hence /PENALTYQ (docs/adr/0005)
+$setlocal VQCO2COEF IOF0001
+$if set VQCO2PRICE $if not "%VQCO2PRICE%"=="" $setlocal VQCO2COEF (%VQCO2PRICE%/PENALTYQ)
+$ifi not %RollingSeasons%==yes  +%VQCO2COEF%*SUM(GROUP$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF)), VQLIMCO2NA(Y,GROUP))
+$ifi %RollingSeasons%==yes      +%VQCO2COEF%*SUM((GROUP,IS3)$(EMI_POLNA(Y,GROUP,'LIM_CO2') AND (EMI_POLNA(Y,GROUP,'LIM_CO2') LT INF)), VQLIMCO2ROLLS(Y,GROUP,IS3))
 * Same for CO2 stored above the storage limit (GREAT docs/adr/0084)
-$ifi %CCS%==yes $ifi not %RollingSeasons%==yes  +IOF0001*VQCCS_STORAGE(Y)$CCS_STORAGE_MAX(Y)
+$ifi %CCS%==yes $ifi not %RollingSeasons%==yes  +%VQCO2COEF%*VQCCS_STORAGE(Y)$CCS_STORAGE_MAX(Y)
 
 
 )

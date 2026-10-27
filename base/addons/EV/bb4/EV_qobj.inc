@@ -21,5 +21,8 @@ $ifi %TechInvest%==yes      + 10000*IEV_INFRA_ANNUITY*SUM(IYALIAS2$IEV_INFRA_ALI
 
 
 $ifi %EV_infeas%==yes   +PENALTYQ*(SUM((IR,IS3,T),VQEV_PHEV_BEBALANCE(Y,IR,IS3,T,'IMINUS')$IHASPHEV(IR) +VQEV_PHEV_BEBALANCE(Y,IR,IS3,T,'IPLUS')$IHASPHEV(IR)  +VQEV_BEV_BEBALANCE(Y,IR,IS3,T,'IMINUS')$IHASBEV(IR) +VQEV_BEV_BEBALANCE(Y,IR,IS3,T,'IPLUS')$IHASBEV(IR)))
-* Unweighted, like every other VQ slack (docs/adr/0066)
-$ifi not %TechInvest%==yes +PENALTYQ*SUM((IR,IS3,T), VG2VINFRASLACK(Y,IR,IS3,T))
+* Unweighted, like every other VQ slack (docs/adr/0066), unless G2VSLACKPRICE prices it per MWh (docs/adr/0005)
+$setlocal G2VPRICED
+$if set G2VSLACKPRICE $if not "%G2VSLACKPRICE%"=="" $setlocal G2VPRICED yes
+$ifi not %TechInvest%==yes $ifi not %G2VPRICED%==yes +PENALTYQ*SUM((IR,IS3,T), VG2VINFRASLACK(Y,IR,IS3,T))
+$ifi not %TechInvest%==yes $ifi     %G2VPRICED%==yes +%G2VSLACKPRICE%*SUM((IR,IS3,T), IHOURSINST(IS3,T)*VG2VINFRASLACK(Y,IR,IS3,T))

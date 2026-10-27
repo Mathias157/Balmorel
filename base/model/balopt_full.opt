@@ -26,6 +26,9 @@ $setglobal vqdebug yes
 *Reduce number of infeasibility variables. By default, infeasibility variables are added to many equations, which is not always required.
 $setglobal reduced_vqdebug
 *!option yes
+
+* Price CO2 above a CO2 limit or the CCS storage limit at this many money/t (e.g. a direct-air-capture cost) instead of the PENALTYQ debug penalty. Empty keeps PENALTYQ (docs/adr/0005)
+$setglobal VQCO2PRICE
 *-----------------------------------------------------------------
 *---- END: VQDEBUG ------------------------------------------------
 
@@ -238,6 +241,9 @@ $setglobal EV_season_calc yes
 * Note: Rule of thumb, if this is needed, something is probably wrong with the data used.
 $setglobal EV_infeas yes
 *!option yes
+
+* Price G2V charging above the fixed charging-infrastructure capacity (TechInvest off) at this many money/MWh instead of PENALTYQ per MW and time step. Empty keeps PENALTYQ (docs/adr/0005)
+$setglobal G2VSLACKPRICE
 
 * Scenario where every EV return to charger after each trip. Needs specific profile as well (profile3 or profile4).
 $setglobal EV_allreturn
