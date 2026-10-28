@@ -40,9 +40,8 @@ LOOP(Y,
             IF ((SUM(DEUSER,DE(Y,IR,DEUSER)) AND ILOOPBREAK=0),
                ILOOPBREAK=1;
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_ELECTRICITY)=1000000;
-               GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BIOGASUPGRADING)=1000000;
-               GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BIOGASMETHANATION)=1000000;
-               GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_BIOMETHANE)=1000000;
+* No biomethane backup: F/R run the upgrading and methanation INV built (docs/adr/0092, 0093), and
+* the biomethane twin of backup electricity burns only their output
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_ELECTRICITY AND GDATA(G, 'GDFUEL') EQ BIOMETHANE)=1000000;
 * Gas-fired, so hydrogen scarcity doesn't draw on the electricity backup (docs/adr/0088)
                GKFX(Y,IA,G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_HYDROGEN)=1000000;
@@ -152,11 +151,7 @@ LOOP(Y,
 * GKFX(Y, 'CY_IDVU-HOTWTR',G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_HEAT)=NO;
 * GKFX(Y, 'CY_IDVU-SPACEHEAT',G)$(GDATA(G,'GDTECHGROUP') EQ BACKUP_HEAT)=NO;
 
-* INV can't build upgrading or methanation (no AGKN), so all of their F/R capacity is the backup above.
-* Its biomethane costs as much as backup hydrogen, so only scarcity uses it (docs/adr/0065).
-* At 3000, no real CHP, boiler or power plant can burn it more cheaply than the backups (docs/adr/0088)
-SCALAR IBACKUPBIOMETHCOST 'Variable cost of biomethane from backup capacity (Money/MWh)' /3000/;
-GOMVCOSTO(IA,G)$((GDATA(G,'GDTECHGROUP') EQ BIOGASUPGRADING OR GDATA(G,'GDTECHGROUP') EQ BIOGASMETHANATION OR GDATA(G,'GDTECHGROUP') EQ BACKUP_BIOMETHANE) AND SUM(Y,GKFX(Y,IA,G))) = IBACKUPBIOMETHCOST;
+* Biomethane routes are not priced: their F/R capacity is INV's (docs/adr/0093)
 * Balmorelbb4.inc applies the GDATA VOM default only where GKFX existed before this file, so backups would run without their penalty VOM (docs/adr/0086)
 GOMVCOSTO(IA,G)$((GDATA(G,'GDTECHGROUP') EQ BACKUP_ELECTRICITY OR GDATA(G,'GDTECHGROUP') EQ BACKUP_HEAT OR GDATA(G,'GDTECHGROUP') EQ BACKUP_HYDROGEN) AND SUM(Y,GKFX(Y,IA,G)) AND NOT GOMVCOSTO(IA,G)) = GDATA(G,'GDOMVCOST0');
 

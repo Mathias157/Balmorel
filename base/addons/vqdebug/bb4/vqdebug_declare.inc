@@ -57,5 +57,7 @@ POSITIVE VARIABLE VQHYRSSEQCURT(Y,AAA,S,IPLUSMINUS)              "Feasibility of
 POSITIVE VARIABLE VQLIMCO2NA(Y,GROUP)                         "Feasibility of annual CO2 limit QLIMCO2NA, emissions above the limit (t)";
 POSITIVE VARIABLE VQLIMCO2ROLLS(Y,GROUP,S)                    "Feasibility of weekly CO2 limit QLIMCO2ROLLS, emissions above the limit (t annualised: the week x 52)";
 POSITIVE VARIABLE VQCCS_STORAGE(Y)                            "Feasibility of CO2 storage limit QCCS_STORAGE, CO2 stored above the limit (t)";
+* EUR2016/t: low enough that backups don't abate CO2, above every INV CO2 price (GREAT docs/adr/0093)
+SCALAR IVQLIMCO2COST "Cost of CO2 above a CO2 limit, a DACCS-like backstop (Money/t)" /1000/;
 
 

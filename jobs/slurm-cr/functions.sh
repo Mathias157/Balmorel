@@ -27,7 +27,10 @@ trap cleanup EXIT SIGTERM SIGINT
 # (non-optimal) solves only warn and let the job proceed; any other non-optimal status, or
 # fewer/more solves than expected, exits the job. With "strict" as third argument, status 6 exits
 # too: fullyear passes it, since its one solve seeds a rolling run and op8 has no crossover to
-# repair a barrier that stopped on numerical difficulties (GREAT docs/adr/0090).
+# repair a barrier that stopped on numerical difficulties (GREAT docs/adr/0090). Strict mode still
+# accepts a status 6 whose returned barrier iterate - the starred line if CPLEX went back to its
+# best iterate, else the last one - has a relative primal-dual gap below STATUS6_GAP_MAX (default
+# 1e-3): base F2050 stopped at 0.0135 %, 0090's failures at 20 % and 54 % (GREAT docs/adr/0094).
 optimality_check() {
     job_id=$1
     expected_nr=$2
@@ -47,8 +50,24 @@ optimality_check() {
         echo "INFEASIBLE: Job ${job_id} had ${optimal} optimal, ${unscaled} unscaled-infeasible and ${nonoptimal} non-optimal solves, which is not the expected ${expected_nr} in total!"
         exit 1
     elif [[ "$strict" == strict && "$nonoptimal" -gt 0 ]]; then
-        echo "NON-OPTIMAL: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6) - stopping, since this job only allows optimal solves"
-        exit 1
+        gap_max=${STATUS6_GAP_MAX:-1e-3}
+        if ! cat ../logs/*_${job_id}.out | awk -v max="$gap_max" '
+            NF >= 6 && ($1 == "*" || $1 ~ /^[0-9]+$/) && $2 ~ /^-?[0-9.]+e[-+][0-9]+$/ && $3 ~ /^-?[0-9.]+e[-+][0-9]+$/ { p = $2 + 0; d = $3 + 0; seen = 1 }
+            /(LP|MIP|RMIP) status \(6\)/ {
+                n++
+                if (!seen) { bad++; printf "  status-6 solve %d: no barrier iterate in the log\n", n }
+                else {
+                    gap = (p > d ? p - d : d - p) / (p < 0 ? -p : (p > 0 ? p : 1))
+                    if (gap > max + 0) bad++
+                    printf "  status-6 solve %d: primal %.7g, dual %.7g, gap %.3g %%\n", n, p, d, 100 * gap
+                }
+            }
+            /(LP|MIP|RMIP) status \(/ { seen = 0 }
+            END { exit bad > 0 }'; then
+            echo "NON-OPTIMAL: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6) with a primal-dual gap above STATUS6_GAP_MAX=${gap_max}, or none in the log - stopping"
+            exit 1
+        fi
+        echo "WARNING: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6), all with a primal-dual gap below STATUS6_GAP_MAX=${gap_max} - proceeding"
     elif [[ $((unscaled + nonoptimal)) -gt 0 ]]; then
         echo "WARNING: Job ${job_id} had ${unscaled} of ${expected_nr} solves end optimal with unscaled infeasibilities (status 5) and ${nonoptimal} as non-optimal (status 6) - proceeding anyway"
     else
@@ -63,19 +82,15 @@ optimality_check() {
 # stay below it. Rolling logs are split per season so the warning names them. See
 # docs/adr/0047-backup-heat-in-every-heat-demand-area.md.
 # Above PENALTY_FAIL_ABOVE (default 1e14, ~1e5 slack units) the job lists the slacks and exits, so
-# no later run is submitted and a Year copy is not returned (docs/adr/0057). Rolling 2050 defaults
-# to 5e14 instead: its net-zero weekly CO2 limits pay up to ~4 Mt of accepted CO2 slack in a week
-# (2.1e14), see GREAT docs/adr/0091. The default follows the log name, so finish_rolling.sh gets it too.
+# no later run is submitted and a Year copy is not returned (docs/adr/0057). CO2 limit slack costs
+# only 1000 per t (GREAT docs/adr/0093), so even R2050's ~4 Mt weeks (2.1e11) stay below the 1e13
+# warning; verify slacks below lists it. Rolling 2050 had 5e14 for it before (GREAT docs/adr/0091).
 # G2V infrastructure slack summed above G2V_SLACK_FAIL_ABOVE (default 1e3 MW over all time steps,
 # ~1e12 in QOBJ) also exits: it means INV's charging infrastructure can't carry this run's EV
 # energy, and base F2050's 2.2e12 passed the objective check (GREAT docs/adr/0087).
 penalty_check() {
     job_id=$1
-    case "$(echo ../logs/*_${job_id}.out)" in
-        */GREAT_rolling_2050_*) default_fail_above=5e14 ;;
-        *) default_fail_above=1e14 ;;
-    esac
-    fail_above=${PENALTY_FAIL_ABOVE:-$default_fail_above}
+    fail_above=${PENALTY_FAIL_ABOVE:-1e14}
     if ! cat ../logs/*_${job_id}.out | awk -v fail="$fail_above" '
         /IS3LOOPSET = / { season = $NF }
         /^Objective:/ { n++; if ($2 + 0 > 1e13) { bad++; list = list " " (season == "" ? "full" : season); if ($2 + 0 > max) max = $2 + 0 } }
@@ -88,7 +103,7 @@ penalty_check() {
         pixi run verify "$PWD" slacks --top 5 || true
         exit 1
     fi
-    # Slacks below 1e13 (e.g. under 10 Mt CO2 per solve) pass the objective check, and the next run
+    # Slacks below 1e13 (e.g. any CO2 limit slack under 1e10 t) pass the objective check, and the next run
     # overwrites all_endofmodel.gdx, so list them now. Only G2V slack fails - some rolling CO2 slack is
     # expected (ADR 0060). Status 3 is that failure, anything else (e.g. a crash) only reports
     status=0

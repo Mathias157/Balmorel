@@ -40,7 +40,8 @@ $ifi not %ADDH2STOVOLTS%==price    $goto label_no_interseasonal_hydrogen_storage
                                    )
 $label label_no_interseasonal_hydrogen_storage_price
 $ifi not %ADDBIOMETHSTOVOLTS%==price    $goto label_no_interseasonal_biomethane_storage_price
-                                   +SUM((IS3,T)$(SUM((IA,IGBIOMETHANE),IAGK_HASORPOT(Y,IA,IGBIOMETHANE)) AND SUM((IA,IHYDROGEN_GH2TOBIOMETH),IAGK_HASORPOT(Y,IA,IHYDROGEN_GH2TOBIOMETH))),
+* Wherever QBIOMETHANE_STOVOLTS exists, not only with H2+DAC capacity (GREAT docs/adr/0093)
+                                   +SUM((IS3,T)$(SUM((IA,IGBIOMETHANE),IAGK_HASORPOT(Y,IA,IGBIOMETHANE))),
                                                  IHOURFRAC*IHOURSINST(IS3,T)*BIOMETHSTOVOLTSVAL(Y,IS3,T)*(VBIOMETH_STOUNLOADT(Y,IS3,T)-VBIOMETH_STOLOADT(Y,IS3,T))
                                    )
 $label label_no_interseasonal_biomethane_storage_price

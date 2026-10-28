@@ -27,9 +27,11 @@ marker=".combination_scenario.json"
 # FORCE=1
 # SKIP_FROM_BASE_INV=1
 # Scenarios with at least this many switches get a longer walltime: ALLN's op2 investment run was
-# still in 2050 after 1.5 days, past investment.sh's 16 h (docs/adr/0076 in the GREAT repo)
-long_switches=3
-long_time="2-00:00:00"
+# still in 2050 after 1.5 days, past investment.sh's 16 h (docs/adr/0080 in the GREAT repo), and
+# HPN's single-switch INV (15081) sat for hours in the single-threaded simplex clean-up after its
+# 2050 crossover (docs/adr/0094). Only base keeps 16 h. long_time matches rolling's 2.5 days
+long_switches=1
+long_time="2-12:00:00"
 
 # Number of switches in a scenario's marker (0 for base)
 switch_count() {

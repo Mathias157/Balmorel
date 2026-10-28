@@ -9,3 +9,5 @@
 LPmethod  4
 advind 0
 predual -1
+* "scaind 1": aggressive scaling, for every investment run's numerics (docs/adr/0094 in the GREAT repo)
+scaind 1

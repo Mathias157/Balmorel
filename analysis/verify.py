@@ -356,10 +356,11 @@ def slacks(ctx, gdx, tolerance, top, fail_on, fail_above):
     Levels are in the symbol's own unit (MW or MWh per time step, t CO2 for
     VQLIMCO2NA/VQCCS_STORAGE). VQLIMCO2ROLLS is annualised like the rest of a
     rolling solve, so the week's tonnes are its level / 52 (ADR 0089). Each
-    slack unit costs PENALTYQ (1e9) in QOBJ, a tonne of CO2 only 1e6, so the
+    slack unit costs PENALTYQ (1e9) in QOBJ, a tonne above a CO2 limit only
+    1000 (GREAT ADR 0093) and a tonne above the CCS storage limit 1e6, so the
     job scripts' check for objectives above 1e13 misses fewer than ~1e4 slack
-    units or 10 Mt CO2 per solve (~0.2 Mt in a rolling week). Backup
-    generation is cost, not slack - see the backup command.
+    units and every CO2 limit slack - this command is what reports those.
+    Backup generation is cost, not slack - see the backup command.
     """
 
     sc_folder = ctx.obj['sc-folder']
@@ -423,9 +424,9 @@ def backup(ctx, scenario, fail_above):
     """
     Report production of the backup generators (GNR_BACKUP_*) by country
 
-    Backup generators (ADDBACKUPGEN) cover unserved electricity, heat,
-    hydrogen and biomethane demand at a high variable cost (GDOMVCOST0 up to
-    3000 money/MWh). That is cost, not slack, so neither the job scripts'
+    Backup generators (ADDBACKUPGEN) cover unserved electricity, heat and
+    hydrogen demand at a high variable cost (GDOMVCOST0 up to 3000
+    money/MWh). GREAT has no biomethane backup (GREAT ADR 0093). That is cost, not slack, so neither the job scripts'
     objective check nor the slacks command sees it. Prints PRO_YCRAGF by
     year, country and commodity (TWh).
     """
