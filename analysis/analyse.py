@@ -1344,9 +1344,9 @@ def get(ctx, symbol: str, pars, filters: str, diff: bool):
 )
 def adequacy(ctx, scenario: str, nth_max: int, threshold: float):
     """
-    Quantify the adequacy in terms of LOLE (h) and energy not supplied (TWh)
+    Quantify the adequacy in terms of backup generation hours, BGH (h), and energy, BGE (TWh)
 
-    LOLE counts the hours with backup production in at least one node.
+    BGH counts the hours with backup production in at least one node (stored as LOLE_h, BGE as ENS_TWh).
     Nodes are regions for electricity and hydrogen, and area clusters for heat.
     Writes system indicators to _adeq.csv and per-node indicators to _nodal_adeq.csv
     """
@@ -1437,11 +1437,11 @@ def adequacy(ctx, scenario: str, nth_max: int, threshold: float):
     type=float,
     required=False,
     default=None,
-    help="Upper limit of the colour scale, defaults to the largest nodal LOLE of the scenarios",
+    help="Upper limit of the colour scale, defaults to the largest nodal BGH of the scenarios",
 )
 def lole_map(ctx, scenarios: str, commodity: str, filename: str, vmax: float):
     """
-    Map nodal LOLE (h) from the _nodal_adeq.csv files of the @adequacy function.
+    Map nodal BGH (h) from the _nodal_adeq.csv files of the @adequacy function.
     Scenarios are separated by , and plotted side by side with a shared colour scale
     """
 
@@ -1487,7 +1487,7 @@ def lole_map(ctx, scenarios: str, commodity: str, filename: str, vmax: float):
         fraction=0.05,
         pad=0.02,
     )
-    colorbar.set_label("%s LOLE (h)" % commodity.capitalize())
+    colorbar.set_label("%s BGH (h)" % commodity.capitalize())
 
     if filename is None:
         filename = "LOLE-map_%s" % commodity.lower()
@@ -1606,7 +1606,7 @@ def plot_ptes_adequacy_relation(filter):
 @click.pass_context
 @click.argument("scenarios", type=str, required=True)
 def RA_Plot(ctx, scenarios: str):
-    "Plot LOLE and ENS"
+    "Plot BGH and BGE"
 
     scenarios = scenarios.replace(" ", "").split(",")
 
@@ -1640,12 +1640,12 @@ def RA_Plot(ctx, scenarios: str):
             marker="o",
             markeredgecolor="k",
             color=balmorel_colours[commodity],
-            label=f"LOLE {commodity}",
+            label=f"BGH {commodity}",
         )
 
-    ax2.set_ylabel("LOLE (h)")
+    ax2.set_ylabel("BGH (h)")
     ax2.set_ylim((0, df.LOLE_h.max().max() * 1.1))
-    ax.set_ylabel("Energy Not Served (TWh)")
+    ax.set_ylabel("BGE (TWh)")
 
     plot_style(fig, ax, "RA-plot", legend_pos="up")
 
