@@ -1,0 +1,6 @@
+SET IMUSTRUN_ZONE_A(MUSTRUN_ZONE,AAA)   'Areas in each must-run zone';
+SET IMUSTRUN_G(MUSTRUN_GROUP,G)         'Condensing, back-pressure and extraction technologies burning a fuel of each must-run group';
+
+IMUSTRUN_ZONE_A(MUSTRUN_ZONE,IA) = YES$SUM(IR$MUSTRUN_ZONE_RRR(MUSTRUN_ZONE,IR), RRRAAA(IR,IA));
+IMUSTRUN_G(MUSTRUN_GROUP,G)$(IGCND(G) OR IGBPR(G) OR IGEXT(G))
+   = YES$SUM(FFF$MUSTRUN_GROUP_FFF(MUSTRUN_GROUP,FFF), 1$(GDATA(G,'GDFUEL') EQ FDATA(FFF,'FDACRONYM')));

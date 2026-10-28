@@ -25,6 +25,7 @@ $ifi %HYDROGEN%==yes $include "../../base/addons/hydrogen/bb4/hydrogen_eqndecdef
 $ifi %EV%==yes      $include        "../../base/addons/EV/bb4/EV_eqndecdef.inc";
 $ifi %STEPWISEPRICE%==yes  $include   "../../base/addons/stepwiseprice/stepwiseprice_eqndecdef.inc";
 $ifi %LIMITSFORFUELS%==yes  $include   "../../base/addons/limitsforfuels/bb4/limitsforfuels_eqndecdef.inc";
+$ifi %MUSTRUN%==yes  $include   "../../base/addons/mustrun/bb4/mustrun_eqndecdef.inc";
 $ifi %STEPWISE_RAMPING%==yes  $include "../../base/addons/STEPWISE_RAMPING/stepwise_ramping_eqndecdef.inc";
 $ifi %GRIDTARIFFS%==yes  $include   "../../base/addons/GridTariffs/bb4/GridTariffs_eqndecdef.inc";
 $ifi %DEMANDRESPONSE%==yes      $include        "../../base/addons/demandresponse/bb4/dr_eqndecdef.inc";

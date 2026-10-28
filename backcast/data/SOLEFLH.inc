@@ -285,3 +285,6 @@ CY_VRE-PV_Utility_scale_no_tracking_RG3     2004.5365
 MT_VRE-PV_Utility_scale_no_tracking_RG3     1971.2731
 /;
      
+
+$if     EXIST '../data/SOLEFLH_ENTSOE.inc' $INCLUDE         '../data/SOLEFLH_ENTSOE.inc';
+$if not EXIST '../data/SOLEFLH_ENTSOE.inc' $INCLUDE '../../base/data/SOLEFLH_ENTSOE.inc';

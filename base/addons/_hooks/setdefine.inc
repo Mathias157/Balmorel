@@ -30,6 +30,7 @@ $ifi %COMBTECH%==yes  $include   "../../base/addons/combtech/bb4/combtech_setdef
 $ifi %STEPWISEPRICE%==yes  $include   "../../base/addons/stepwiseprice/stepwiseprice_setdefine.inc";
 
 $ifi %LIMITSFORFUELS%==yes  $include   "../../base/addons/limitsforfuels/bb4/limitsforfuels_setdefine.inc";
+$ifi %MUSTRUN%==yes  $include   "../../base/addons/mustrun/bb4/mustrun_setdefine.inc";
 
 $ifi %UnitComm%==yes  $include   "../../base/addons/unitcommitment/bb4/uc_setdefine.inc";
 

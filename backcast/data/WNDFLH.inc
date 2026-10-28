@@ -180,3 +180,6 @@ WNDFLH('AL_ONS_Existing_RG1') = WNDFLH('AL_VRE-ONS_SP199-HH150_RG1');
 WNDFLH('DE4-N_OFF_OFF_Existing_RG2') = WNDFLH('DE4-N_OFF_VRE-OFF_bottom_fixed_SP316-HH155_RG2');
 WNDFLH('IT_OFF1_OFF_Existing_RG2') = WNDFLH('IT_OFF1_VRE-OFF_bottom_fixed_SP316-HH155_RG2');
 WNDFLH('NO3_OFF_OFF_Existing_RG2') = WNDFLH('NO3_OFF_VRE-OFF_bottom_fixed_SP316-HH155_RG2');
+
+$if     EXIST '../data/WNDFLH_ENTSOE.inc' $INCLUDE         '../data/WNDFLH_ENTSOE.inc';
+$if not EXIST '../data/WNDFLH_ENTSOE.inc' $INCLUDE '../../base/data/WNDFLH_ENTSOE.inc';

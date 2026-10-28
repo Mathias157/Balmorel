@@ -370,6 +370,12 @@ $Setglobal STEPWISEPRICE
 $Setglobal LIMITSFORFUELS
 *!option yes
 
+* Weekly must-run floor on electricity output per zone and fuel group (data from pybalmorel must-run-floor).
+* Backcast: on as soon as must-run-floor has written MUSTRUN_FLOOR.inc, like the other ENTSO-E overrides.
+$Setglobal MUSTRUN
+*!option yes
+$if EXIST '../data/MUSTRUN_FLOOR.inc' $Setglobal MUSTRUN yes
+
 * Allow demand elasticity (it should be checked before using it)
 $setglobal DFLEXQUANT
 *!option yes

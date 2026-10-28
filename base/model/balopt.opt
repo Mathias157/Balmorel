@@ -370,6 +370,10 @@ $Setglobal STEPWISEPRICE
 $Setglobal LIMITSFORFUELS
 *!option yes
 
+* Weekly must-run floor on electricity output per zone and fuel group (data from pybalmorel must-run-floor)
+$Setglobal MUSTRUN
+*!option yes
+
 * Allow demand elasticity (it should be checked before using it)
 $setglobal DFLEXQUANT
 *!option yes

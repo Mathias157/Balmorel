@@ -1,0 +1,177 @@
+* Wind full-load hours scaled to ENTSO-E 2023 output per country (see CONTEXT.md) - generated, do not hand-edit
+* AT onshore: 8.25 TWh
+* BE offshore: 7.84 TWh
+* BE onshore: 6.23 TWh
+* BG onshore: 1.49 TWh
+* CZ onshore: 0.70 TWh
+* DE offshore: 23.41 TWh
+* DE onshore: 118.91 TWh
+* DK1 offshore: 4.81 TWh
+* DK1 onshore: 9.06 TWh
+* DK2 offshore: 3.61 TWh
+* DK2 onshore: 1.72 TWh
+* EE onshore: 0.80 TWh
+* ES wind: 60.90 TWh
+* FI wind: 13.93 TWh
+* FR offshore: 1.11 TWh
+* FR onshore: 46.70 TWh
+* GR onshore: 9.40 TWh
+* HR onshore: 2.53 TWh
+* HU onshore: 0.62 TWh
+* IE wind: 13.47 TWh
+* IT onshore: 23.25 TWh
+* LT onshore: 2.39 TWh
+* LV onshore: 0.25 TWh
+* NL offshore: 11.52 TWh
+* NO1 onshore: 0.92 TWh
+* NO2 onshore: 4.36 TWh
+* NO4 onshore: 3.00 TWh
+* PL onshore: 22.00 TWh
+* PT offshore: 0.08 TWh
+* PT onshore: 12.77 TWh
+* RO onshore: 7.44 TWh
+* RS onshore: 0.93 TWh
+* SE1 onshore: 5.72 TWh
+* SE2 onshore: 13.62 TWh
+* SE3 onshore: 9.04 TWh
+* SE4 wind: 5.63 TWh
+* SI onshore: 0.01 TWh
+* SK onshore: 0.00 TWh
+WNDFLH('AT_ONS_Existing_RG1')=2310.8;
+WNDFLH('AT_ONS_Existing_RG2')=2310.8;
+WNDFLH('AT_ONS_Existing_RG3')=2310.8;
+WNDFLH('BE_OFF_OFF_Existing_RG1')=3466.8;
+WNDFLH('BE_OFF_OFF_Existing_RG2')=3466.8;
+WNDFLH('BE_OFF_OFF_Existing_RG3')=3466.8;
+WNDFLH('BE_ONS_Existing_RG1')=2040.8;
+WNDFLH('BE_ONS_Existing_RG2')=2040.8;
+WNDFLH('BE_ONS_Existing_RG3')=2040.8;
+WNDFLH('BG_ONS_Existing_RG1')=2118.6;
+WNDFLH('BG_ONS_Existing_RG2')=2118.6;
+WNDFLH('BG_ONS_Existing_RG3')=2118.6;
+WNDFLH('CZ_ONS_Existing_RG1')=2077.5;
+WNDFLH('CZ_ONS_Existing_RG2')=2077.5;
+WNDFLH('CZ_ONS_Existing_RG3')=2077.5;
+WNDFLH('DE4-E_OFF_OFF_Existing_RG1')=3532.4;
+WNDFLH('DE4-E_OFF_OFF_Existing_RG2')=3532.4;
+WNDFLH('DE4-E_OFF_OFF_Existing_RG3')=3532.4;
+WNDFLH('DE4-E_ONS_Existing_RG1')=1937.1;
+WNDFLH('DE4-E_ONS_Existing_RG2')=1937.1;
+WNDFLH('DE4-E_ONS_Existing_RG3')=1937.1;
+WNDFLH('DE4-N_ONS_Existing_RG1')=1936.2;
+WNDFLH('DE4-N_ONS_Existing_RG2')=1936.2;
+WNDFLH('DE4-N_ONS_Existing_RG3')=1936.2;
+WNDFLH('DE4-S_ONS_Existing_RG1')=2263.1;
+WNDFLH('DE4-S_ONS_Existing_RG2')=2263.1;
+WNDFLH('DE4-S_ONS_Existing_RG3')=2263.1;
+WNDFLH('DE4-W_OFF_OFF_Existing_RG1')=3369.3;
+WNDFLH('DE4-W_OFF_OFF_Existing_RG2')=3369.3;
+WNDFLH('DE4-W_OFF_OFF_Existing_RG3')=3369.3;
+WNDFLH('DE4-W_ONS_Existing_RG1')=2042.8;
+WNDFLH('DE4-W_ONS_Existing_RG2')=2042.8;
+WNDFLH('DE4-W_ONS_Existing_RG3')=2042.8;
+WNDFLH('DK1_OFF_OFF_Existing_RG1')=3762.6;
+WNDFLH('DK1_OFF_OFF_Existing_RG2')=3762.6;
+WNDFLH('DK1_OFF_OFF_Existing_RG3')=3762.6;
+WNDFLH('DK1_ONS_Existing_RG1')=2290.6;
+WNDFLH('DK1_ONS_Existing_RG2')=2290.6;
+WNDFLH('DK1_ONS_Existing_RG3')=2290.6;
+WNDFLH('DK2_OFF_OFF_Existing_RG1')=3509.4;
+WNDFLH('DK2_OFF_OFF_Existing_RG2')=3509.4;
+WNDFLH('DK2_OFF_OFF_Existing_RG3')=3509.4;
+WNDFLH('DK2_ONS_Existing_RG1')=2269.6;
+WNDFLH('DK2_ONS_Existing_RG2')=2269.6;
+WNDFLH('DK2_ONS_Existing_RG3')=2269.6;
+WNDFLH('EE_ONS_Existing_RG1')=2530.8;
+WNDFLH('EE_ONS_Existing_RG2')=2530.8;
+WNDFLH('EE_ONS_Existing_RG3')=2530.8;
+WNDFLH('ES_OFF2_OFF_Existing_RG1')=2775.0;
+WNDFLH('ES_OFF2_OFF_Existing_RG2')=2775.0;
+WNDFLH('ES_OFF2_OFF_Existing_RG3')=2775.0;
+WNDFLH('ES_ONS_Existing_RG1')=2077.1;
+WNDFLH('ES_ONS_Existing_RG2')=2077.1;
+WNDFLH('ES_ONS_Existing_RG3')=2077.1;
+WNDFLH('FIN_OFF_OFF_Existing_RG1')=3460.0;
+WNDFLH('FIN_OFF_OFF_Existing_RG2')=3460.0;
+WNDFLH('FIN_OFF_OFF_Existing_RG3')=3460.0;
+WNDFLH('FIN_ONS_Existing_RG1')=2672.5;
+WNDFLH('FIN_ONS_Existing_RG2')=2672.5;
+WNDFLH('FIN_ONS_Existing_RG3')=2672.5;
+WNDFLH('FR_OFF1_OFF_Existing_RG1')=2245.8;
+WNDFLH('FR_OFF1_OFF_Existing_RG2')=2245.8;
+WNDFLH('FR_OFF1_OFF_Existing_RG3')=2245.8;
+WNDFLH('FR_ONS_Existing_RG1')=2240.4;
+WNDFLH('FR_ONS_Existing_RG2')=2240.4;
+WNDFLH('FR_ONS_Existing_RG3')=2240.4;
+WNDFLH('GR_ONS_Existing_RG1')=2067.7;
+WNDFLH('GR_ONS_Existing_RG2')=2067.7;
+WNDFLH('GR_ONS_Existing_RG3')=2067.7;
+WNDFLH('HR_ONS_Existing_RG1')=2580.8;
+WNDFLH('HR_ONS_Existing_RG2')=2580.8;
+WNDFLH('HR_ONS_Existing_RG3')=2580.8;
+WNDFLH('HU_ONS_Existing_RG1')=1919.5;
+WNDFLH('HU_ONS_Existing_RG2')=1919.5;
+WNDFLH('HU_ONS_Existing_RG3')=1919.5;
+WNDFLH('IE_OFF_OFF_Existing_RG1')=3721.2;
+WNDFLH('IE_OFF_OFF_Existing_RG2')=3721.2;
+WNDFLH('IE_OFF_OFF_Existing_RG3')=3721.2;
+WNDFLH('IE_ONS_Existing_RG1')=2840.5;
+WNDFLH('IE_ONS_Existing_RG2')=2840.5;
+WNDFLH('IE_ONS_Existing_RG3')=2840.5;
+WNDFLH('IT_ONS_Existing_RG1')=2075.2;
+WNDFLH('IT_ONS_Existing_RG2')=2075.2;
+WNDFLH('IT_ONS_Existing_RG3')=2075.2;
+WNDFLH('LT_ONS_Existing_RG1')=2940.3;
+WNDFLH('LT_ONS_Existing_RG2')=2940.3;
+WNDFLH('LT_ONS_Existing_RG3')=2940.3;
+WNDFLH('LV_ONS_Existing_RG1')=1525.2;
+WNDFLH('LV_ONS_Existing_RG2')=1525.2;
+WNDFLH('LV_ONS_Existing_RG3')=1525.2;
+WNDFLH('NL_OFF_OFF_Existing_RG1')=3578.8;
+WNDFLH('NL_OFF_OFF_Existing_RG2')=3578.8;
+WNDFLH('NL_OFF_OFF_Existing_RG3')=3578.8;
+WNDFLH('NO1_ONS_Existing_RG1')=2276.5;
+WNDFLH('NO1_ONS_Existing_RG2')=2276.5;
+WNDFLH('NO1_ONS_Existing_RG3')=2276.5;
+WNDFLH('NO2_ONS_Existing_RG1')=3825.8;
+WNDFLH('NO2_ONS_Existing_RG2')=3825.8;
+WNDFLH('NO2_ONS_Existing_RG3')=3825.8;
+WNDFLH('NO4_ONS_Existing_RG1')=2583.5;
+WNDFLH('NO4_ONS_Existing_RG2')=2583.5;
+WNDFLH('NO4_ONS_Existing_RG3')=2583.5;
+WNDFLH('PL_ONS_Existing_RG1')=2450.5;
+WNDFLH('PL_ONS_Existing_RG2')=2450.5;
+WNDFLH('PL_ONS_Existing_RG3')=2450.5;
+WNDFLH('PT_OFF_OFF_Existing_RG1')=3164.6;
+WNDFLH('PT_OFF_OFF_Existing_RG2')=3164.6;
+WNDFLH('PT_OFF_OFF_Existing_RG3')=3164.6;
+WNDFLH('PT_ONS_Existing_RG1')=2396.8;
+WNDFLH('PT_ONS_Existing_RG2')=2396.8;
+WNDFLH('PT_ONS_Existing_RG3')=2396.8;
+WNDFLH('RO_ONS_Existing_RG1')=2515.7;
+WNDFLH('RO_ONS_Existing_RG2')=2515.7;
+WNDFLH('RO_ONS_Existing_RG3')=2515.7;
+WNDFLH('RS_ONS_Existing_RG1')=1751.1;
+WNDFLH('RS_ONS_Existing_RG2')=1751.1;
+WNDFLH('RS_ONS_Existing_RG3')=1751.1;
+WNDFLH('SE1_ONS_Existing_RG1')=1525.3;
+WNDFLH('SE1_ONS_Existing_RG2')=1525.3;
+WNDFLH('SE1_ONS_Existing_RG3')=1525.3;
+WNDFLH('SE2_ONS_Existing_RG1')=2938.6;
+WNDFLH('SE2_ONS_Existing_RG2')=2938.6;
+WNDFLH('SE2_ONS_Existing_RG3')=2938.6;
+WNDFLH('SE3_ONS_Existing_RG1')=1957.2;
+WNDFLH('SE3_ONS_Existing_RG2')=1957.2;
+WNDFLH('SE3_ONS_Existing_RG3')=1957.2;
+WNDFLH('SE4_OFF_OFF_Existing_RG1')=3814.2;
+WNDFLH('SE4_OFF_OFF_Existing_RG2')=3814.2;
+WNDFLH('SE4_OFF_OFF_Existing_RG3')=3814.2;
+WNDFLH('SE4_ONS_Existing_RG1')=2824.5;
+WNDFLH('SE4_ONS_Existing_RG2')=2824.5;
+WNDFLH('SE4_ONS_Existing_RG3')=2824.5;
+WNDFLH('SI_ONS_Existing_RG1')=2508.2;
+WNDFLH('SI_ONS_Existing_RG2')=2508.2;
+WNDFLH('SI_ONS_Existing_RG3')=2508.2;
+WNDFLH('SK_ONS_Existing_RG1')=1328.6;
+WNDFLH('SK_ONS_Existing_RG2')=1328.6;
+WNDFLH('SK_ONS_Existing_RG3')=1328.6;

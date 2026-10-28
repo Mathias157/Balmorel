@@ -32,9 +32,11 @@ _Avoid_: Backcast preprocessing
 
 **Calibration input**:
 A backcast input derived from observed data for the backcast year that says
-what was available that year (nuclear outages, the usable interconnector
-capacity), not what the model should decide. Results that a calibration
-input fixes by construction are not evidence in backcast validation.
+what was available or given that year (nuclear and thermal outages, the
+usable interconnector capacity, the VRE and demand levels, output that ran
+regardless of price), not what the model should decide. Results that a
+calibration input fixes by construction are not evidence in backcast
+validation.
 _Avoid_: Tuning, fitting
 
 **Observed Flow Limit**:
@@ -68,10 +70,43 @@ It is a stopgap until CorRES fixes and completes its inflow series.
 _Avoid_: Hydro calibration (the backcast year's generation is never the
 reference)
 
+**VRE level**:
+The annual output a country's wind or solar fleet could deliver in the
+backcast year: the weather year's full-load hours, scaled per country and
+kind (solar, onshore, offshore) so that it equals ENTSO-E's reported output
+for that year. The hourly profile still comes from the weather year. Written
+as `WNDFLH`/`SOLEFLH` overrides. A calibration input.
+_Avoid_: Capacity factor (that describes output after curtailment)
+
+**Thermal availability**:
+The share of a country's fossil, biomass or waste `GKFX` of one fuel group
+that could run in a given week of the backcast year: ENTSO-E's installed
+capacity as a share of `GKFX` (at most 1), less the capacity ENTSO-E reports
+as out of service that week. Taken from ENTSO-E's installed capacity and
+outage reports, never from observed output, because the fossil mix is a
+validation metric. Written as weekly `GKRATE` overrides to
+`GKRATE_THERMAL_ENTSOE.inc`. A calibration input.
+_Avoid_: Capacity factor (that describes output); Nuclear availability (that
+is taken from observed output)
+
+**Must-run floor**:
+The lowest electricity output a zone's fossil, biomass or waste fuel group
+kept in a week of the backcast year when it would have paid to stop: the
+week's lowest observed hourly output (ENTSO-E), for weeks in which the
+zone's day-ahead price stayed at or below 40 €/MWh for at least 4 hours, and
+for biomass and waste in every week. Balmorel must produce at least that
+much in every time step of the week, or pay a penalty per MWh short. It
+fixes only the bottom of the fossil mix by construction; the fossil mix
+above the floor stays a validation metric. Written to `MUSTRUN_FLOOR.inc`,
+whose existence switches Balmorel's `MUSTRUN` addon on. A calibration input.
+_Avoid_: Minimum load (a property of one unit); Must-run (a plant flag, not
+an observed level)
+
 **Validation metric**:
 A result the model must reproduce on its own to pass backcast validation:
-prices, cross-border flows, the fossil mix, and the timing of nuclear and
-hydro output within the year. Never derived from the same data as a
+prices, cross-border flows, the fossil mix above the must-run floor,
+electric heating, and the timing of nuclear and hydro output within the
+year. Never derived from the same data as a
 calibration input.
 _Avoid_: Target (ambiguous between the two)
 
@@ -88,6 +123,20 @@ endogenously (power-to-heat, EV charging), so it is not compared with observed
 load on its own. Observed load is compared with modelled demand plus that
 endogenous consumption, which is how the power-to-heat share is validated.
 _Avoid_: Demand (ambiguous), load
+
+**Demand level**:
+The annual exogenous electricity demand (`DE`) of a region in the backcast
+year: its ENTSO-E load over the backcast calendar, net of Balmorel's
+distribution losses, less the electricity Eurostat reports for heating
+(household space and water heating, electric boilers and heat pumps in
+district heating), which Balmorel adds endogenously. Taken from ENTSO-E's
+load rather than Eurostat's final consumption because the two differ in
+coverage (DE: ENTSO-E sees 7% less). With it, Balmorel's load misses
+ENTSO-E's only by its electric-heating error and transmission losses.
+Written as `DE` overrides to `DE_ENTSOE.inc`. A calibration input; electric
+heating stays a validation metric.
+_Avoid_: Final consumption (Eurostat's figure, with different coverage);
+Demand (ambiguous)
 
 **Historical price series**:
 An observed market price for a fuel or emission allowance over the backcast

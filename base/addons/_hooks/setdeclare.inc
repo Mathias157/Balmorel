@@ -22,6 +22,7 @@ $ifi %X3V%==yes  $include   "../../base/addons/x3v/bb4/x3v_setdeclare.inc";
 $ifi %dflexquant%==yes       $include "../../base/addons/demandflexquant/dflexquant_set.inc";
 $ifi %STEPWISEPRICE%==yes  $include   "../../base/addons/stepwiseprice/stepwiseprice_setdeclare.inc";
 $ifi %LIMITSFORFUELS%==yes  $include   "../../base/addons/limitsforfuels/bb4/limitsforfuels_setdeclare.inc";
+$ifi %MUSTRUN%==yes  $include   "../../base/addons/mustrun/bb4/mustrun_setdeclare.inc";
 $ifi %UnitComm%==yes  $include   "../../base/addons/unitcommitment/bb4/uc_setdeclare.inc";
 $ifi %FlowBased%==yes      $include        "../../base/addons/FlowBased/bb4/flowbased_setdeclare.inc";
 $ifi %STEPWISE_RAMPING%==yes  $include   "../../base/addons/STEPWISE_RAMPING/stepwise_ramping_setdeclare.inc";

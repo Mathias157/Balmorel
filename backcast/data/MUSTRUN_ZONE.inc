@@ -1,0 +1,34 @@
+* Must-run floor from ENTSO-E output in low-price weeks (see CONTEXT.md) - generated, do not hand-edit
+SET MUSTRUN_ZONE 'Zones with a must-run floor (countries or bidding zones)'
+/
+AT
+BE
+BG
+CZ
+DE
+DK1
+DK2
+EE
+ES
+FI
+FR
+GR
+HR
+HU
+IE
+IT
+LT
+LV
+MK
+NL
+NO1
+NO2
+NO4
+NO5
+PL
+PT
+RO
+RS
+SI
+SK
+/;
