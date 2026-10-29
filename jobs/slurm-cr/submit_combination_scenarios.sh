@@ -18,6 +18,9 @@
 # Set SKIP_FROM_BASE_INV=1 to hold back every scenario with a switch whose caps are recalibrated
 # from base_INV (from_base_inv in config/switches.yaml, docs/adr/0040), e.g. while base is re-run.
 #
+# INV_OPTFILE and LASTYEAR_OPTFILE pass through sbatch's environment to investment.sh, e.g.
+# LASTYEAR_OPTFILE=8 for no crossover in 2050 when a run stalled after crossover (docs/adr/0095).
+#
 # Every scenario to submit is checked first: if old target-year results (_F/_R) or Year copies
 # (_Y20xx) exist, fan_out_target_years would refuse at the end of the investment run, so nothing
 # is submitted and the paths to archive are listed.

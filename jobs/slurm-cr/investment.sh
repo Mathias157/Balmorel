@@ -30,12 +30,20 @@ source ../jobs/slurm-cr/functions.sh
 # Get run name
 source ./config.sh
 
-optfile=2 # barrier with crossover, see docs/adr/0080-investment-runs-return-to-cplex-op2.md
+# Barrier with crossover, see docs/adr/0080-investment-runs-return-to-cplex-op2.md. For a run that
+# stalled in the clean-up after crossover, submit with INV_OPTFILE (e.g. 9: op2 without scaind 1)
+# and/or LASTYEAR_OPTFILE (e.g. 8: no crossover in 2050, the last year), GREAT docs/adr/0095
+optfile=${INV_OPTFILE:-2}
 require_optfile $optfile
+lastyear_opts=""
+if [ -n "${LASTYEAR_OPTFILE:-}" ]; then
+    require_optfile $LASTYEAR_OPTFILE
+    lastyear_opts="--LASTYEAR_OPTFILE=${LASTYEAR_OPTFILE}"
+fi
 
 echo "Starting investment optimisation at $(date)"
 run_name="$(basename $PWD)"
-echo "Run name: ${run_name}_INV (cplex.op${optfile})"
+echo "Run name: ${run_name}_INV (cplex.op${optfile}${LASTYEAR_OPTFILE:+, last year cplex.op${LASTYEAR_OPTFILE}})"
 
 # Temporal resolution
 cat ../base/data/Y_inv.inc >data/Y.inc
@@ -47,7 +55,7 @@ cd model
 cat balopt_inv.opt >balopt.opt
 
 # Run GAMS - if this fails, set -e will cause immediate exit via the trap
-gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_INV" $opts
+gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_INV" $opts $lastyear_opts
 gams_exit_code=$?
 
 # Explicitly check GAMS exit code
@@ -57,7 +65,9 @@ if [ $gams_exit_code -ne 0 ]; then
 fi
 
 cd ..
-optimality_check $SLURM_JOB_ID 3
+# A no-crossover last year has no crossover to repair a stalled barrier, and its capacities seed every
+# fullyear and rolling run, so it gets fullyear's strict check (docs/adr/0090, 0094)
+optimality_check $SLURM_JOB_ID 3 ${LASTYEAR_OPTFILE:+strict}
 penalty_check $SLURM_JOB_ID
 echo "Investment optimisation completed successfully at $(date)"
 

@@ -8,6 +8,8 @@
 * Used by all fullyear and rolling runs; investment runs keep op2, since BB4 fixes each year's
 * capacities into the next and no-crossover dust made that infeasible. See GREAT's
 * docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md and docs/adr/0080-investment-runs-return-to-cplex-op2.md.
+* Exception: an investment run that stalled after crossover may solve its last year (2050) with this
+* file via LASTYEAR_OPTFILE=8, since no later year inherits it (GREAT docs/adr/0095).
 *
 * "LPmethod  4": Barrier method
 * "solutiontype  2": No crossover (return non-basic barrier solution)
