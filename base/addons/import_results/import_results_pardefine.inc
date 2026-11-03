@@ -51,11 +51,16 @@ $ifi %ADDTRANSDEV%==yes     execute_load  '../simex/XKACCUMNET.gdx', XKACCUMNET;
 $ifi %HEATTRANS%==yes  $ifi %ADDHEATTRANSDEV%==yes execute_load  '../simex/XHKACCUMNET.gdx', XHKACCUMNET;
 $ifi %HYDROGEN%==yes   $ifi %ADDH2TRANSDEV%==yes   execute_load  '../simex/XH2KACCUMNET.gdx', XH2KACCUMNET;
 
-* Remove 1e-9 entries
-GKACCUMNET(Y,IA,G)$(GKACCUMNET(Y,IA,G) LT 1e-9) = 0;
-XKACCUMNET(Y,IRE,IRI)$(XKACCUMNET(Y,IRE,IRI) LT 1e-9) = 0;
-$ifi %HEATTRANS%==yes XHKACCUMNET(Y,IAE,IAI)$(XHKACCUMNET(Y,IAE,IAI) LT 1e-9)=0;
-$ifi %HYDROGEN%==yes XH2KACCUMNET(Y,IRE,IRI)$(XH2KACCUMNET(Y,IRE,IRI) LT 1e-9)=0;
+* Remove dust capacities below IMPORT_MINCAP (MW, or MWh for storage volumes). An investment run
+* that ends on an interior (no-crossover) solution leaves thousands of these, and each one brings
+* a full set of hourly dispatch variables into the fullyear/rolling LP. Vertex solutions have
+* nothing below 1e-3, so the default changes no crossover run (docs/adr/0096)
+$if not set IMPORT_MINCAP $setglobal IMPORT_MINCAP 1e-3
+GKACCUMNET(Y,IA,G)$(GKACCUMNET(Y,IA,G) LT %IMPORT_MINCAP%) = 0;
+XKACCUMNET(Y,IRE,IRI)$(XKACCUMNET(Y,IRE,IRI) LT %IMPORT_MINCAP%) = 0;
+$ifi %HEATTRANS%==yes XHKACCUMNET(Y,IAE,IAI)$(XHKACCUMNET(Y,IAE,IAI) LT %IMPORT_MINCAP%)=0;
+$ifi %HYDROGEN%==yes XH2KACCUMNET(Y,IRE,IRI)$(XH2KACCUMNET(Y,IRE,IRI) LT %IMPORT_MINCAP%)=0;
+$ifi %DEMANDRESPONSE%==yes DRKN_ACCUMNET(YYY,AAA,DR_TECHNOLOGIES)$(DRKN_ACCUMNET(YYY,AAA,DR_TECHNOLOGIES) LT %IMPORT_MINCAP%) = 0;
 
 
 *Energy dispatch from previous optimization

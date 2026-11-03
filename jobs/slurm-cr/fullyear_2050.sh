@@ -12,7 +12,7 @@
 ### -- memory: CR_CORE does not reserve it, only picks nodes with this much in total --
 #SBATCH --mem=100G
 ### -- set walltime limit: D-HH:MM:SS --
-#SBATCH --time=0-12:00:00
+#SBATCH --time=1-00:00:00
 ### -- send notification at completion --
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mberos@dtu.dk
@@ -35,7 +35,7 @@ source ../jobs/slurm-cr/functions.sh
 source ./config.sh
 
 year=2050
-optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
+optfile=7 # op8 without scaind 1, barrier without crossover, see docs/adr/0096 (amends 0035's op8)
 require_optfile $optfile
 
 echo "Starting fullyear simulation at $(date)"

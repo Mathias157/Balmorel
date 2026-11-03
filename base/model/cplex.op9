@@ -1,0 +1,10 @@
+* Option file 9 for CPLEX solver - cplex.op2 without "scaind 1", i.e. op2 as before GREAT docs/adr/0094.
+* Barrier with crossover and default scaling. Scaling changes CPLEX's path, not the LP's optimum, so
+* this is an alternative path for investment runs that stall in the simplex clean-up after crossover
+* with op2 (GREAT docs/adr/0095). Pass it with INV_OPTFILE=9 (jobs/slurm-cr/investment.sh).
+* "LPmethod  4": Barrier method
+* advind is set to 0 by default since for large problems a better performance has been experienced. If 0, the optimization will not use the previous solution to try to find the next run faster.
+
+LPmethod  4
+advind 0
+predual -1
