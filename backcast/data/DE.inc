@@ -3,6 +3,8 @@
 * pybalmorel (demand-level): ENTSO-E load net of distribution losses, less
 * Eurostat's electricity for heating, which Balmorel adds endogenously.
 * Without it, the base demand stays (2020 Eurostat final consumption for the
-* countries added later, older sources for the rest).
+* countries added later, older sources for the rest). The INDUSTRY and
+* INDIVUSERS addons adjust DE again after this file; INDUSTRY_DE.inc and
+* INDIVUSERS_DE.inc in this folder re-apply DE_ENTSOE.inc after them.
 $include '../../base/data/DE.inc';
 $if EXIST '../data/DE_ENTSOE.inc' $INCLUDE '../data/DE_ENTSOE.inc';
