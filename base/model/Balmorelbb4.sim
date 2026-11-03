@@ -26,6 +26,19 @@ VXKN.l(Y,IR,IRI)      = 0;
 
 IY411PREVY(Y,Y-1)= YES;
 
+* Rolling fallback (GREAT docs/adr/0097): a rolling week whose returned objective is above
+* ROLLING_FALLBACK_OBJ is solved once more with option file ROLLING_FALLBACK_OPTFILE, see the SOLVE
+* section. Off unless ROLLING_FALLBACK_OPTFILE is set, e.g. --ROLLING_FALLBACK_OPTFILE=7.
+$ifi not %RollingSeasons%==yes $goto label_no_rolling_fallback_init
+$if not set ROLLING_FALLBACK_OPTFILE $goto label_no_rolling_fallback_init
+$if not set ROLLING_FALLBACK_OBJ $setglobal ROLLING_FALLBACK_OBJ 1e16
+SCALAR IROLLINGFALLBACKOBJ  "Objective of a rolling week's first solve";
+SCALAR IROLLINGFALLBACKSTAT "Model status of a rolling week's first solve";
+SCALAR IROLLINGFALLBACKOPT  "Option file of a rolling week's first solve";
+FILE IROLLINGFALLBACKLOG "Writes the rolling fallback's lines to the GAMS log";
+IROLLINGFALLBACKLOG.nr = 4;
+$label label_no_rolling_fallback_init
+
 *-------------------------------------------------------------------------------
 * INITIALISATIONS FOR addons:
 *-------------------------------------------------------------------------------
@@ -265,6 +278,32 @@ $if set LASTYEAR_OPTFILE IF(SUM(IY411$(YVALUE(IY411) EQ SMAX(Y, YVALUE(Y))), 1),
 $ifi %SOLVETYPE%==LP   SOLVE BALBASE4 USING LP   MINIMIZING VOBJ;
 $ifi %SOLVETYPE%==RMIP SOLVE BALBASE4 USING RMIP MINIMIZING VOBJ;
 $ifi %SOLVETYPE%==MIP  SOLVE BALBASE4 USING MIP  MINIMIZING VOBJ;
+
+* Rolling fallback (GREAT docs/adr/0097): when a rolling week's barrier diverges, CPLEX returns
+* status 6 with a point that violates the equations by orders of magnitude (objective ~1e18, against
+* at most ~6e14 for a status-6 week that ended close to feasible). Such a week is solved once more
+* with ROLLING_FALLBACK_OPTFILE, whose different scaling takes a different barrier path, before its
+* storage levels are passed on. Rolling weeks only exchange the fullyear's imported storage levels,
+* so the other weeks are unaffected. A week still above ROLLING_FALLBACK_OBJ afterwards is logged as
+* DIVERGED WEEK, which jobs/slurm-cr/functions.sh's optimality_check rejects after the run.
+$ifi not %RollingSeasons%==yes $goto label_no_rolling_fallback
+$if not set ROLLING_FALLBACK_OPTFILE $goto label_no_rolling_fallback
+IF(VOBJ.L GT %ROLLING_FALLBACK_OBJ%,
+   IROLLINGFALLBACKOBJ  = VOBJ.L;
+   IROLLINGFALLBACKSTAT = BALBASE4.modelstat;
+   IROLLINGFALLBACKOPT  = BALBASE4.optfile;
+   BALBASE4.optfile = %ROLLING_FALLBACK_OPTFILE%;
+$ifi %SOLVETYPE%==LP   SOLVE BALBASE4 USING LP   MINIMIZING VOBJ;
+$ifi %SOLVETYPE%==RMIP SOLVE BALBASE4 USING RMIP MINIMIZING VOBJ;
+$ifi %SOLVETYPE%==MIP  SOLVE BALBASE4 USING MIP  MINIMIZING VOBJ;
+   BALBASE4.optfile = IROLLINGFALLBACKOPT;
+   put_utility IROLLINGFALLBACKLOG 'log' / 'ROLLING FALLBACK: ' IS3LOOPSET.tl:0 ' objective ' IROLLINGFALLBACKOBJ:0:0 ' -> ' VOBJ.L:0:0
+      ' (model status ' IROLLINGFALLBACKSTAT:0:0 ' -> ' BALBASE4.modelstat:0:0 ', cplex.op%ROLLING_FALLBACK_OPTFILE%)';
+   IF(VOBJ.L GT %ROLLING_FALLBACK_OBJ%,
+      put_utility IROLLINGFALLBACKLOG 'log' / 'DIVERGED WEEK: ' IS3LOOPSET.tl:0 ' objective ' VOBJ.L:0:0 ' after the fallback re-solve';
+   );
+);
+$label label_no_rolling_fallback
 
 $ifi %RollingSeasons%==yes * Fixing relevant variables from previous optimization
 $ifi %RollingSeasons%==yes   VHYRS_S.FX(IY411,IA,IS3LOOPSET+1)$(NOT(ORD(IS3LOOPSET) EQ CARD(IS3LOOPSET)) AND SUM(IGHYRS$IAGK_HASORPOT(IY411,IA,IGHYRS),1))=  VHYRS_S.L(IY411,IA,IS3LOOPSET+1);

@@ -31,6 +31,9 @@ trap cleanup EXIT SIGTERM SIGINT
 # accepts a status 6 whose returned barrier iterate - the starred line if CPLEX went back to its
 # best iterate, else the last one - has a relative primal-dual gap below STATUS6_GAP_MAX (default
 # 1e-3): base F2050 stopped at 0.0135 %, 0090's failures at 20 % and 54 % (GREAT docs/adr/0094).
+# Rolling runs with the fallback re-solve log a ROLLING FALLBACK line for every week they solved a
+# second time, so those count as expected solves too, and a DIVERGED WEEK line for every week whose
+# re-solve diverged again, which exits (GREAT docs/adr/0097).
 optimality_check() {
     job_id=$1
     expected_nr=$2
@@ -42,12 +45,20 @@ optimality_check() {
     unscaled=$(printf '%s\n' "$statuses" | grep -c 'status (5)' || true)
     nonoptimal=$(printf '%s\n' "$statuses" | grep -c 'status (6)' || true)
     other=$(printf '%s\n' "$statuses" | grep -cvE 'status \((1|5|6)\)|^$' || true)
+    # Not anchored: GAMS indents put_utility log lines
+    fallbacks=$(cat ../logs/*_${job_id}.out | grep -oa 'ROLLING FALLBACK: ' | wc -l || true)
+    diverged=$(cat ../logs/*_${job_id}.out | grep -a 'DIVERGED WEEK: ' || true)
+    expected_nr=$((expected_nr + fallbacks))
     if [[ "$other" -gt 0 ]]; then
         echo "INFEASIBLE: Job ${job_id} had ${other} solves with a status other than 1 (optimal), 5 (unscaled infeasibilities) or 6 (non-optimal):"
         printf '%s\n' "$statuses" | grep -vE 'status \((1|5|6)\)|^$' | sort | uniq -c
         exit 1
+    elif [[ -n "$diverged" ]]; then
+        echo "DIVERGED: Job ${job_id} has rolling weeks whose fallback re-solve diverged too:"
+        printf '%s\n' "$diverged"
+        exit 1
     elif [[ $((optimal + unscaled + nonoptimal)) -ne "$expected_nr" ]]; then
-        echo "INFEASIBLE: Job ${job_id} had ${optimal} optimal, ${unscaled} unscaled-infeasible and ${nonoptimal} non-optimal solves, which is not the expected ${expected_nr} in total!"
+        echo "INFEASIBLE: Job ${job_id} had ${optimal} optimal, ${unscaled} unscaled-infeasible and ${nonoptimal} non-optimal solves, which is not the expected ${expected_nr} in total (incl. ${fallbacks} fallback re-solves)!"
         exit 1
     elif [[ "$strict" == strict && "$nonoptimal" -gt 0 ]]; then
         gap_max=${STATUS6_GAP_MAX:-1e-3}
@@ -85,9 +96,12 @@ optimality_check() {
 # no later run is submitted and a Year copy is not returned (docs/adr/0057). CO2 limit slack costs
 # only 1000 per t (GREAT docs/adr/0093), so even R2050's ~4 Mt weeks (2.1e11) stay below the 1e13
 # warning; verify slacks below lists it. Rolling 2050 had 5e14 for it before (GREAT docs/adr/0091).
-# G2V infrastructure slack summed above G2V_SLACK_FAIL_ABOVE (default 1e3 MW over all time steps,
-# ~1e12 in QOBJ) also exits: it means INV's charging infrastructure can't carry this run's EV
-# energy, and base F2050's 2.2e12 passed the objective check (GREAT docs/adr/0087).
+# A G2V infrastructure slack entry above G2V_SLACK_FAIL_ABOVE (default 1 MW in a single region and
+# time step) also exits: it means INV's charging infrastructure can't carry this run's EV energy, and
+# base F2050's 2.2e12 passed the objective check (GREAT docs/adr/0087). It gates on the largest
+# entry, not the sum: interior (non-optimal) rolling weeks leave thousands of sub-0.2 MW entries
+# that summed to 1-2e3 MW, while a real shortfall (HPN R2050: 5.8 GW) or a diverged week
+# (1.5e4-1.7e5 MW) shows up in a single entry (GREAT docs/adr/0097).
 penalty_check() {
     job_id=$1
     fail_above=${PENALTY_FAIL_ABOVE:-1e14}
@@ -107,9 +121,9 @@ penalty_check() {
     # overwrites all_endofmodel.gdx, so list them now. Only G2V slack fails - some rolling CO2 slack is
     # expected (ADR 0060). Status 3 is that failure, anything else (e.g. a crash) only reports
     status=0
-    pixi run verify "$PWD" slacks --top 5 --fail-on VG2VINFRASLACK --fail-above "${G2V_SLACK_FAIL_ABOVE:-1e3}" || status=$?
+    pixi run verify "$PWD" slacks --top 5 --fail-on VG2VINFRASLACK --fail-by max --fail-above "${G2V_SLACK_FAIL_ABOVE:-1}" || status=$?
     if [[ $status -eq 3 ]]; then
-        echo "ERROR: G2V infrastructure slack above G2V_SLACK_FAIL_ABOVE=${G2V_SLACK_FAIL_ABOVE:-1e3}"
+        echo "ERROR: G2V infrastructure slack above G2V_SLACK_FAIL_ABOVE=${G2V_SLACK_FAIL_ABOVE:-1} in one entry"
         exit 1
     fi
 }

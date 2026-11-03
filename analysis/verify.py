@@ -340,16 +340,20 @@ def penalty_prices(ctx, scenario, threshold):
 @click.option('--fail-on', type=str, multiple=True,
               help="Only these slack variables fail the check, the rest are reported [default: all]. Repeatable")
 @click.option('--fail-above', type=float, default=0, show_default=True,
-              help="Fail only if a --fail-on variable's summed level exceeds this")
-def slacks(ctx, gdx, tolerance, top, fail_on, fail_above):
+              help="Fail only if a --fail-on variable's level, summed or largest (--fail-by), exceeds this")
+@click.option('--fail-by', type=click.Choice(['sum', 'max']), default='sum', show_default=True,
+              help="Compare --fail-above with the summed level or with the largest single entry")
+def slacks(ctx, gdx, tolerance, top, fail_on, fail_above, fail_by):
     """
     Check that no slack variable is used - exits with status 1 if one is
 
     With --fail-on, only the listed variables fail the check, and only if
-    their summed level is above --fail-above, and then exit with status 3,
-    so a crash (status 1) can be told apart. The job scripts use this to
-    stop on G2V infrastructure slack but not on the rolling CO2 slack that
-    ADR 0060 expects.
+    their summed level (or, with --fail-by max, their largest entry) is
+    above --fail-above, and then exit with status 3, so a crash (status 1)
+    can be told apart. The job scripts use this to stop on G2V
+    infrastructure slack but not on the rolling CO2 slack that ADR 0060
+    expects. They gate on the largest entry: barrier noise spreads thousands
+    of sub-MW entries that sum past any useful threshold (GREAT ADR 0097).
 
     Lists every VQ* variable plus VG2VINFRASLACK and VHYDROGEN_QH2EQ with a
     level above the tolerance, by symbol, region and direction (IPLUSMINUS).
@@ -406,11 +410,11 @@ def slacks(ctx, gdx, tolerance, top, fail_on, fail_above):
         if not fail_on:
             ctx.exit(1)
         failed = [symbol for symbol in used if symbol in fail_on
-                  and container[symbol].records['level'].sum() > fail_above]
+                  and container[symbol].records['level'].agg(fail_by) > fail_above]
         if failed:
-            print(f"Above --fail-above {fail_above:g}: {' '.join(failed)}")
+            print(f"Above --fail-above {fail_above:g} ({fail_by}): {' '.join(failed)}")
             ctx.exit(3)
-        print(f"None of {' '.join(fail_on)} sums above {fail_above:g}")
+        print(f"None of {' '.join(fail_on)} has a {fail_by} above {fail_above:g}")
         return
     print(f"No slack variable above {tolerance:g} ({len(symbols)} checked)")
 

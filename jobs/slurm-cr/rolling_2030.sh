@@ -37,12 +37,17 @@ source ./config.sh
 
 year=2030
 optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
+# A week whose barrier diverges (objective above 1e16) is solved once more with this option file,
+# op8 without scaind 1 (GREAT docs/adr/0097). optimality_check counts the extra solves and fails
+# the job if one diverges again.
+fallback_optfile=7
 require_optfile $optfile
+require_optfile $fallback_optfile
 
 echo "Starting rolling seasons simulation at $(date)"
 # A Year copy names its results after its source scenario
 run_name="${source_scenario:-$(basename $PWD)}"
-echo "Run name: ${run_name}_R${year} (cplex.op${optfile})"
+echo "Run name: ${run_name}_R${year} (cplex.op${optfile}, fallback cplex.op${fallback_optfile})"
 
 # Rolling horison simulation
 cat ../base/data/Y_${year}.inc >data/Y.inc
@@ -50,7 +55,7 @@ cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_roll.opt >balopt.opt
-gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --scenario_name="${run_name}_R${year}" $opts
+gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --ROLLING_FALLBACK_OPTFILE=${fallback_optfile} --scenario_name="${run_name}_R${year}" $opts
 cd ..
 
 optimality_check $SLURM_JOB_ID 52

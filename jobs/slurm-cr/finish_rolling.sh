@@ -1,7 +1,8 @@
 #!/bin/bash
 # Finish a rolling job that stopped in penalty_check, after its threshold was raised (GREAT
-# docs/adr/0091): re-runs the checks at the end of rolling_<year>.sh against the job's log and the
-# folder's all_endofmodel.gdx, then returns the Year copy like the job would have. Refuses a job
+# docs/adr/0091) or its G2V gate changed (GREAT docs/adr/0097): re-runs the checks at the end of
+# rolling_<year>.sh against the job's log and the folder's all_endofmodel.gdx, then returns the
+# Year copy like the job would have. Refuses a job
 # that stopped for any other reason, or whose folder has a later run of the same name. Since GREAT
 # docs/adr/0093 the default threshold is 1e14 for every job again, so set PENALTY_FAIL_ABOVE to
 # finish a job that stopped at it.
@@ -25,7 +26,7 @@ if ! grep -q "^Run name: ${run_name}_R${year} " "$log"; then
     echo "ERROR: job ${job_id} did not run ${run_name}_R${year} - run this from the folder the job ran in"
     exit 1
 fi
-if ! grep -q '^ERROR: objective above PENALTY_FAIL_ABOVE' "$log"; then
+if ! grep -qE '^ERROR: (objective above PENALTY_FAIL_ABOVE|G2V infrastructure slack above G2V_SLACK_FAIL_ABOVE)' "$log"; then
     echo "ERROR: job ${job_id} did not stop in penalty_check - not finishing it"
     exit 1
 fi
