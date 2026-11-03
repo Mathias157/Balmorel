@@ -7,8 +7,11 @@
 # docs/adr/0093 the default threshold is 1e14 for every job again, so set PENALTY_FAIL_ABOVE to
 # finish a job that stopped at it.
 #
-# Usage, on a login node, from the folder the job ran in (scripts/Balmorel/<scenario>_Y<year>/):
-#   bash ../jobs/slurm-cr/finish_rolling.sh <job id>
+# Usage, on a compute node, from the folder the job ran in (scripts/Balmorel/<scenario>_Y<year>/).
+# Not on the login node: it SIGKILLs the verify checks, and once even killed the Year copy's
+# rm -rf halfway (2026-11-03). From scripts/Balmorel/:
+#   srun --account=dtu_00075 --partition=fatnode --mem=100G --time=04:00:00 --pty bash
+#   cd <scenario>_Y<year> && bash ../jobs/slurm-cr/finish_rolling.sh <job id>
 
 source ../jobs/slurm-cr/functions.sh
 source ./config.sh
@@ -37,10 +40,17 @@ for other in ../logs/GREAT_rolling_${year}_*.out; do
         exit 1
     fi
 done
-if squeue -h -u "$USER" -o '%Z' 2>/dev/null | grep -qxF "$PWD"; then
-    echo "ERROR: a job is still queued or running in $PWD - not finishing ${job_id}"
-    exit 1
-fi
+# Compare physical paths: jobs submitted from a job report /gpfs/hpc-home/..., jobs submitted from
+# a login shell /home/... A while loop instead of `| grep -q`, which under pipefail can let a
+# match through when squeue gets SIGPIPE.
+work_dirs=$(squeue -h -u "$USER" -o '%Z') || { echo "ERROR: squeue failed - not finishing ${job_id}"; exit 1; }
+here=$(pwd -P)
+while read -r dir; do
+    if [ -n "$dir" ] && [ "$(cd "$dir" 2>/dev/null && pwd -P)" = "$here" ]; then
+        echo "ERROR: a job is still queued or running in $dir - not finishing ${job_id}"
+        exit 1
+    fi
+done <<< "$work_dirs"
 
 echo "Finishing job ${job_id} (${run_name}_R${year}) at $(date)"
 optimality_check $job_id 52
