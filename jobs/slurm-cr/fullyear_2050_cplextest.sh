@@ -68,12 +68,14 @@ echo "Test lines in model/cplex.op${OPTFILE}:"
 sed -n '/^\* Test lines/,$p' "model/cplex.op${OPTFILE}"
 echo "Solver status:"
 grep -aE '(LP|MIP|RMIP) status \(' "$log" || echo "  none in the log"
-echo "Last barrier iterates (Itn, primal, dual, prim inf, upper inf, dual inf, inf ratio):"
+echo "Last barrier iterates (Itn, primal, dual, prim inf, upper inf, dual inf, inf ratio - baralg 3 prints no inf ratio):"
 iterates "$log" | tail -n 3
 echo "Starred (best) iterate CPLEX went back to, if any:"
 grep -aE '^ *\* +-?[0-9.]+e[-+][0-9]+' "$log" | tr -s ' ' || echo "  none"
 echo "What GAMS received (model/Balmorel.lst):"
 grep -aE '^\*\*\*\* (SOLVER STATUS|MODEL STATUS|OBJECTIVE VALUE)' model/Balmorel.lst || echo "  no solve summary in the listing"
+echo "CPLEX solution quality of the returned point (printed only with \"quality 1\"):"
+sed -n '/Solution Quality Statistics:/,/comp\. slackness/p' "$log" | grep . || echo "  none in the log"
 
 if [ -n "$REF_JOB" ]; then
     ref_log="../logs/GREAT_fullyear_2050_${REF_JOB}.out"

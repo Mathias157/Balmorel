@@ -80,5 +80,8 @@ weatheryeardata/
 /ALLNNPY/
 # Year copies (jobs/slurm-cr/functions.sh) - temporary, deleted once their results are moved back
 /*_Y20[0-9][0-9]/
+# CPLEX test copies (jobs/slurm-cr/submit_fullyear_cplextest.sh) - temporary, deleted once compared.
+# Ignored also so that cr-sync-up's rsync --delete leaves them alone on Computerome while they run.
+/CPXTEST_*/
 _ev_fleet_read_*/
 _industry_read_*/
