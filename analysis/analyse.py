@@ -40,6 +40,7 @@ from backcastval import (
     plot_price_profile,
 )
 from pybalmorel import Balmorel, MainResults
+from pybalmorel.entsoe import plot_transmission_map
 from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
 import pickle
@@ -1008,6 +1009,29 @@ def map(
     )
 
     return fig, ax
+
+
+@CLI.command()
+@click.pass_context
+@click.argument("entsoe-data-path", type=str, required=True)
+@click.argument("year", type=int, required=True)
+@click.option("--value", type=str, default="net", help="Gross or net flows")
+@click.option("--start-date", type=str, default=None, help="Start date")
+@click.option("--end-date", type=str, default=None, help="End date")
+@click.option("--unit", type=str, default="TWh", help="End date")
+def entsoe_map(ctx, entsoe_data_path, year, value, start_date, end_date, unit):
+
+    fig, ax = plot_transmission_map(
+        entsoe_data_path,
+        year,
+        value=value,
+        start=start_date,
+        end=end_date,
+        unit=unit,
+        extent=(-11.0, 34.0, 33.0, 71.5),
+    )
+
+    fig.savefig("analysis/plots/entsoe_map")
 
 
 @CLI.command()
