@@ -161,3 +161,32 @@ cached ReadData output:
 
 The full-year run uses `T_full` (24 terms per week, i.e. 7-hour steps), and the
 rolling run uses all 168 hourly terms.
+
+## Ablation runs
+
+`jobs/submit_backcast_ablations.sh` measures what each development adds, by
+rerunning the full-year run with one development removed at a time
+(leave-one-out). Each ablation gets its own scenario folder,
+`backcast_abl_<name>/` at the repository root (gitignored), holding a copy of
+`data/` made at submission and its own `simex/`, `output/` and listing. The
+ablations therefore don't overwrite each other, or the `simex/` files the
+rolling run imports from `backcast_F<year>`. The script header lists what each
+ablation removes. `ref` removes nothing and should reproduce
+`backcast_F<year>`, which checks the setup.
+
+1. `pixi run sync-up`, then on the cluster, from the repository root:
+   `jobs/submit_backcast_ablations.sh` (default: `ref hydro nuclear demand
+   mustrun vre`; `thermal` also exists). Names can be given as arguments.
+   `--no-submit` only builds the folders. An existing folder is skipped, so
+   delete it to rebuild it.
+2. Each job runs `jobs/backcast_ablation.sh` from inside its folder and writes
+   `backcast_abl_<name>/model/MainResults_backcast_abl_<name>_F<year>.gdx`.
+3. Fetch the results with `mkdir -p backcast_abl_<name>/model && pixi run
+   sync-mainresults backcast_abl_<name>`.
+
+The `hydro` ablation restores the relative-mode `WTRRSFLH.inc` and
+`WTRRRFLH.inc` from commit `59531c77`, the last one before the absolute mode.
+The `nuclear` ablation also drops `GKFX.inc`, since its 2023 nuclear units
+only close through the weekly ratings. The full-year run's results cover
+every 7th hour only. When comparing them with ENTSO-E, sample ENTSO-E at the
+same hours, or use the annual symbols (`PRO_YCRAGF`).

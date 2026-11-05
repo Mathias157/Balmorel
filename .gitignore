@@ -64,3 +64,6 @@ entsoedata
 weatheryear_inpu*
 backcastoutput
 backcast/weatheryear/output
+
+# Backcast leave-one-out ablations, built by jobs/submit_backcast_ablations.sh
+/backcast_abl_*/
