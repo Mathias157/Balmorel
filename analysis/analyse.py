@@ -40,7 +40,7 @@ from backcastval import (
     plot_price_profile,
 )
 from pybalmorel import Balmorel, MainResults
-from pybalmorel.entsoe import plot_transmission_map
+from pybalmorel.entsoe import plot_transmission_map, plot_profile as plot_entsoe_profile
 from pybalmorel.utils import symbol_to_df
 from pybalmorel.formatting import balmorel_colours
 import pickle
@@ -1072,6 +1072,56 @@ def entsoe_map(ctx, entsoe_data_path, year, value, start_date, end_date, unit):
 
     fig.savefig("analysis/plots/entsoe_map")
 
+    return fig, ax
+
+
+@CLI.command()
+@click.pass_context
+@click.argument("entsoe-data-path", type=str, required=True)
+@click.argument("year", type=int, required=True)
+@click.argument("zones", type=str, required=True)
+@click.option(
+    "--start-date",
+    type=str,
+    default=None,
+    help="First day, Brussels time, e.g. 2023-06-26",
+)
+@click.option(
+    "--end-date", type=str, default=None, help="Day to stop before, Brussels time"
+)
+@click.option(
+    "--filename",
+    type=str,
+    default=None,
+    required=False,
+    help="Name of outputted figure",
+)
+def entsoe_profile(ctx, entsoe_data_path, year, zones, start_date, end_date, filename):
+    """Plot the ENTSO-E production, load, net import and price of comma-separated ZONES, e.g. DK1,DK2 or all"""
+
+    zone_list = zones.split(",")
+    fig, axes = plot_entsoe_profile(
+        entsoe_data_path,
+        year,
+        zone_list,
+        start=start_date,
+        end=end_date,
+    )
+
+    if filename is None:
+        filename = "entsoe_profile_%s-%d%s" % (
+            "-".join(zone_list),
+            year,
+            ctx.obj["plot_ext"],
+        )
+
+    fig.savefig(
+        "analysis/plots/" + filename,
+        bbox_inches="tight",
+    )
+
+    return fig, axes
+
 
 @CLI.command()
 @click.pass_context
@@ -1989,10 +2039,31 @@ def plot_style(
     fig.set_size_inches((7, 4))
     ax.set_facecolor(ctx.obj["fc"])
 
+    # A second y-axis (e.g. price from ax.twinx()) shares the x-axis and position of ax
+    twins = [
+        other
+        for other in ax.get_shared_x_axes().get_siblings(ax)
+        if other is not ax and other.get_position().bounds == ax.get_position().bounds
+    ]
+    handles, labels = ax.get_legend_handles_labels()
+    for twin in twins:
+        twin_handles, twin_labels = twin.get_legend_handles_labels()
+        handles += twin_handles
+        labels += twin_labels
+
     if legend and legend_pos == "up":
-        ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1), ncol=3)
+        ax.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, 1), ncol=3)
     elif legend and legend_pos == "right":
-        ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), ncol=1)
+        # Right of the second y-axis' ticks and label, if any
+        x_anchor = 1.0
+        for twin in twins:
+            twin_right = twin.get_tightbbox().x1
+            x_anchor = max(
+                x_anchor, ax.transAxes.inverted().transform((twin_right, 0))[0] + 0.02
+            )
+        ax.legend(
+            handles, labels, loc="center left", bbox_to_anchor=(x_anchor, 0.5), ncol=1
+        )
 
     plot_path = ctx.obj["plot_path"]
 
