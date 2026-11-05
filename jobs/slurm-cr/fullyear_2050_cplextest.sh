@@ -62,25 +62,34 @@ iterates() {
     { grep -aE '^ *[0-9]+ +-?[0-9.]+e[-+][0-9]+ +-?[0-9.]+e[-+][0-9]+ ' "$1" || true; } | tr -s ' '
 }
 
+# The job's stdout *is* $log, so the summary must not read $log while printing into it. In round 1
+# (jobs 28569-28575) it did: grep refused the file ("input file is also the output", so "Solver
+# status: none"), and the replay check read the summary's own "Last barrier iterates" lines back as
+# test iterates, so 28569 printed a false REPLAY BROKEN. Read a snapshot instead, and run the gate
+# (which reads ../logs/*_<job>.out itself) before the summary starts.
+snap=cplextest_log_snapshot.txt
+cp "$log" "$snap"
+gate=$( (optimality_check $SLURM_JOB_ID 1 strict) 2>&1 || true)
+
 echo
-echo "=== CPLEX test summary: ${SCENARIO_NAME} ==="
+echo "=== CPLEX test summary: ${SCENARIO_NAME} on $(uname -n) ==="
 echo "Test lines in model/cplex.op${OPTFILE}:"
 sed -n '/^\* Test lines/,$p' "model/cplex.op${OPTFILE}"
 echo "Solver status:"
-grep -aE '(LP|MIP|RMIP) status \(' "$log" || echo "  none in the log"
+s=$(grep -aE '(LP|MIP|RMIP) status \(' "$snap" || true); echo "${s:-  none in the log}"
 echo "Last barrier iterates (Itn, primal, dual, prim inf, upper inf, dual inf, inf ratio - baralg 3 prints no inf ratio):"
-iterates "$log" | tail -n 3
+iterates "$snap" | tail -n 3
 echo "Starred (best) iterate CPLEX went back to, if any:"
-grep -aE '^ *\* +-?[0-9.]+e[-+][0-9]+' "$log" | tr -s ' ' || echo "  none"
+s=$(grep -aE '^ *\* +-?[0-9.]+e[-+][0-9]+' "$snap" | tr -s ' ' || true); echo "${s:-  none}"
 echo "What GAMS received (model/Balmorel.lst):"
 grep -aE '^\*\*\*\* (SOLVER STATUS|MODEL STATUS|OBJECTIVE VALUE)' model/Balmorel.lst || echo "  no solve summary in the listing"
 echo "CPLEX solution quality of the returned point (printed only with \"quality 1\"):"
-sed -n '/Solution Quality Statistics:/,/comp\. slackness/p' "$log" | grep . || echo "  none in the log"
+s=$(sed -n '/Solution Quality Statistics:/,/comp\. slackness/p' "$snap" | grep . || true); echo "${s:-  none in the log}"
 
 if [ -n "$REF_JOB" ]; then
     ref_log="../logs/GREAT_fullyear_2050_${REF_JOB}.out"
     iterates "$ref_log" >ref_iterates.txt
-    iterates "$log" >test_iterates.txt
+    iterates "$snap" >test_iterates.txt
     n=$(wc -l <test_iterates.txt)
     if [ "$n" -gt 0 ] && head -n "$n" ref_iterates.txt | cmp -s - test_iterates.txt; then
         echo "REPLAY: all ${n} barrier iterates identical to job ${REF_JOB}'s"
@@ -91,5 +100,5 @@ if [ -n "$REF_JOB" ]; then
 fi
 
 echo "fullyear_2050.sh's gate would say:"
-(optimality_check $SLURM_JOB_ID 1 strict) || true
+echo "$gate"
 echo "Finished CPLEX test at $(date)"
