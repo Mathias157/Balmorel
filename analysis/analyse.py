@@ -895,15 +895,46 @@ def electrolyser_vre_correlation(ctx, scenario_search_string):
 @click.pass_context
 @click.argument("commodity", type=str)
 @click.argument("scenario", type=str)
-@click.argument("node", type=str, default="all")
-@click.argument("year", type=int, default=2050)
+@click.option(
+    "--node",
+    type=str,
+    default="all",
+    help="Which node to plot profiles from (default: all)",
+)
+@click.option(
+    "--year",
+    type=int,
+    default=2050,
+    help="What year to plot profiles from (default 2050)",
+)
 @click.option(
     "--columns",
     type=str,
     default="Technology",
     help="Which parameter to stack, either 'Technology' or 'Fuel'",
 )
-def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: str):
+@click.option(
+    "--seasons",
+    type=str,
+    default=None,
+    help="One- or more specific seasons to plot (comma-separated)",
+)
+@click.option(
+    "--terms",
+    type=str,
+    default=None,
+    help="One- or more specific terms to plot (comma-separated)",
+)
+def profile(
+    ctx,
+    commodity: str,
+    scenario: str,
+    node: str,
+    year: int,
+    columns: str,
+    seasons: str | list | None,
+    terms: str | list | None,
+):
     """Plot energy balance of electricity, heat or hydrogen"""
 
     m = ctx.obj["Balmorel"]
@@ -917,6 +948,12 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
         system_directory=ctx.obj["gams_system_directory"],
     )
 
+    # If seasons or terms, extract several if commas
+    if seasons is not None:
+        seasons = seasons.replace(" ", "").split(",")
+    if terms is not None:
+        terms = terms.replace(" ", "").split(",")
+
     figs, axes = res.plot_profiles(
         commodity,
         year,
@@ -924,6 +961,8 @@ def profile(ctx, commodity: str, scenario: str, node: str, year: int, columns: s
         region=node,
         style=ctx.obj["plot_style_for_modules"],
         columns=columns,
+        seasons=seasons,
+        terms=terms,
     )
 
     if node != "all":
