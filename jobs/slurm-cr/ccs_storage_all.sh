@@ -58,7 +58,9 @@ if [ ! -x "$VERIFY_GAMS_DIR/gams" ]; then
     echo "ERROR: no GAMS in VERIFY_GAMS_DIR=$VERIFY_GAMS_DIR"
     exit 1
 fi
-# verify.py reads GAMS_SYSTEM_DIR; without it, GamsWorkspace takes the first gams on PATH
+# verify.py reads GAMS_SYSTEM_DIR, but pixi's activation (scripts/activate.sh) resets it from .env
+# on every `pixi run` - GAMS_SYSTEM_DIR_OVERRIDE is the variable that survives activation
+export GAMS_SYSTEM_DIR_OVERRIDE="$VERIFY_GAMS_DIR"
 export GAMS_SYSTEM_DIR="$VERIFY_GAMS_DIR"
 export PATH="$VERIFY_GAMS_DIR:$PATH"
 export LD_LIBRARY_PATH="$VERIFY_GAMS_DIR:${LD_LIBRARY_PATH:-}"

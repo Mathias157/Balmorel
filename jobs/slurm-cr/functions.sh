@@ -134,7 +134,8 @@ penalty_check() {
 # scenario folder. See GREAT docs/adr/0084.
 # verify runs on GAMS 53.5, not the jobs' 46.5: pybalmorel's GamsWorkspace (gamsapi 54.x) read
 # EL_PRICE_YCR when asked for OBJ_YCR on 46.5, so the check crashed in every job until 2026-11-06.
-# The subshell keeps the switch away from the job's own GAMS.
+# pixi's activation (scripts/activate.sh) re-reads .env's GAMS_SYSTEM_DIR on every `pixi run`, so
+# the switch goes through GAMS_SYSTEM_DIR_OVERRIDE. The subshell keeps it away from the job's own GAMS.
 VERIFY_GAMS_DIR="${VERIFY_GAMS_DIR:-/home/projects/dtu_00075/apps/gams/gams53.5_linux_x64_64_sfx}"
 ccs_storage_check() {
     if [ ! -x "$VERIFY_GAMS_DIR/gams" ]; then
@@ -142,7 +143,7 @@ ccs_storage_check() {
         return 0
     fi
     (
-        export GAMS_SYSTEM_DIR="$VERIFY_GAMS_DIR"
+        export GAMS_SYSTEM_DIR_OVERRIDE="$VERIFY_GAMS_DIR"
         export PATH="$VERIFY_GAMS_DIR:$PATH"
         export LD_LIBRARY_PATH="$VERIFY_GAMS_DIR:${LD_LIBRARY_PATH:-}"
         pixi run verify "$PWD" ccs-storage --scenario "$1" --top 5
