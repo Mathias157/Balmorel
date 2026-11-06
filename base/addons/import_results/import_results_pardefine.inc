@@ -31,6 +31,28 @@ $ifi %HYDROGEN%==yes $ifi not %ADDH2STOVOLTS%==none  execute_load  '../simex/H2S
 $ifi %HYDROGEN%==yes $ifi not %ADDH2STOVOLTS%==none  execute_load  '../simex/H2STOVOLTSVAL.gdx', H2STOVOLTSVAL;
 $ifi %HYDROGEN%==yes $ifi not %ADDBIOMETHSTOVOLTS%==none  execute_load  '../simex/BIOMETHSTOVOLTS.gdx', BIOMETHSTOVOLTS;
 $ifi %HYDROGEN%==yes $ifi not %ADDBIOMETHSTOVOLTS%==none  execute_load  '../simex/BIOMETHSTOVOLTSVAL.gdx', BIOMETHSTOVOLTSVAL;
+
+* price: the exporting run (F) writes the value only at its own time steps, while the qobj term charges
+* it at every hour of R's week. The value is in Money/MWh and the same at every step of a week (the SSIZE
+* factor in the export cancels the smaller dual of the last step), so its mean over F's steps is put on
+* every hour. F's steps are the labels that carry a value in any week, so a step with a zero dual counts
+* as zero instead of dropping out of the mean (GREAT docs/adr/0099).
+$ifi not %HYDROGEN%==yes $goto label_no_biomethane_storage_value_spread
+$ifi not %ADDBIOMETHSTOVOLTS%==price $goto label_no_biomethane_storage_value_spread
+SET IBIOMETHSTOVOLTSVAL_T(TTT) "Time steps the imported biomethane storage value was exported at";
+PARAMETER IBIOMETHSTOVOLTSVAL_S(Y,SSS) "Mean of the imported biomethane storage value over the exporting run's time steps (Money/MWh)";
+FILE IBIOMETHSTOVOLTSVALLOG "Writes the imported biomethane storage value to the GAMS log";
+IBIOMETHSTOVOLTSVALLOG.nr = 1;
+IBIOMETHSTOVOLTSVAL_T(TTT) = YES$SUM((Y,SSS)$BIOMETHSTOVOLTSVAL(Y,SSS,TTT),1);
+IBIOMETHSTOVOLTSVAL_S(Y,SSS) = SUM(TTT,BIOMETHSTOVOLTSVAL(Y,SSS,TTT))/MAX(1,CARD(IBIOMETHSTOVOLTSVAL_T));
+BIOMETHSTOVOLTSVAL(Y,SSS,TTT) = IBIOMETHSTOVOLTSVAL_S(Y,SSS);
+LOOP(Y,
+   put_utility IBIOMETHSTOVOLTSVALLOG 'log' / 'BIOMETHANE STORAGE PRICE: ' Y.tl:0 ' value in ' SUM(S$IBIOMETHSTOVOLTSVAL_S(Y,S),1):0:0 ' of ' CARD(S):0:0 ' weeks over ' CARD(IBIOMETHSTOVOLTSVAL_T):0:0 ' exported steps, min ' SMIN(S,IBIOMETHSTOVOLTSVAL_S(Y,S)):0:2 ' mean ' (SUM(S,IBIOMETHSTOVOLTSVAL_S(Y,S))/CARD(S)):0:2 ' max ' SMAX(S,IBIOMETHSTOVOLTSVAL_S(Y,S)):0:2 ' Money/MWh';
+);
+* A week without a value would make its stored biomethane free. That happens when simex holds another
+* run's export (e.g. INV's 8 weeks) rather than F's 52, so stop instead of running on a partial price.
+ABORT$SUM((Y,S)$(NOT IBIOMETHSTOVOLTSVAL_S(Y,S)),1) 'ADDBIOMETHSTOVOLTS=price, but ../simex/BIOMETHSTOVOLTSVAL.gdx has no value for some weeks of this run - is simex the F export of the same scenario and year?';
+$label label_no_biomethane_storage_value_spread
 $ifi %EV%==yes $ifi not %ADDEVSTOS%==none execute_load '../simex/EV_BE_BEV.gdx', EV_BE_BEV;
 $ifi %EV%==yes $ifi not %ADDEVSTOS%==none execute_load '../simex/EV_BE_PHEV.gdx', EV_BE_PHEV;
 $ifi %EV%==yes $ifi not %ADDEVSTOS%==none execute_load '../simex/EV_BEV_NETCHARGING.gdx', EV_BEV_NETCHARGING;

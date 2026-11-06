@@ -44,10 +44,29 @@ fallback_optfile=7
 require_optfile $optfile
 require_optfile $fallback_optfile
 
+# How the biomethane store is coupled to F (GREAT docs/adr/0099): cont pins each week's end to F's
+# level, with a penalised slack. price lets the level float from F's start and charges F's storage
+# value (simex/BIOMETHSTOVOLTSVAL.gdx) for every MWh drawn. Submit with
+# sbatch --export=ALL,BIOMETH_STORAGE_COUPLING=price to use it.
+biometh_coupling="${BIOMETH_STORAGE_COUPLING:-cont}"
+case "$biometh_coupling" in
+    cont) ;;
+    price)
+        if [ ! -f simex/BIOMETHSTOVOLTSVAL.gdx ]; then
+            echo "ERROR: BIOMETH_STORAGE_COUPLING=price needs simex/BIOMETHSTOVOLTSVAL.gdx from this scenario's F${year}"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "ERROR: BIOMETH_STORAGE_COUPLING must be cont or price, not '$biometh_coupling'"
+        exit 1
+        ;;
+esac
+
 echo "Starting rolling seasons simulation at $(date)"
 # A Year copy names its results after its source scenario
 run_name="${source_scenario:-$(basename $PWD)}"
-echo "Run name: ${run_name}_R${year} (cplex.op${optfile}, fallback cplex.op${fallback_optfile})"
+echo "Run name: ${run_name}_R${year} (cplex.op${optfile}, fallback cplex.op${fallback_optfile}, biomethane storage ${biometh_coupling})"
 
 # Rolling horison simulation
 cat ../base/data/Y_${year}.inc >data/Y.inc
@@ -55,6 +74,12 @@ cat ../base/data/T_roll.inc >data/T.inc
 cat ../base/data/S_all.inc >data/S.inc
 cd model
 cat balopt_roll.opt >balopt.opt
+# Keeps the line's CRLF ending, which a .* replacement would drop
+sed -i "s/^\([$]Setglobal ADDBIOMETHSTOVOLTS  *\)[a-z]*/\1${biometh_coupling}/" balopt.opt
+if [ "$(grep -c "^[$]Setglobal ADDBIOMETHSTOVOLTS  *${biometh_coupling}" balopt.opt)" -ne 1 ]; then
+    echo "ERROR: could not set ADDBIOMETHSTOVOLTS ${biometh_coupling} in model/balopt.opt"
+    exit 1
+fi
 gams Balmorel threads=$SLURM_CPUS_PER_TASK --USEOPTIONFILE=${optfile} --ROLLING_FALLBACK_OPTFILE=${fallback_optfile} --scenario_name="${run_name}_R${year}" $opts
 cd ..
 
