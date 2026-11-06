@@ -35,13 +35,21 @@ source ../jobs/slurm-cr/functions.sh
 source ./config.sh
 
 year=2030
-optfile=8 # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
+optfile=${FULLYEAR_OPTFILE:-8} # barrier without crossover, see docs/adr/0035-fullyear-and-rolling-use-cplex-op8.md
 require_optfile $optfile
+# A one-off rerun can override the option file and append CPLEX lines to it, e.g.
+# CPLEX_EXTRA="baralg 2" sbatch ... - see derive_optfile in functions.sh and GREAT docs/adr/0100
+optdesc="cplex.op${optfile}"
+if [ -n "${CPLEX_EXTRA:-}" ]; then
+    derive_optfile $optfile "$CPLEX_EXTRA"
+    optdesc="cplex.op${DERIVED_OPTFILE} = cplex.op${optfile} + ${CPLEX_EXTRA}"
+    optfile=$DERIVED_OPTFILE
+fi
 
 echo "Starting fullyear simulation at $(date)"
 # A Year copy names its results after its source scenario
 run_name="${source_scenario:-$(basename $PWD)}"
-echo "Run name: ${run_name}_F${year} (cplex.op${optfile})"
+echo "Run name: ${run_name}_F${year} (${optdesc})"
 
 # Copy simex files from investment run
 /usr/bin/cp -rf simex_INV/* simex/
@@ -57,7 +65,7 @@ cd ..
 
 # Don't spend days of rolling on a non-optimal fullyear's storage levels
 optimality_check $SLURM_JOB_ID 1 strict
-penalty_check $SLURM_JOB_ID
+penalty_check $SLURM_JOB_ID fullyear
 
 # Submit rolling horizon run
 sbatch ../jobs/slurm-cr/rolling_${year}.sh

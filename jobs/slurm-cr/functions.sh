@@ -34,24 +34,36 @@ trap cleanup EXIT SIGTERM SIGINT
 # Rolling runs with the fallback re-solve log a ROLLING FALLBACK line for every week they solved a
 # second time, so those count as expected solves too, and a DIVERGED WEEK line for every week whose
 # re-solve diverged again, which exits (GREAT docs/adr/0097).
+# Strict mode also accepts status 10 (barrier iteration limit, from a "baritlim" line added with
+# CPLEX_EXTRA, see derive_optfile) under the same gap rule. CPLEX then returns its last iterate
+# instead of going back to a starred one, which rescues a run that converged and then stalled: ALLN
+# F2050's last iterates had a 4e-8 gap, but its status-6 starred iterate an 80 % gap (GREAT
+# docs/adr/0100). Without strict, status 10 still exits, as any status other than 1, 5 or 6.
 optimality_check() {
     job_id=$1
     expected_nr=$2
     strict=${3:-}
+    if [[ "$strict" == strict ]]; then
+        accepted='1|5|6|10' nonopt='6|10'
+        accepted_text='1 (optimal), 5 (unscaled infeasibilities), 6 (non-optimal) or 10 (iteration limit)'
+    else
+        accepted='1|5|6' nonopt='6'
+        accepted_text='1 (optimal), 5 (unscaled infeasibilities) or 6 (non-optimal)'
+    fi
     # Plain grep (not rg) so jobs don't depend on the submitting shell's PATH; || true lets a zero
     # count reach the INFEASIBLE message instead of tripping set -e
     statuses=$(cat ../logs/*_${job_id}.out | grep -oE '(LP|MIP|RMIP) status \([0-9]+\)' || true)
     optimal=$(printf '%s\n' "$statuses" | grep -c 'status (1)' || true)
     unscaled=$(printf '%s\n' "$statuses" | grep -c 'status (5)' || true)
-    nonoptimal=$(printf '%s\n' "$statuses" | grep -c 'status (6)' || true)
-    other=$(printf '%s\n' "$statuses" | grep -cvE 'status \((1|5|6)\)|^$' || true)
+    nonoptimal=$(printf '%s\n' "$statuses" | grep -cE "status \\(($nonopt)\\)" || true)
+    other=$(printf '%s\n' "$statuses" | grep -cvE "status \\(($accepted)\\)|^\$" || true)
     # Not anchored: GAMS indents put_utility log lines
     fallbacks=$(cat ../logs/*_${job_id}.out | grep -oa 'ROLLING FALLBACK: ' | wc -l || true)
     diverged=$(cat ../logs/*_${job_id}.out | grep -a 'DIVERGED WEEK: ' || true)
     expected_nr=$((expected_nr + fallbacks))
     if [[ "$other" -gt 0 ]]; then
-        echo "INFEASIBLE: Job ${job_id} had ${other} solves with a status other than 1 (optimal), 5 (unscaled infeasibilities) or 6 (non-optimal):"
-        printf '%s\n' "$statuses" | grep -vE 'status \((1|5|6)\)|^$' | sort | uniq -c
+        echo "INFEASIBLE: Job ${job_id} had ${other} solves with a status other than ${accepted_text}:"
+        printf '%s\n' "$statuses" | grep -vE "status \\(($accepted)\\)|^\$" | sort | uniq -c
         exit 1
     elif [[ -n "$diverged" ]]; then
         echo "DIVERGED: Job ${job_id} has rolling weeks whose fallback re-solve diverged too:"
@@ -63,22 +75,23 @@ optimality_check() {
     elif [[ "$strict" == strict && "$nonoptimal" -gt 0 ]]; then
         gap_max=${STATUS6_GAP_MAX:-1e-3}
         if ! cat ../logs/*_${job_id}.out | awk -v max="$gap_max" '
-            NF >= 6 && ($1 == "*" || $1 ~ /^[0-9]+$/) && $2 ~ /^-?[0-9.]+e[-+][0-9]+$/ && $3 ~ /^-?[0-9.]+e[-+][0-9]+$/ { p = $2 + 0; d = $3 + 0; seen = 1 }
-            /(LP|MIP|RMIP) status \(6\)/ {
+            NF >= 6 && ($1 == "*" || $1 ~ /^[0-9]+$/) && $2 ~ /^-?[0-9.]+e[-+][0-9]+$/ && $3 ~ /^-?[0-9.]+e[-+][0-9]+$/ { p = $2 + 0; d = $3 + 0; pinf = $4; seen = 1 }
+            /(LP|MIP|RMIP) status \((6|10)\)/ {
                 n++
-                if (!seen) { bad++; printf "  status-6 solve %d: no barrier iterate in the log\n", n }
+                st = ($0 ~ /status \(10\)/) ? 10 : 6
+                if (!seen) { bad++; printf "  status-%d solve %d: no barrier iterate in the log\n", st, n }
                 else {
                     gap = (p > d ? p - d : d - p) / (p < 0 ? -p : (p > 0 ? p : 1))
                     if (gap > max + 0) bad++
-                    printf "  status-6 solve %d: primal %.7g, dual %.7g, gap %.3g %%\n", n, p, d, 100 * gap
+                    printf "  status-%d solve %d: primal %.7g, dual %.7g, gap %.3g %%, primal inf %s\n", st, n, p, d, 100 * gap, pinf
                 }
             }
             /(LP|MIP|RMIP) status \(/ { seen = 0 }
             END { exit bad > 0 }'; then
-            echo "NON-OPTIMAL: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6) with a primal-dual gap above STATUS6_GAP_MAX=${gap_max}, or none in the log - stopping"
+            echo "NON-OPTIMAL: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6 or 10) with a primal-dual gap above STATUS6_GAP_MAX=${gap_max}, or none in the log - stopping"
             exit 1
         fi
-        echo "WARNING: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6), all with a primal-dual gap below STATUS6_GAP_MAX=${gap_max} - proceeding"
+        echo "WARNING: Job ${job_id} had ${nonoptimal} of ${expected_nr} solves end non-optimal (status 6 or 10), all with a primal-dual gap below STATUS6_GAP_MAX=${gap_max} - proceeding"
     elif [[ $((unscaled + nonoptimal)) -gt 0 ]]; then
         echo "WARNING: Job ${job_id} had ${unscaled} of ${expected_nr} solves end optimal with unscaled infeasibilities (status 5) and ${nonoptimal} as non-optimal (status 6) - proceeding anyway"
     else
@@ -102,12 +115,21 @@ optimality_check() {
 # entry, not the sum: interior (non-optimal) rolling weeks leave thousands of sub-0.2 MW entries
 # that summed to 1-2e3 MW, while a real shortfall (HPN R2050: 5.8 GW) or a diverged week
 # (1.5e4-1.7e5 MW) shows up in a single entry (GREAT docs/adr/0097).
+# GAMS prints the "Objective:" line only for optimal solves. With "fullyear" as second argument, a
+# status 6 or 10 solve counts too, at the primal objective of the barrier iterate CPLEX returned (the
+# starred line, else the last one). Rolling runs don't pass it: their interior status-6 weeks return
+# primal objectives up to ~6e14 from 1e9-priced dust (GREAT docs/adr/0100).
 penalty_check() {
     job_id=$1
+    mode=${2:-}
     fail_above=${PENALTY_FAIL_ABOVE:-1e14}
-    if ! cat ../logs/*_${job_id}.out | awk -v fail="$fail_above" '
+    if ! cat ../logs/*_${job_id}.out | awk -v fail="$fail_above" -v mode="$mode" '
+        function objective(v) { n++; if (v > 1e13) { bad++; list = list " " (season == "" ? "full" : season); if (v > max) max = v } }
         /IS3LOOPSET = / { season = $NF }
-        /^Objective:/ { n++; if ($2 + 0 > 1e13) { bad++; list = list " " (season == "" ? "full" : season); if ($2 + 0 > max) max = $2 + 0 } }
+        NF >= 6 && ($1 == "*" || $1 ~ /^[0-9]+$/) && $2 ~ /^-?[0-9.]+e[-+][0-9]+$/ && $3 ~ /^-?[0-9.]+e[-+][0-9]+$/ { p = $2 + 0; seen = 1 }
+        mode == "fullyear" && seen && /(LP|MIP|RMIP) status \((6|10)\)/ { objective(p) }
+        /(LP|MIP|RMIP) status \(/ { seen = 0 }
+        /^Objective:/ { objective($2 + 0) }
         END {
             if (bad > 0) printf "WARNING: Job %s had %d of %d solves with objective > 1e13 (max %.3g) - infeasibility slacks active in:%s\n", "'"$job_id"'", bad, n, max, list
             else printf "PENALTY-FREE: Job %s had no solve with objective > 1e13\n", "'"$job_id"'"
@@ -158,6 +180,33 @@ require_optfile() {
         echo "model/cplex.op$1 is missing - copy it from ../base/model/ first."
         exit 1
     fi
+}
+
+# One-off CPLEX settings for a single rerun, without touching the shared option files: writes
+# model/cplex.op3 as model/cplex.op<base> ($1) plus the extra lines ($2), e.g. "baralg 2" or
+# "baritlim 250". Lines are separated by ";", since sbatch --export would split them on commas.
+# Refuses an option the base file already sets, so the file never holds two values for one option.
+# The next such job in the folder overwrites it. Run from the scenario folder. See GREAT
+# docs/adr/0100.
+DERIVED_OPTFILE=3
+derive_optfile() {
+    if [ "$1" = "$DERIVED_OPTFILE" ]; then
+        echo "ERROR: cplex.op${DERIVED_OPTFILE} is the derived option file - extra CPLEX lines need another base file"
+        exit 1
+    fi
+    extra=$(printf '%s\n' "$2" | tr ';' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d')
+    for key in $(printf '%s\n' "$extra" | awk -F'[[:space:]=]+' '{ print $1 }'); do
+        if grep -qiE "^[[:space:]]*${key}([[:space:]=]|\$)" "model/cplex.op$1"; then
+            echo "ERROR: model/cplex.op$1 already sets ${key} - pick a base file without it"
+            exit 1
+        fi
+    done
+    {
+        printf '* Written at %s by derive_optfile (jobs/slurm-cr/functions.sh) for job %s:\n' "$(date '+%F %T')" "${SLURM_JOB_ID:-none}"
+        printf '* model/cplex.op%s with the extra lines below appended. See GREAT docs/adr/0100.\n' "$1"
+        cat "model/cplex.op$1"
+        printf '\n* Extra lines\n%s\n' "$extra"
+    } >"model/cplex.op${DERIVED_OPTFILE}"
 }
 
 # Years run in their own Year copy (<scenario>_Y<year>); the first year runs in the scenario folder
