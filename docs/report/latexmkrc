@@ -1,0 +1,5 @@
+# latexmk config for the slides: LuaLaTeX (fontspec/Inter), aux files in build/.
+$pdf_mode = 4;
+$aux_dir = 'build';
+$out_dir = '.';
+@default_files = ('backcast-presentation.tex');

@@ -1,0 +1,4 @@
+# LaTeX build output (aux files go to build/, see latexmkrc)
+/build/
+/*.pdf
+*.synctex.gz

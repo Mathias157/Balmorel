@@ -1,0 +1,109 @@
+% Beamer theme: moloch layout, Catppuccin Mocha colours, DTU logo top left.
+% Use with \usetheme{dtumocha}; compile with LuaLaTeX (see latexmkrc).
+%
+% figures/dtu-logo.pdf is the DTU logo from Wikimedia Commons
+% (File:Danmarks Tekniske Universitet (logo).svg), recoloured to Mocha
+% "text" as the one-colour light version for dark backgrounds.
+% Figures are meant to have transparent backgrounds, so they sit on ctpBase.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamerthemedtumocha}[2026/11/09 DTU Catppuccin Mocha theme]
+
+\usetheme[progressbar=frametitle, sectionpage=progressbar]{moloch}
+
+% ---- Catppuccin Mocha palette (https://catppuccin.com/palette) ----
+\definecolor{ctpRosewater}{HTML}{F5E0DC}
+\definecolor{ctpFlamingo}{HTML}{F2CDCD}
+\definecolor{ctpPink}{HTML}{F5C2E7}
+\definecolor{ctpMauve}{HTML}{CBA6F7}
+\definecolor{ctpRed}{HTML}{F38BA8}
+\definecolor{ctpMaroon}{HTML}{EBA0AC}
+\definecolor{ctpPeach}{HTML}{FAB387}
+\definecolor{ctpYellow}{HTML}{F9E2AF}
+\definecolor{ctpGreen}{HTML}{A6E3A1}
+\definecolor{ctpTeal}{HTML}{94E2D5}
+\definecolor{ctpSky}{HTML}{89DCEB}
+\definecolor{ctpSapphire}{HTML}{74C7EC}
+\definecolor{ctpBlue}{HTML}{89B4FA}
+\definecolor{ctpLavender}{HTML}{B4BEFE}
+\definecolor{ctpText}{HTML}{CDD6F4}
+\definecolor{ctpSubtext1}{HTML}{BAC2DE}
+\definecolor{ctpSubtext0}{HTML}{A6ADC8}
+\definecolor{ctpOverlay2}{HTML}{9399B2}
+\definecolor{ctpOverlay1}{HTML}{7F849C}
+\definecolor{ctpOverlay0}{HTML}{6C7086}
+\definecolor{ctpSurface2}{HTML}{585B70}
+\definecolor{ctpSurface1}{HTML}{45475A}
+\definecolor{ctpSurface0}{HTML}{313244}
+\definecolor{ctpBase}{HTML}{1E1E2E}
+\definecolor{ctpMantle}{HTML}{181825}
+\definecolor{ctpCrust}{HTML}{11111B}
+
+% One accent for bullets, progress bar and title separator; swap here.
+\colorlet{accent}{ctpRed}
+
+% ---- Colours ----
+\setbeamercolor{normal text}{fg=ctpText, bg=ctpBase}
+\setbeamercolor{background canvas}{bg=ctpBase}
+\setbeamercolor{titlelike}{fg=ctpText}
+\setbeamercolor{frametitle}{fg=ctpText, bg=}
+\setbeamercolor{framesubtitle}{fg=ctpSubtext0}
+\setbeamercolor{subtitle}{fg=ctpSubtext1}
+\setbeamercolor{author}{fg=ctpText}
+\setbeamercolor{institute}{fg=ctpSubtext0}
+\setbeamercolor{date}{fg=ctpSubtext0}
+\setbeamercolor{progress bar}{fg=accent, bg=ctpSurface0}
+\setbeamercolor{progress bar in head/foot}{fg=accent, bg=ctpSurface0}
+\setbeamercolor{progress bar in section page}{fg=accent, bg=ctpSurface0}
+\setbeamercolor{title separator}{fg=accent, bg=ctpSurface0}
+\setbeamercolor{alerted text}{fg=ctpPeach}
+\setbeamercolor{example text}{fg=ctpGreen}
+\setbeamercolor{itemize item}{fg=accent}
+\setbeamercolor{itemize subitem}{fg=ctpOverlay2}
+\setbeamercolor{enumerate item}{fg=accent}
+\setbeamercolor{description item}{fg=accent}
+\setbeamercolor{block title}{fg=ctpText, bg=ctpSurface0}
+\setbeamercolor{block body}{fg=ctpText, bg=ctpMantle}
+\setbeamercolor{block title alerted}{fg=ctpPeach, bg=ctpSurface0}
+\setbeamercolor{block title example}{fg=ctpGreen, bg=ctpSurface0}
+\setbeamercolor{standout}{fg=ctpBase, bg=accent}
+\setbeamercolor{page number in head/foot}{fg=ctpOverlay1}
+\setbeamercolor{footline}{fg=ctpOverlay1}
+\setbeamercolor{caption}{fg=ctpSubtext0}
+\setbeamercolor{footnote}{fg=ctpSubtext0}
+\setbeamercolor{footnote mark}{fg=ctpSubtext0}
+
+% ---- Font: Inter (same as the matplotlib figures), if installed ----
+\RequirePackage{iftex}
+\ifluatex
+  \RequirePackage{fontspec}
+  \IfFontExistsTF{Inter-Regular.otf}{%
+    \setsansfont{Inter}[
+      Extension      = .otf,
+      UprightFont    = *-Regular,
+      ItalicFont     = *-Italic,
+      BoldFont       = *-SemiBold,
+      BoldItalicFont = *-SemiBoldItalic,
+    ]%
+  }{}
+\fi
+
+% ---- DTU logo, top left of every frame ----
+\newlength{\dtulogoheight}\setlength{\dtulogoheight}{0.72cm}
+\newlength{\dtulogox}\setlength{\dtulogox}{0.35cm}
+\newlength{\dtulogoy}\setlength{\dtulogoy}{0.15cm}
+\setbeamertemplate{background}{%
+  \begin{tikzpicture}
+    \useasboundingbox (0,0) rectangle (\paperwidth, \paperheight);
+    \node[anchor=north west, inner sep=0pt]
+      at (\dtulogox, \paperheight - \dtulogoy)
+      {\includegraphics[height=\dtulogoheight]{dtu-logo}};
+  \end{tikzpicture}%
+}
+% Indent frame titles past the logo.
+\pgfkeys{/moloch/outer/.cd, frametitle margin left=1.15cm}
+
+% Source/credit line under a figure: \source{ENTSO-E Transparency, Balmorel F2023}
+\newcommand{\source}[1]{%
+  \par\vspace{0.3em}%
+  {\scriptsize\color{ctpOverlay1}#1\par}%
+}
