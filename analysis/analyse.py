@@ -1070,7 +1070,8 @@ def entsoe_map(ctx, entsoe_data_path, year, value, start_date, end_date, unit):
         extent=(-11.0, 34.0, 33.0, 71.5),
     )
 
-    fig.savefig("analysis/plots/entsoe_map")
+    ax.set_facecolor(ctx.obj["fc"])
+    fig.savefig("analysis/plots/entsoe_map", transparent=True)
 
     return fig, ax
 
