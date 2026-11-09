@@ -1,20 +1,22 @@
-"""Tornado plots of the leave-one-out backcast ablation (F2023).
+"""Tornado plots of the leave-one-out backcast ablation (F2023), against the ref run.
 
 Each ablation run `backcast_abl_<name>` is the F2023 backcast with one
-development removed; `backcast_abl_ref` has all of them. Per metric, a bar is
-error(without the development) - error(ref): positive means the development
-improved the fit to ENTSO-E.
+development removed; `backcast_abl_ref` has all of them and is the baseline
+here (the comparison of ref with ENTSO-E is a separate slide). Every bar is
+signed: run without the development - ref, so 0 means "same as ref".
 
-Metrics, all over the regions that ENTSO-E and every run have in common:
-- Generation: sum over region x category of |Balmorel - ENTSO-E|, annual TWh.
-  F only solves every 7th hour, so both sides are compared at F's hours and
-  scaled to the 8736-hour year (pybalmorel's join_generation would otherwise
-  zero-fill Balmorel's missing hours).
-- Load: sum over regions of |Balmorel - ENTSO-E|, annual TWh (same scaling).
-- Price MAE: mean hourly |Balmorel - ENTSO-E| over region-hours, EUR2023/MWh.
-- Price spread: mean over regions of |std(Balmorel) - std(ENTSO-E)|, EUR2023/MWh.
+Panels:
+- Generation: annual TWh per technology category, summed over all regions,
+  stacked so the bar shows what replaces what.
+- Load: annual TWh per country, stacked (the net sum hides how much load the
+  demand development moves between countries).
+- Price level: mean hourly price difference over regions and hours, EUR2023/MWh.
+- Price shape: mean over regions of std(run) - std(ref), EUR2023/MWh.
 
-Leave-one-out deltas do not add up to the total improvement, since the
+F only solves every 7th hour; both sides have the same hours, and annual TWh
+is mean hourly MW x the 8736-hour year.
+
+Leave-one-out deltas do not add up to the total effect, since the
 developments interact.
 
 Run from the repo root (GAMS_SYSTEM_DIR comes from .env):
@@ -29,17 +31,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import font_manager
+from matplotlib.colors import to_rgb
 from matplotlib.patches import Patch, PathPatch
 from matplotlib.path import Path as Path_
-from pybalmorel.backcasting.__main__ import (
-    get_and_format_balmorel,
-    get_and_format_entsoe,
-    join_generation,
-    join_hourly,
-)
+from pybalmorel.backcasting.__main__ import get_and_format_balmorel
 from pybalmorel.backcasting.calendar import backcast_hours
 
-RUNS = ["ref", "hydro", "nuclear", "demand", "mustrun", "vre"]
+ABLATIONS = ["hydro", "nuclear", "demand", "mustrun", "vre"]
 LABELS = {
     "hydro": "Hydro FLH (absolute)",
     "nuclear": "Nuclear availability",
@@ -47,22 +45,47 @@ LABELS = {
     "mustrun": "Must-run floor",
     "vre": "VRE scaling (ENTSO-E)",
 }
-METRICS = {
-    "generation_twh": ("Generation", "Σ|B − E| over country × category", "TWh"),
-    "load_twh": ("Load", "Σ|B − E| over countries", "TWh"),
-    "price_mae": ("Price level", "hourly MAE", "€/MWh"),
-    "price_spread": ("Price shape", "mean |σ(B) − σ(E)| per country", "€/MWh"),
+PANELS = {
+    "generation": ("Generation", "TWh", "per technology, all regions"),
+    "load": ("Load", "TWh", "per country"),
+    "price_level": ("Price level", "€/MWh", "mean over countries and hours"),
+    "price_shape": ("Price shape", "€/MWh", "σ of hourly prices, mean over countries"),
 }
 
-# Catppuccin Mocha text/grid tokens; series pair validated with the dataviz
-# validator in dark mode against the Mocha base (#1e1e2e)
+# pybalmorel category -> plotted category. Order = stack order outward from 0,
+# the order the palette below was validated in (adjacent pairs, dark mode)
+TECHNOLOGIES = {
+    "Hydro": "#3987e5",
+    "Fossil gas": "#d95926",
+    "Wind": "#199e70",
+    "Solar": "#c98500",
+    "Coal & lignite": "#d55181",
+    "Biomass": "#008300",
+    "Nuclear": "#9085e9",
+    "Other": "#7f849c",  # neutral fold: oil, storage, waste, backup, unmapped
+}
+CATEGORY = {
+    "Hydro": "Hydro",
+    "Fossil Gas": "Fossil gas",
+    "Wind": "Wind",
+    "Solar": "Solar",
+    "Fossil Solid": "Coal & lignite",
+    "Biomass & Bioenergy": "Biomass",
+    "Nuclear": "Nuclear",
+}
+
+# Catppuccin Mocha tokens
 TEXT = "#cdd6f4"
 TEXT_MUTED = "#a6adc8"
 GRID = "#45475a"
 BASELINE = "#7f849c"
-HELPED = "#5b8ae0"
-HURT = "#d9773f"
+SURFACE = "#1e1e2e"
+NEUTRAL = "#bac2de"  # single-series bars (load, prices), lighter than the "Other" grey
 FONT_DIR = Path.home() / ".local/share/fonts/Inter/extras/ttf"  # not on matplotlib's search path
+
+MIN_SEGMENT = 1.0  # TWh; smaller technology segments are not drawn
+GAP_PT = 0.6  # gap between stacked segments
+RADIUS_PT = 3
 
 
 def set_font():
@@ -74,61 +97,77 @@ def set_font():
     )
 
 
-def scores(entsoe, balmorel, year: int, regions: dict[str, set]) -> tuple[dict, pd.DataFrame]:
-    """Score one run against ENTSO-E. Returns the metric scores and the
-    per-category generation error in annual TWh."""
-    e_load, e_price, e_gen = entsoe
-    b_load, b_price, b_gen = balmorel
-    n_year = len(backcast_hours(year))
-
-    with warnings.catch_warnings():
-        # join_hourly warns for every region, since F has 1/7 of the hours
-        warnings.simplefilter("ignore", UserWarning)
-        load = join_hourly(e_load, b_load, year, "load").dropna()
-        price = join_hourly(e_price, b_price, year, "price").dropna()
-
-    load = load[load.index.get_level_values("Region").isin(regions["load"])]
-    price = price[price.index.get_level_values("Region").isin(regions["price"])]
-
-    # Annual equivalent per region: mean hourly MW over the shared hours x year length
-    load_twh = load.groupby(level="Region").mean() * n_year / 1e6
-    out = {"load_twh": (load_twh.BALMOREL - load_twh.ENTSOE).abs().sum()}
-
-    out["price_mae"] = (price.BALMOREL - price.ENTSOE).abs().mean()
-    std = price.groupby(level="Region").std()
-    out["price_spread"] = (std.BALMOREL - std.ENTSOE).abs().mean()
-
-    # Generation at F's hours only, so Balmorel's unsolved hours aren't read as 0
-    f_hours = set(b_load.Time)
-    gen = join_generation(e_gen, b_gen, regions["generation"], year).reset_index()
-    gen = gen[gen.Time.isin(f_hours)]
-    n_hours = gen.groupby("Region").Time.nunique()
-    gen_twh = gen.groupby(["Region", "Technology"])[["ENTSOE", "BALMOREL"]].sum()
-    gen_twh = gen_twh.div(n_hours, axis=0, level="Region") * n_year / 1e6
-    gen_twh["AbsError"] = (gen_twh.BALMOREL - gen_twh.ENTSOE).abs()
-    out["generation_twh"] = gen_twh.AbsError.sum()
-
-    return out, gen_twh.reset_index()
+def load_run(run: str, year: int, overwrite: bool):
+    load, price, gen, *_ = get_and_format_balmorel(
+        f"backcast_abl_{run}_F{year}", f"backcast_abl_{run}", year, "mean", overwrite,
+        allow_unmapped=True,  # CONDENSING - PEAT, 0.00 TWh
+    )
+    return load, price, gen
 
 
-def rounded_barh(ax, y: float, width: float, height: float, color: str, radius_pt: float = 3):
-    """Horizontal bar from 0 to `width`, rounded at the data end only.
-    Call after the axis limits and figure layout are fixed."""
+def annual_twh(df: pd.DataFrame, keys: list[str], n_hours: int, n_year: int) -> pd.Series:
+    """Annual TWh from hourly MW at F's hours (MainResults leaves out zeros,
+    so divide by the solved hours, not the rows)."""
+    return df.groupby(keys).Value.sum() / n_hours * n_year / 1e6
+
+
+def deltas(run, ref, year: int) -> dict:
+    """Signed run - ref for every panel."""
+    (load, price, gen), (r_load, r_price, r_gen) = run, ref
+    hours = set(load.Time)
+    if hours != set(r_load.Time):
+        raise ValueError("The run and ref solved different hours")
+    n_hours, n_year = len(hours), len(backcast_hours(year))
+
+    def per_tech(g):
+        g = g.assign(Technology=g.Technology.map(CATEGORY).fillna("Other"))
+        return annual_twh(g, ["Technology"], n_hours, n_year)
+
+    gen_d = per_tech(gen).sub(per_tech(r_gen), fill_value=0).reindex(TECHNOLOGIES, fill_value=0)
+    load_d = annual_twh(load, ["Region"], n_hours, n_year).sub(
+        annual_twh(r_load, ["Region"], n_hours, n_year), fill_value=0
+    )
+
+    p = price.set_index(["Region", "Time"]).Value
+    r_p = r_price.set_index(["Region", "Time"]).Value
+    p, r_p = p.align(r_p, join="inner")
+    std_d = p.groupby(level="Region").std() - r_p.groupby(level="Region").std()
+
+    return {
+        "generation": gen_d,
+        "load": load_d,
+        "price_level": (p - r_p).mean(),
+        "price_shape": std_d.mean(),
+    }
+
+
+# ------------------------------- #
+#            Drawing              #
+# ------------------------------- #
+
+
+def pt_to_data(ax, pt: float) -> tuple[float, float]:
+    """`pt` points in x and y data units (call once the layout is fixed)."""
+    px = pt * ax.figure.dpi / 72
+    sx, sy = np.abs(ax.transData.transform([1, 1]) - ax.transData.transform([0, 0]))
+    return px / sx, px / sy
+
+
+def segment(ax, y: float, x0: float, x1: float, height: float, color: str, round_end: bool):
+    """Horizontal bar from x0 (nearer 0) to x1, rounded at x1 if `round_end`."""
+    width = x1 - x0
     if width == 0:
         return
-    # Corner radius in data units, so the corners stay circular on screen
-    px_per_pt = ax.figure.dpi / 72
-    sx, sy = np.abs(ax.transData.transform([1, 1]) - ax.transData.transform([0, 0]))
-    r_x = min(radius_pt * px_per_pt / sx, abs(width))
-    r_y = min(radius_pt * px_per_pt / sy, height / 2)
+    r_x, r_y = pt_to_data(ax, RADIUS_PT) if round_end else (0, 0)
+    r_x, r_y = min(r_x, abs(width)), min(r_y, height / 2)
     s = np.sign(width)
     y0, y1 = y - height / 2, y + height / 2
     vertices = [
-        (0, y0), (width - s * r_x, y0),
-        (width, y0), (width, y0 + r_y),  # rounded data-end corner
-        (width, y1 - r_y),
-        (width, y1), (width - s * r_x, y1),  # rounded data-end corner
-        (0, y1), (0, y0),
+        (x0, y0), (x1 - s * r_x, y0),
+        (x1, y0), (x1, y0 + r_y),
+        (x1, y1 - r_y),
+        (x1, y1), (x1 - s * r_x, y1),
+        (x0, y1), (x0, y0),
     ]
     codes = [
         Path_.MOVETO, Path_.LINETO,
@@ -140,65 +179,122 @@ def rounded_barh(ax, y: float, width: float, height: float, color: str, radius_p
     ax.add_patch(PathPatch(Path_(vertices, codes), facecolor=color, edgecolor="none", zorder=3))
 
 
-def tornado_panel(ax, delta: pd.Series, ref_score: float, metric: str, show_labels: bool):
-    """One tornado panel: rows in `delta`'s order, top to bottom."""
-    title, desc, unit = METRICS[metric]
-    y = np.arange(len(delta))[::-1]
-    # Only extend past zero on a side that has bars, with room for the value labels
-    lo, hi = min(0, delta.min()), max(0, delta.max())
-    span = max(hi - lo, 1e-9)
-    ax.set_xlim(lo - (0.28 if lo < 0 else 0.04) * span, hi + (0.28 if hi > 0 else 0.04) * span)
-    ax.set_ylim(-0.6, len(delta) - 0.4)
+def ink_on(fill: str) -> str:
+    """Near-black or white, whichever reads better on `fill`."""
+    def lum(c):
+        c = np.array(to_rgb(c))
+        c = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    on_dark = (lum("#ffffff") + 0.05) / (lum(fill) + 0.05)
+    on_light = (lum(fill) + 0.05) / (lum(SURFACE) + 0.05)
+    return "#ffffff" if on_dark > on_light else SURFACE
 
+
+def fmt(v: float) -> str:
+    return (f"{v:+.0f}" if abs(v) >= 10 else f"{v:+.1f}").replace("-", "−")
+
+
+def label_inside(ax, x0: float, x1: float, y: float, texts: list[str], fill: str):
+    """Centre the first of `texts` that fits in the segment, or none."""
+    renderer = ax.figure.canvas.get_renderer()
+    seg_px = abs(ax.transData.transform([x1, 0])[0] - ax.transData.transform([x0, 0])[0])
+    for text in texts:
+        t = ax.text((x0 + x1) / 2, y, text, ha="center", va="center", fontsize=5.5,
+                    color=ink_on(fill), zorder=4)
+        if t.get_window_extent(renderer).width + 4 * ax.figure.dpi / 72 <= seg_px:
+            return
+        t.remove()
+
+
+def stacked_row(ax, y: float, parts: pd.Series, colors: dict, labeler, height=0.5):
+    """Diverging stacked bar: positive parts right of 0, negative left, each
+    side in `parts`' order outward from 0."""
+    gap, _ = pt_to_data(ax, GAP_PT)
+    for side in (parts[parts > 0], parts[parts < 0]):
+        edge = 0.0
+        for i, (key, value) in enumerate(side.items()):
+            x0 = edge + (np.sign(value) * gap / 2 if edge else 0)
+            x1 = edge + value
+            outer = i == len(side) - 1
+            segment(ax, y, x0, x1 - (0 if outer else np.sign(value) * gap / 2), height,
+                    colors[key], round_end=outer)
+            label_inside(ax, x0, x1, y, labeler(key, value), colors[key])
+            edge = x1
+
+
+def setup_panel(ax, panel: str, rows: list[str], xlim: tuple[float, float], show_labels: bool):
+    title, unit, desc = PANELS[panel]
+    y = np.arange(len(rows))[::-1]
+    ax.set_xlim(*xlim)
+    ax.set_ylim(-0.6, len(rows) - 0.4)
     ax.axvline(0, color=BASELINE, lw=0.8, zorder=2)
     ax.grid(axis="x", color=GRID, lw=0.5, zorder=0)
     ax.set_axisbelow(True)
     for side in ax.spines.values():
         side.set_visible(False)
     ax.tick_params(axis="both", length=0, colors=TEXT_MUTED, labelsize=7)
-    # With sharey the labels are shared too, so hide them rather than clearing them
-    ax.set_yticks(y, [LABELS[k] for k in delta.index], color=TEXT, fontsize=7.5)
+    ax.set_yticks(y, [LABELS[r] for r in rows], color=TEXT, fontsize=7.5)
     ax.tick_params(axis="y", labelleft=show_labels)
-    ax.xaxis.set_major_locator(plt.MaxNLocator(4))
-    ax.set_title(
-        f"{title}  ·  {unit}", loc="left", color=TEXT, fontsize=8.5, fontweight="semibold", pad=11
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
+    ax.xaxis.set_major_formatter(lambda v, _: f"{v:+g}".replace("-", "−") if v else "0")
+    ax.set_title(f"{title}  ·  {unit}", loc="left", color=TEXT, fontsize=8.5,
+                 fontweight="semibold", pad=11)
+    ax.text(0, 1.015, desc, transform=ax.transAxes, color=TEXT_MUTED, fontsize=6.5, va="bottom")
+    return y
+
+
+def draw_panel(ax, panel: str, rows: list[str], d: dict):
+    """Draw the bars of one panel (after the layout is fixed)."""
+    y = np.arange(len(rows))[::-1]
+    for yi, run in zip(y, rows):
+        if panel == "generation":
+            parts = d[run]["generation"]
+            parts = parts[parts.abs() >= MIN_SEGMENT]
+            stacked_row(ax, yi, parts, TECHNOLOGIES, lambda k, v: [fmt(v)])
+        elif panel == "load":
+            # Largest countries nearest 0; the small ones fold into one unlabelled segment
+            parts = d[run]["load"]
+            small = parts.abs() < 0.03 * np.diff(ax.get_xlim())[0]
+            parts = parts[~small].reindex(parts[~small].abs().sort_values(ascending=False).index)
+            folded = pd.Series({
+                " +": d[run]["load"][small & (d[run]["load"] > 0)].sum(),
+                " −": d[run]["load"][small & (d[run]["load"] < 0)].sum(),
+            })
+            parts = pd.concat([parts, folded[folded.abs() > 0]])
+            stacked_row(ax, yi, parts, {k: NEUTRAL for k in parts.index},
+                        lambda k, v: [] if k.startswith(" ") else [f"{k} {fmt(v)}", k])
+        else:
+            v = d[run][panel]
+            segment(ax, yi, 0, v, 0.5, NEUTRAL, round_end=True)
+            pad = 0.02 * np.diff(ax.get_xlim())[0]
+            ax.text(v + (pad if v >= 0 else -pad), yi, fmt(v), ha="left" if v >= 0 else "right",
+                    va="center", color=TEXT, fontsize=6.5, zorder=4)
+
+
+def shared_xlim(lo: float, hi: float, pad: float = 0.04):
+    span = hi - lo
+    return lo - pad * span, hi + pad * span
+
+
+def tech_legend(fig, y: float):
+    """Technology legend, tagged so the load panel's bars don't read as 'Other'."""
+    handles = [Patch(facecolor=c, label=t) for t, c in TECHNOLOGIES.items()]
+    legend = fig.legend(
+        handles=handles, loc="lower center", bbox_to_anchor=(0.55, y), ncol=len(handles),
+        frameon=False, fontsize=6.5, labelcolor=TEXT_MUTED, handlelength=1.0, handleheight=0.8,
+        columnspacing=1.2, handletextpad=0.5,
     )
-    ax.text(
-        0, 1.015, f"{desc}; ref error {ref_score:,.1f}",
-        transform=ax.transAxes, color=TEXT_MUTED, fontsize=6.5, va="bottom",
-    )
-
-    ax._tornado = (y, delta, span)  # drawn by draw_bars once the layout is fixed
-
-
-def draw_bars(ax):
-    y, delta, span = ax._tornado
-    for yi, d in zip(y, delta):
-        rounded_barh(ax, yi, d, 0.5, HELPED if d > 0 else HURT)
-        fmt = (f"{d:+.0f}" if abs(d) >= 10 else f"{d:+.1f}").replace("-", "−")
-        pad = span * 0.025
-        ax.text(
-            d + (pad if d >= 0 else -pad), yi, fmt,
-            ha="left" if d >= 0 else "right", va="center", color=TEXT, fontsize=6.5, zorder=4,
-        )
-
-
-def legend(fig, y: float):
-    handles = [
-        Patch(facecolor=HELPED, label="development improved the fit (error rises without it)"),
-        Patch(facecolor=HURT, label="development worsened the fit"),
-    ]
-    fig.legend(
-        handles=handles, loc="lower center", bbox_to_anchor=(0.5, y), ncol=2, frameon=False,
-        fontsize=6.5, labelcolor=TEXT_MUTED, handlelength=1.0, handleheight=0.8, columnspacing=1.6,
-    )
+    fig.canvas.draw()
+    box = legend.get_window_extent().transformed(fig.transFigure.inverted())
+    fig.text(box.x0, (box.y0 + box.y1) / 2, "Generation:", ha="right", va="center",
+             color=TEXT, fontsize=6.5, fontweight="semibold")
 
 
 def footnote(fig, y: float):
     fig.text(
         0.5, y,
-        "B = Balmorel F2023, E = ENTSO-E 2023. Bar = error without the development − error with "
-        "all of them (ref). Leave-one-out: the bars do not add up.",
+        "Each bar: Balmorel F2023 without one development − F2023 ref (all developments); "
+        "0 = same as ref. Leave-one-out: the rows do not add up.",
         ha="center", va="top", color=TEXT_MUTED, fontsize=5.5,
     )
 
@@ -210,83 +306,77 @@ def save(fig, path: Path):
 
 
 @click.command()
-@click.option("--entsoe-path", default="backcast/entsoedata", show_default=True)
 @click.option("--year", default=2023, show_default=True)
 @click.option("--overwrite", is_flag=True, help="Reread the MainResults GDXs")
 @click.option("--plot-path", default="analysis/plots", show_default=True)
 @click.option("--output-path", default="analysis/output", show_default=True)
-def main(entsoe_path, year, overwrite, plot_path, output_path):
+def main(year, overwrite, plot_path, output_path):
     plot_path, output_path = Path(plot_path), Path(output_path)
     set_font()
 
-    e_load, e_price, e_gen, e_load_r, e_price_r, e_gen_r = get_and_format_entsoe(
-        entsoe_path, year, "mean"
-    )
-    runs = {}
-    for run in RUNS:
-        b_load, b_price, b_gen, _, b_load_r, b_price_r, b_gen_r, _ = get_and_format_balmorel(
-            f"backcast_abl_{run}_F{year}", f"backcast_abl_{run}", year, "mean", overwrite,
-            allow_unmapped=True,  # CONDENSING - PEAT, 0.00 TWh
-        )
-        runs[run] = ((b_load, b_price, b_gen), {"load": b_load_r, "price": b_price_r, "generation": b_gen_r})
-
-    # Same regions for every run, so the deltas only reflect the model change
-    regions = {}
-    for key, e_regions in (("load", e_load_r), ("price", e_price_r), ("generation", e_gen_r)):
-        per_run = [r[1][key] for r in runs.values()]
-        if any(s != per_run[0] for s in per_run):
-            warnings.warn(f"{key} regions differ between runs, using the intersection")
-        regions[key] = set(e_regions).intersection(*per_run)
-        print(f"{key}: {len(regions[key])} regions")
-
-    score_rows, gen_rows = {}, []
-    for run, (balmorel, _) in runs.items():
-        score_rows[run], gen = scores((e_load, e_price, e_gen), balmorel, year, regions)
-        gen_rows.append(gen.assign(Run=run))
-    score = pd.DataFrame(score_rows).T[list(METRICS)]
-    delta = score.drop("ref") - score.loc["ref"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # Unmapped CONDENSING - PEAT, 0.00 TWh
+        ref = load_run("ref", year, overwrite)
+        d = {run: deltas(load_run(run, year, overwrite), ref, year) for run in ABLATIONS}
 
     output_path.mkdir(parents=True, exist_ok=True)
-    pd.concat({"score": score, "delta_vs_ref": delta}, axis=1).to_csv(
-        output_path / f"backcast_ablation_scores_F{year}.csv"
+    table = pd.DataFrame({
+        run: pd.concat([
+            v["generation"].add_prefix("generation: "),
+            pd.Series({
+                "load net": v["load"].sum(),
+                "load Σ|Δ| over countries": v["load"].abs().sum(),
+                "price level": v["price_level"],
+                "price shape": v["price_shape"],
+            }),
+        ])
+        for run, v in d.items()
+    }).T
+    table.round(2).to_csv(output_path / f"backcast_ablation_vs_ref_F{year}.csv")
+    pd.DataFrame({run: v["load"] for run, v in d.items()}).round(2).to_csv(
+        output_path / f"backcast_ablation_vs_ref_load_by_country_F{year}.csv"
     )
-    gen_cat = (
-        pd.concat(gen_rows)
-        .groupby(["Run", "Technology"])[["ENTSOE", "BALMOREL", "AbsError"]]
-        .sum()
-        .round(2)
-    )
-    gen_cat.to_csv(output_path / f"backcast_ablation_generation_by_category_F{year}.csv")
-    print(score.round(2).to_string(), "\n")
-    print("delta vs ref (positive = development helped)")
-    print(delta.round(2).to_string())
+    print("run − ref\n", table.round(1).T.to_string())
+
+    # Rows by how much generation moves, the same order in every panel
+    rows = sorted(ABLATIONS, key=lambda r: -d[r]["generation"].abs().sum())
+
+    # Same unit, same scale: generation with load, price level with price shape
+    def side_sums(key):
+        pos = [d[r][key].clip(lower=0).sum() for r in rows]
+        neg = [d[r][key].clip(upper=0).sum() for r in rows]
+        return min(neg), max(pos)
+
+    g_lo, g_hi = side_sums("generation")
+    l_lo, l_hi = side_sums("load")
+    twh = shared_xlim(min(g_lo, l_lo), max(g_hi, l_hi))
+    prices = [d[r][k] for r in rows for k in ("price_level", "price_shape")]
+    eur = shared_xlim(min(0, *prices), max(0, *prices), pad=0.22)
+    xlims = {"generation": twh, "load": twh, "price_level": eur, "price_shape": eur}
 
     plot_path.mkdir(parents=True, exist_ok=True)
-
-    # Combined 2x2, rows in one order (by generation delta) so they line up
-    order = delta.generation_twh.sort_values(ascending=False).index
     fig, axes = plt.subplots(2, 2, figsize=(6.0, 3.6), sharey=True)
     fig.subplots_adjust(left=0.2, right=0.97, top=0.86, bottom=0.08, hspace=0.62, wspace=0.12)
-    for ax, metric in zip(axes.flat, METRICS):
-        tornado_panel(ax, delta.loc[order, metric], score.loc["ref", metric], metric,
-                      show_labels=ax in axes[:, 0])
-    for ax in axes.flat:
-        draw_bars(ax)
-    legend(fig, 0.935)
+    for ax, panel in zip(axes.flat, PANELS):
+        setup_panel(ax, panel, rows, xlims[panel], show_labels=ax in axes[:, 0])
+    for ax, panel in zip(axes.flat, PANELS):
+        draw_panel(ax, panel, rows, d)
+    tech_legend(fig, 0.935)
     footnote(fig, 0.0)
     save(fig, plot_path / f"backcast_ablation_tornado_F{year}")
     plt.close(fig)
 
-    # One figure per metric, each sorted by its own |delta|
-    for metric in METRICS:
-        d = delta[metric].reindex(delta[metric].abs().sort_values(ascending=False).index)
+    # One figure per panel
+    for panel in PANELS:
         fig, ax = plt.subplots(figsize=(6.0, 2.2))
-        fig.subplots_adjust(left=0.22, right=0.97, top=0.74, bottom=0.1)
-        tornado_panel(ax, d, score.loc["ref", metric], metric, show_labels=True)
-        draw_bars(ax)
-        legend(fig, 0.88)
+        fig.subplots_adjust(left=0.22, right=0.97, top=0.74 if panel == "generation" else 0.8,
+                            bottom=0.1)
+        setup_panel(ax, panel, rows, xlims[panel], show_labels=True)
+        draw_panel(ax, panel, rows, d)
+        if panel == "generation":
+            tech_legend(fig, 0.88)
         footnote(fig, -0.02)
-        save(fig, plot_path / f"backcast_ablation_tornado_{metric}_F{year}")
+        save(fig, plot_path / f"backcast_ablation_tornado_{panel}_F{year}")
         plt.close(fig)
 
 
