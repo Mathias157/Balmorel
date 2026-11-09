@@ -1,4 +1,5 @@
 # latexmk config for the slides: LuaLaTeX (fontspec/Inter), aux files in build/.
+# Generate presentation by running `latexmk` in this folder
 $pdf_mode = 4;
 $aux_dir = 'build';
 $out_dir = '.';
