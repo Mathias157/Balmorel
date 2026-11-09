@@ -1042,9 +1042,12 @@ def map(
     # ax.set_xlim(lon_lims)
     # ax.set_ylim(lat_lims)
 
+    ax.set_facecolor(ctx.obj["fc"])
     fig.savefig(
         "analysis/plots/map_%s%s"
-        % (commodity + "-" + str(year) + "-" + scenario, ctx.obj["plot_ext"])
+        % (commodity + "-" + str(year) + "-" + scenario, ctx.obj["plot_ext"]),
+        transparent=True,
+        bbox_inches="tight",
     )
 
     return fig, ax
