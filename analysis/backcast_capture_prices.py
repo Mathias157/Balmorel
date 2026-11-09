@@ -19,8 +19,17 @@ grades' capture prices differ by under 0.5 €/MWh (BG solar 1.7).
 Balmorel prices are in EUR2016 and converted to nominal EUR of the backcast
 year, as ENTSO-E's are. Capture rates don't depend on the price level.
 
+--seasons and --terms restrict everything (capture and baseload prices) to
+those seasons x terms of the Backcast Calendar: comma-separated labels or
+ranges, a backwards range wrapping around, so --seasons S48-S09 is December
+plus January-February. Within a selection the capture rate only sees how
+output and prices co-move inside it, not the between-season part (e.g. more
+wind in winter, when prices are higher). TWh are annualised from the hours
+used.
+
 Run from the repo root (GAMS_SYSTEM_DIR comes from .env):
     pixi run python analysis/backcast_capture_prices.py
+    pixi run python analysis/backcast_capture_prices.py --seasons S48-S09 --label winter
 """
 
 from pathlib import Path
@@ -38,7 +47,13 @@ from pybalmorel.backcasting.__main__ import (
     load_balmorel_data,
     load_observed_prices,
 )
-from pybalmorel.backcasting.calendar import backcast_hours, from_backcast_grid
+from pybalmorel.backcasting.calendar import (
+    SEASONS,
+    TERMS,
+    backcast_calendar,
+    backcast_hours,
+    from_backcast_grid,
+)
 from pybalmorel.backcasting.flows import canonical_region
 from pybalmorel.backcasting.plotstyle import BALMOREL_COLOUR, ENTSOE_COLOUR, plot_style
 
@@ -76,6 +91,37 @@ def set_font():
 # ------------------------------- #
 #             Data                #
 # ------------------------------- #
+
+
+def parse_labels(spec: str | None, labels: list[str], option: str) -> list[str]:
+    """The labels a comma-separated `spec` of labels and ranges picks, e.g.
+    'S48-S09,S20' from SEASONS. A backwards range wraps around; the prefix
+    and zero-padding may be left out ('48-9'). None picks all."""
+    if not spec:
+        return labels
+    prefix, width = labels[0][0], len(labels[0]) - 1
+
+    def position(text: str) -> int:
+        try:
+            return labels.index(f"{prefix}{int(text.upper().removeprefix(prefix)):0{width}d}")
+        except ValueError:
+            raise click.BadParameter(
+                f"{text!r} is not one of {labels[0]}-{labels[-1]}", param_hint=option
+            ) from None
+
+    picked = set()
+    for item in spec.replace(" ", "").split(","):
+        start, _, end = item.partition("-")
+        i, j = position(start), position(end or start)
+        picked.update(labels[i : j + 1] if i <= j else labels[i:] + labels[: j + 1])
+    return [label for label in labels if label in picked]
+
+
+def selected_hours(year: int, seasons: list[str], terms: list[str]) -> pd.DatetimeIndex:
+    """UTC hours of the chosen seasons x terms."""
+    calendar = backcast_calendar(year)
+    chosen = calendar.Season.isin(seasons) & calendar.Term.isin(terms)
+    return pd.DatetimeIndex(calendar.Timestamp[chosen])
 
 
 def balmorel_data(scenario: str, scenario_path: str, year: int, overwrite: bool):
@@ -250,7 +296,7 @@ def region_order(regions) -> list[str]:
     return known + sorted(set(regions) - set(known))
 
 
-def draw(table, compared, metric: str, year: int, scenario: str, style: str):
+def draw(table, compared, metric: str, year: int, scenario: str, style: str, selection: str):
     """Dot plot per technology: ENTSO-E and Balmorel per region, joined by a
     line; Europe on top."""
     title, unit = METRICS[metric]
@@ -303,7 +349,8 @@ def draw(table, compared, metric: str, year: int, scenario: str, style: str):
 
         fig.text(0.07, 0.965, f"{title}  ·  {unit}", fontsize=9, fontweight="semibold",
                  color=tokens["ink"], va="top")
-        fig.text(0.07, 0.925, f"Balmorel {scenario.split('_')[-1]} vs ENTSO-E, per region",
+        fig.text(0.07, 0.925,
+                 f"Balmorel {scenario.split('_')[-1]} vs ENTSO-E, per region  ·  {selection}",
                  fontsize=6.5, color=tokens["muted"], va="top")
         handles = [
             Line2D([], [], ls="", marker="o", ms=5, color=ENTSOE_COLOUR, label="ENTSO-E"),
@@ -336,18 +383,38 @@ def save(fig, path: Path):
 @click.option("--year", default=2023, show_default=True)
 @click.option("--min-twh", default=0.5, show_default=True,
               help="Annual output a technology needs on both sides to be plotted in a region")
+@click.option("--seasons", default=None,
+              help="Seasons to use, comma-separated labels or ranges, e.g. 'S48-S09' (backwards "
+              "ranges wrap). Default: all")
+@click.option("--terms", default=None,
+              help="Terms to use, e.g. 'T001-T024' (the Mondays). Default: all")
+@click.option("--label", default=None,
+              help="File name suffix for a selection. Default: built from --seasons/--terms")
 @click.option("--style", type=click.Choice(["dark", "light"]), default="dark", show_default=True)
 @click.option("--overwrite", is_flag=True,
               help="Reread the MainResults GDX, replacing the scenario folder's backcastoutput "
               "cache (which pybalmorel's format command shares)")
 @click.option("--plot-path", default="analysis/plots", show_default=True)
 @click.option("--output-path", default="analysis/output", show_default=True)
-def main(scenario, scenario_path, entsoe_path, year, min_twh, style, overwrite, plot_path,
-         output_path):
+def main(scenario, scenario_path, entsoe_path, year, min_twh, seasons, terms, label, style,
+         overwrite, plot_path, output_path):
     plot_path, output_path = Path(plot_path), Path(output_path)
+    chosen = selected_hours(
+        year, parse_labels(seasons, SEASONS, "--seasons"), parse_labels(terms, TERMS, "--terms")
+    )
+    parts = [f"{name} {spec.replace(' ', '')}" for name, spec in
+             (("seasons", seasons), ("terms", terms)) if spec]
+    if label is None:
+        label = "_".join(spec.replace(" ", "").replace(",", "_") for spec in (seasons, terms) if spec)
+    suffix = f"_{label}" if label else ""
     set_font()
 
     b_out, b_prices = balmorel_data(scenario, scenario_path, year, overwrite)
+    b_prices = b_prices[b_prices.index.isin(chosen)]  # Balmorel's prices define the hours used
+    if b_prices.empty:
+        raise click.UsageError("No solved hours in the selected seasons x terms.")
+    selection = ", ".join(parts + [f"{len(b_prices):,} solved h"]) if parts else "full year"
+    print(f"Selection: {selection}")
     e_out, e_prices, e_reported = entsoe_data(entsoe_path, year)
     table, grades = capture_table(b_out, b_prices, e_out, e_prices, e_reported, year)
 
@@ -358,9 +425,9 @@ def main(scenario, scenario_path, entsoe_path, year, min_twh, style, overwrite, 
     output_path.mkdir(parents=True, exist_ok=True)
     flat = table.drop(columns="Revenue", level=0)
     flat.columns = [f"{s}_{m}" if s else m for m, s in flat.columns]
-    flat.round(3).to_csv(output_path / f"capture_prices_{scenario}.csv")
+    flat.round(3).to_csv(output_path / f"capture_prices_{scenario}{suffix}.csv")
     grades.drop(columns="Revenue").round(3).to_csv(
-        output_path / f"capture_prices_grades_{scenario}.csv"
+        output_path / f"capture_prices_grades_{scenario}{suffix}.csv"
     )
     with pd.option_context("display.width", 200, "display.max_rows", 200):
         print(flat.loc[list(compared) + [i for i in flat.index if i[0] == EUROPE]].round(2))
@@ -372,8 +439,8 @@ def main(scenario, scenario_path, entsoe_path, year, min_twh, style, overwrite, 
 
     plot_path.mkdir(parents=True, exist_ok=True)
     for metric in METRICS:
-        fig = draw(table, compared, metric, year, scenario, style)
-        save(fig, plot_path / f"backcast_{metric}s_{scenario.split('_')[-1]}")
+        fig = draw(table, compared, metric, year, scenario, style, selection)
+        save(fig, plot_path / f"backcast_{metric}s_{scenario.split('_')[-1]}{suffix}")
         plt.close(fig)
 
 
