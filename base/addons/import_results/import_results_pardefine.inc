@@ -32,6 +32,33 @@ $ifi %HYDROGEN%==yes $ifi not %ADDH2STOVOLTS%==none  execute_load  '../simex/H2S
 $ifi %HYDROGEN%==yes $ifi not %ADDBIOMETHSTOVOLTS%==none  execute_load  '../simex/BIOMETHSTOVOLTS.gdx', BIOMETHSTOVOLTS;
 $ifi %HYDROGEN%==yes $ifi not %ADDBIOMETHSTOVOLTS%==none  execute_load  '../simex/BIOMETHSTOVOLTSVAL.gdx', BIOMETHSTOVOLTSVAL;
 
+* F's biomethane store is one lossless, unbounded store per year with no cost on its content, so F fixes
+* its level only up to a constant. A barrier without crossover can park it anywhere: the baralg 2 F2050s
+* exported 2e10-4e11 MWh against a yearly swing of a few 1e8, and every rolling run pinned to them went
+* status 6 or infeasible (GREAT docs/adr/0101). An offset larger than the store's own yearly swing (max - min
+* over every week of SSS and every step F exported at) is shifted away down to one swing: F's trajectory
+* stays feasible at the same cost, and R keeps one swing of room below F's lowest level, so its hourly path
+* inside a week is never held tighter than with a sane export. An export whose offset is within one swing
+* is not changed, a step F left at zero (not stored in the GDX) counts as zero, and an export covering
+* fewer weeks than SSS has a minimum of zero and so shifts nothing.
+$ifi not %HYDROGEN%==yes $goto label_no_biomethane_storage_rebase
+$ifi %ADDBIOMETHSTOVOLTS%==none $goto label_no_biomethane_storage_rebase
+SET IBIOMETHSTOVOLTS_T(TTT) "Time steps the imported biomethane storage content was exported at";
+PARAMETER IBIOMETHSTOVOLTS_MIN(Y) "Yearly minimum of the imported biomethane storage content (MWh)";
+PARAMETER IBIOMETHSTOVOLTS_MAX(Y) "Yearly maximum of the imported biomethane storage content (MWh)";
+PARAMETER IBIOMETHSTOVOLTS_SHIFT(Y) "Offset beyond one yearly swing, subtracted from the imported biomethane storage content (MWh)";
+FILE IBIOMETHSTOVOLTSLOG "Writes the biomethane storage content shift to the GAMS log";
+IBIOMETHSTOVOLTSLOG.nr = 1;
+IBIOMETHSTOVOLTS_T(TTT) = YES$SUM((Y,SSS)$BIOMETHSTOVOLTS(Y,SSS,TTT),1);
+IBIOMETHSTOVOLTS_MIN(Y)$CARD(IBIOMETHSTOVOLTS_T) = SMIN((SSS,TTT)$IBIOMETHSTOVOLTS_T(TTT), BIOMETHSTOVOLTS(Y,SSS,TTT));
+IBIOMETHSTOVOLTS_MAX(Y) = SMAX((SSS,TTT), BIOMETHSTOVOLTS(Y,SSS,TTT));
+IBIOMETHSTOVOLTS_SHIFT(Y) = MAX(0, IBIOMETHSTOVOLTS_MIN(Y) - (IBIOMETHSTOVOLTS_MAX(Y) - IBIOMETHSTOVOLTS_MIN(Y)));
+BIOMETHSTOVOLTS(Y,SSS,TTT)$IBIOMETHSTOVOLTS_T(TTT) = BIOMETHSTOVOLTS(Y,SSS,TTT) - IBIOMETHSTOVOLTS_SHIFT(Y);
+LOOP(Y,
+   put_utility IBIOMETHSTOVOLTSLOG 'log' / 'BIOMETHANE STORAGE LEVEL: ' Y.tl:0 ' exported min ' IBIOMETHSTOVOLTS_MIN(Y):0:0 ' max ' IBIOMETHSTOVOLTS_MAX(Y):0:0 ' MWh over ' CARD(IBIOMETHSTOVOLTS_T):0:0 ' steps, shifted down by ' IBIOMETHSTOVOLTS_SHIFT(Y):0:0 ' MWh';
+);
+$label label_no_biomethane_storage_rebase
+
 * price: the exporting run (F) writes the value only at its own time steps, while the qobj term charges
 * it at every hour of R's week. The value is in Money/MWh and the same at every step of a week (the SSIZE
 * factor in the export cancels the smaller dual of the last step), so its mean over F's steps is put on
