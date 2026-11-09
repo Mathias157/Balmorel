@@ -987,6 +987,12 @@ def profile(
 @click.argument("lat-lims", type=list, default=[54.4, 58])
 @click.option("--lines", type=str, default="UtilizationYear")
 @click.option("--generation", type=str, default="Production")
+@click.option(
+    "--crs",
+    type=str,
+    default="EPSG:3035",
+    help="Map projection, defaults to the one of entsoe-map (EPSG:3035)",
+)
 def map(
     ctx,
     commodity: str,
@@ -998,6 +1004,7 @@ def map(
     lat_lims: list,
     lines: str,
     generation: str,
+    crs: str = "EPSG:3035",
     invoked: bool = False,
     generation_show: bool = True,
 ):
@@ -1037,6 +1044,7 @@ def map(
         pie_radius_min=0.03,
         regions_model_color="lightgray",
         regions_ext_color="lightgray",
+        crs=crs,
         **{"generation_show": generation_show},
     )
     # ax.set_xlim(lon_lims)
