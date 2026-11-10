@@ -1,7 +1,8 @@
 * Backcast: the base annual electricity demand, then the demand level for the
 * backcast year (see CONTEXT.md and README.md). DE_ENTSOE.inc is written by
-* pybalmorel (demand-level): ENTSO-E load net of distribution losses, less
-* Eurostat's electricity for heating, which Balmorel adds endogenously.
+* pybalmorel (demand-level): ENTSO-E load less transmission losses, net of
+* distribution losses, less the electric heating Balmorel adds endogenously
+* (the previous run's, ADR 0015, or Eurostat's in a new year's first run).
 * Without it, the base demand stays (2020 Eurostat final consumption for the
 * countries added later, older sources for the rest). The INDUSTRY and
 * INDIVUSERS addons adjust DE again after this file; INDUSTRY_DE.inc and

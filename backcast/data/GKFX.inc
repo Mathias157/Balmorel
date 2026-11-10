@@ -11,3 +11,9 @@ GKFX('2023','DE4-W_A','GNR_ST_NUCL_CND_E-33') = GKFX('2022','DE4-W_A','GNR_ST_NU
 * Finland: Olkiluoto 3 ran through 2023 (commercial operation from 16 April,
 * test production before). Base adds it only from 2024.
 GKFX('2023','FinA','GNR_ST_NUCL_CND_E-33') = GKFX('2024','FinA','GNR_ST_NUCL_CND_E-33');
+
+* Switzerland: base GKFX_renewable.inc has CH's PV in GW where Balmorel reads MW
+* (2017-2023: 1.91 ... 5.84, Switzerland's installed GW), so 2023 had 5.84 MW
+* against about 6 GW built. Scaled here for the backcast only; base unchanged.
+GKFX('2023','CH_VRE-PV_Utility_scale_no_tracking_RG1','GNR_PV-Utility_scale_no_tracking_RG1_Existing')
+  = 1000 * GKFX('2023','CH_VRE-PV_Utility_scale_no_tracking_RG1','GNR_PV-Utility_scale_no_tracking_RG1_Existing');

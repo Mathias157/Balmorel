@@ -26,8 +26,11 @@ Turning raw historical data for a backcast year into Balmorel input data.
 _Avoid_: Backcast validation (that is the comparison step, after the run)
 
 **Backcast validation**:
-Comparing a backcast's results with observed ENTSO-E load, prices and
-generation for the same backcast year.
+Comparing a backcast's results with observed ENTSO-E prices, cross-border
+flows and generation for the same backcast year, to test Balmorel's supply
+side: what it dispatches and trades to meet a given load. Electric heating,
+the one validation metric on the demand side, is reported apart, as a
+finding about the heat sector.
 _Avoid_: Backcast preprocessing
 
 **Calibration input**:
@@ -105,15 +108,21 @@ an observed level)
 **Validation metric**:
 A result the model must reproduce on its own to pass backcast validation:
 prices, cross-border flows, the fossil mix above the must-run floor,
-electric heating, and the timing of nuclear and hydro output within the
-year. Never derived from the same data as a
-calibration input.
+electric heating (reported apart, see Backcast validation), and the timing
+of nuclear and hydro output within the year. Never derived from the same data
+as a calibration input.
 _Avoid_: Target (ambiguous between the two)
 
 **Observed load**:
 Electricity demand as actually measured, taken from ENTSO-E. It includes
-whatever EV charging and power-to-heat happened that year. It is the
-reference that a backcast is validated against.
+whatever EV charging and power-to-heat happened that year. It sets the
+demand level, so it is a calibration input at every level, the system's and
+each country's: a country's gap between Balmorel's load and observed load is
+not a supply-side error. With the iterated demand level it is what the last
+iteration left, the change in the country's electric heating and transmission
+losses since the previous run. In the first run of a backcast year, whose
+level leaves out Eurostat's heating, it is the electric-heating error
+(Balmorel's electric heating less Eurostat's) plus transmission losses.
 _Avoid_: Demand (ambiguous)
 
 **Modelled demand**:
@@ -126,15 +135,21 @@ _Avoid_: Demand (ambiguous), load
 
 **Demand level**:
 The annual exogenous electricity demand (`DE`) of a region in the backcast
-year: its ENTSO-E load over the backcast calendar, net of Balmorel's
-distribution losses, less the electricity Eurostat reports for heating
-(household space and water heating, electric boilers and heat pumps in
-district heating), which Balmorel adds endogenously. Taken from ENTSO-E's
-load rather than Eurostat's final consumption because the two differ in
-coverage (DE: ENTSO-E sees 7% less). With it, Balmorel's load misses
-ENTSO-E's only by its electric-heating error and transmission losses.
-Written as `DE` overrides to `DE_ENTSOE.inc`. A calibration input; electric
-heating stays a validation metric.
+year: its ENTSO-E load over the backcast calendar, extrapolated to the 8760
+hours Balmorel spreads `DE` over, less the previous backcast run's
+transmission losses, net of Balmorel's distribution losses, less the
+electricity the previous run used for heat (`ENDOGENOUS_ELECT2HEAT`), which
+Balmorel adds back endogenously. Its electric heating and losses respond to
+the level, so the level is iterated over runs for as long as the user finds
+the previous run's residual worth closing. The first run of a new backcast
+year has no previous run and leaves out the electricity Eurostat reports for
+heating instead (household space and water heating, electric boilers and
+heat pumps in district heating). Taken from ENTSO-E's load rather than
+Eurostat's final consumption because the two differ in coverage (DE: ENTSO-E
+sees 7% less). Written as `DE` overrides to `DE_ENTSOE.inc`, which the
+backcast applies again after the INDUSTRY and INDIVUSERS addons have
+adjusted `DE`. A calibration input; electric heating, Balmorel's against
+Eurostat's, stays a validation metric.
 _Avoid_: Final consumption (Eurostat's figure, with different coverage);
 Demand (ambiguous)
 
