@@ -20,9 +20,9 @@ All commands run from the repository root in the pixi environment
 | Fuel prices | `FUELPRICE.inc`, `FUELPRICE_CONSTANT.inc` | `python -m pybalmorel.backcasting fuelprices backcast backcast/historicalprices 2023`. NATGAS (TTF) and COAL (Rotterdam) are daily; every other fuel stays annual from `FUELPRICE_APS.inc`. **Manual fix:** the generated `FUELPRICE.inc` leaves out the `$INCLUDE` of `FUELPRICE_%SCNAME%.inc`. Without it, every annual fuel has no price, and nothing aborts. Add the two `$if EXIST ... FUELPRICE_%SCNAME%.inc` lines back at the top after each regeneration. |
 | CO2 tax | `TAX_CO2_ST.inc` | `python -m pybalmorel.backcasting co2-tax backcast backcast/historicalprices 2023 --co2-override UNITED_KINGDOM=84.31 --co2-override ALBANIA=0 --co2-override BOSNIA_AND_HERZEGOVINA=0 --co2-override MONTENEGRO=0 --co2-override NORTH_MACEDONIA=0 --co2-override SERBIA=0 --co2-override TURKEY=0` (the reasons are below). |
 | Transmission | `XKFX.inc`, `XKFX_ENTSOE.inc`, `XKRATE.inc` | `python -m pybalmorel.backcasting transmission-flow-limit backcast backcast/entsoedata 2023` writes the Observed Flow Limits (`--percentile`, default 99; pybalmorel ADR 0005/0006/0010) as overrides in `XKFX_ENTSOE.inc`, and adds its `$include` to `XKFX.inc` if missing. An `XKFX_ENTSOE.inc` made with the older `transmission-max-flow` command holds Observed Max Flows and must be regenerated. `XKRATE.inc` rates every open line at 1: the limits are flows that actually happened, so the base 0.95 would cut them a second time. `XKFX.inc` was switched to `'2023'` by hand. Its inline observed-flow block holds the 2024 flows relabelled as 2023, a placeholder that `XKFX_ENTSOE.inc` overrides once it exists. Every `XKFX('<year>',…)` in the file must name the backcast year: a leftover year in `XKFX(Y,…)=XKFX('<year>',…)` silently sets the whole table to zero. |
-| Nuclear availability | `GKRATE.inc`, `GKRATE_ENTSOE.inc` | `python -m pybalmorel.backcasting nuclear-availability backcast backcast/entsoedata 2023` writes `GKRATE_ENTSOE.inc`. `GKRATE.inc` includes the base ratings and then `GKRATE_ENTSOE.inc`, if it exists. That file rates each nuclear unit per week: the country's highest hourly ENTSO-E nuclear output in that week ÷ its nuclear `GKFX`. Without the file, nuclear keeps the base rating 1 − GDPLANMAINT/8760 = 0.9425, which lets France produce about 505 TWh against 319 TWh observed. A zero rating must be written as `eps`, because Balmorel reads a literal 0 as the default, full capacity. The UK keeps the base rating, since `entsoedata` has no UK file. Weeks after a country's last ENTSO-E data are rated `eps`, as a closure: Germany's series ends on 15 April, so S16–S52. The command reads `GKFX` from `model/backcast_input_data.gdx` and reuses that file if it exists (`--reload-input` rebuilds it), so it must postdate `GKFX.inc`. Requires `GKRATE_DOL` = `AAA_GGG_SSS` in the option files. |
-| Thermal availability | `GKRATE.inc`, `GKRATE_THERMAL_ENTSOE.inc` | **Not yet generated.** `python -m pybalmorel.backcasting thermal-availability backcast backcast/entsoedata 2023` will write `GKRATE_THERMAL_ENTSOE.inc`, as specified in `../pybalmorel/docs/handover-backcast-thermal-capacity-and-outages.md`. It needs two more ENTSO-E downloads, installed capacity and outages. The file rates the fossil, biomass and waste technologies per week: ENTSO-E's installed capacity as a share of `GKFX` (at most 1), less the outages reported that week. It leaves nuclear alone. `GKRATE.inc` includes it after `GKRATE_ENTSOE.inc`, if it exists. The ratings are never taken from observed output, because the fossil mix is a validation metric. Today DE has 48.0 GW of coal and lignite `GKFX` against an observed maximum of 31.9 GW. |
-| Must-run floor | `MUSTRUN_ZONE.inc`, `MUSTRUN_ZONE_RRR.inc`, `MUSTRUN_GROUP.inc`, `MUSTRUN_GROUP_FFF.inc`, `MUSTRUN_FLOOR.inc` | **Not yet generated.** `python -m pybalmorel.backcasting must-run-floor backcast backcast/entsoedata 2023` will write them, as specified in `../pybalmorel/docs/handover-backcast-must-run-floor.md`. Run it after the thermal availability. Each floor is the lowest observed hourly output of one fuel group (lignite, hard coal, gas, oil, oil shale and peat, biomass, waste) in one zone in one week. Fossil groups get a floor only in weeks with at least 4 hours at or below 40 €/MWh (nominal day-ahead). Biomass and waste get one every week. Balmorel's `MUSTRUN` addon (`base/addons/mustrun`) requires that much output, or pays `MUSTRUN_PENALTY` (default 300 €2016/MWh) per MWh short. The floor fixes the bottom of the fossil mix by construction, about 209 of the observed fossil TWh in 2023. Only the mix above it is evidence. Without the floor, DE never reaches a 0 price (311 observed hours at or below 0), and DE biomass makes 0.6 TWh against 37.4. |
+| Nuclear availability | `GKRATE.inc`, `GKRATE_ENTSOE.inc` | `python -m pybalmorel.backcasting nuclear-availability backcast backcast/entsoedata 2023` writes `GKRATE_ENTSOE.inc` (pybalmorel ADR 0013). `GKRATE.inc` includes the base ratings and then `GKRATE_ENTSOE.inc`, if it exists. That file rates each nuclear unit per week: the country's highest hourly ENTSO-E nuclear output in that week ÷ its nuclear `GKFX`. Without the file, nuclear keeps the base rating 1 − GDPLANMAINT/8760 = 0.9425, which lets France produce about 505 TWh against 319 TWh observed. A zero rating must be written as `eps`, because Balmorel reads a literal 0 as the default, full capacity. The UK keeps the base rating, since `entsoedata` has no UK file. Weeks after a country's last ENTSO-E data are rated `eps`, as a closure: Germany's series ends on 15 April, so S16–S52. The command reads `GKFX` from `model/backcast_input_data.gdx` and reuses that file if it exists (`--reload-input` rebuilds it), so it must postdate `GKFX.inc`. Requires `GKRATE_DOL` = `AAA_GGG_SSS` in the option files. |
+| Thermal availability | `GKRATE.inc`, `GKRATE_THERMAL_ENTSOE.inc` | `python -m pybalmorel.backcasting thermal-availability backcast backcast/entsoedata 2023` writes `GKRATE_THERMAL_ENTSOE.inc` (pybalmorel ADR 0014). It needs two ENTSO-E downloads besides generation: installed capacity and outages (unavailability of generation units). The file rates the fossil, biomass and waste technologies per country, fuel group and week: ENTSO-E's installed capacity as a share of `GKFX` (at most 1), less the share of it reported out of service that week, averaged over the week. Planned and forced outages both count, each event at its latest revision, without cancelled or withdrawn events. It leaves nuclear alone. `GKRATE.inc` includes it after `GKRATE_ENTSOE.inc`, if it exists. The ratings are never taken from observed output, because the fossil mix is a validation metric. Without them, DE has 48.0 GW of coal and lignite `GKFX` against an observed maximum of 31.9 GW. `backcastoutput/thermal_capacity.csv` compares `GKFX`, installed capacity and observed output per country and group, and `thermal_availability.csv` holds the weekly ratings. Countries without ENTSO-E installed capacity keep their base `GKRATE`: IT, SE1–4, UK, TR, CH, BA, CY, LU, ME, MT and XK. AL, HR, MK, NO1–5 and SI have no outage reports, so they only get the capacity share. Exact duplicate rows in the outage download (10,495 of 69,492 in 2023) count once; the runs made before that fix counted them twice (see Known limitations). Like the nuclear command, it reads `model/backcast_input_data.gdx` and reuses it if it exists. |
+| Must-run floor | `MUSTRUN_ZONE.inc`, `MUSTRUN_ZONE_RRR.inc`, `MUSTRUN_GROUP.inc`, `MUSTRUN_GROUP_FFF.inc`, `MUSTRUN_FLOOR.inc` | `python -m pybalmorel.backcasting must-run-floor backcast backcast/entsoedata 2023` writes them (ADR 0005). Run it after the thermal availability, because each floor is capped at the zone's `GKFX` × `GKRATE`. Each floor is the lowest observed hourly output of one fuel group (lignite, hard coal, gas, oil, oil shale and peat, biomass, waste) in one zone in one week. Fossil groups get a floor only in weeks with at least 4 hours at or below 40 €/MWh (nominal day-ahead). Biomass and waste get one every week. Balmorel's `MUSTRUN` addon (`base/addons/mustrun`) requires that much output, or pays `MUSTRUN_PENALTY` (default 300 €2016/MWh) per MWh short. The floor fixes the bottom of the fossil mix by construction, about 209 of the observed fossil TWh in 2023. Only the mix above it is evidence. In the runs before the floor, DE never reached a 0 price (311 observed hours at or below 0), and DE biomass made 0.6 TWh against 37.4. In the `mustrun` ablation of `backcast_F2023`, dropping the floor lowers biomass by 33 TWh and raises gas by 13 TWh. |
 | Capacity corrections | `GKFX.inc` | Hand-written. Includes the base capacities and adds, for 2023, nuclear units that ran that year but are missing from the base 2023 column: Isar 2 and Neckarwestheim 2 (`DE4-S_A`, 2,720 MW) and Emsland (`DE4-W_A`, 1,336 MW), which ran until 15 April 2023, and Olkiluoto 3 (`FinA` 4,364 MW instead of 2,794). Their closures and outages come from the nuclear availability. Every other capacity is unchanged from `base/data`. |
 | Year and seasons | `Y.inc`, `S.inc` | Written by `jobs/backcast_fullyear.sh` from its `year`/`seasons` variables. |
 | Time-step length | none | `CHRONOHOUR` comes from `base/data/CHRONOHOUR.inc`, which computes it from the selected `T`: 7 for the full-year run (`T_full`, every 7th hour) and 1 for the rolling run (`T001*T168`). `SSIZE` follows from it. Do not add a `data/CHRONOHOUR.inc` here, since it would override the base formula. |
@@ -60,8 +60,9 @@ The job scripts copy `model/balopt_full.opt` or `model/balopt_roll.opt` to
   above any fuel cost, so the slack should only cover time steps where the
   floor cannot be met, such as back-pressure CHP with no heat to sink. The
   slack is not in MainResults: compare `PRO_YCRAGFST` with the floors before
-  reading the fossil mix. So far the addon has been compiled with the
-  backcast data but not yet solved.
+  reading the fossil mix. The addon is part of the solved `backcast_F2023`
+  run: the `mustrun` ablation, which drops it, differs from `ref`, and
+  `ref` matches `backcast_F2023` byte for byte.
 
 ## Known limitations
 
@@ -88,6 +89,31 @@ The job scripts copy `model/balopt_full.opt` or `model/balopt_roll.opt` to
   above its 1,300 MW net capacity (the `GKFX`) and even its 1,413 MW gross,
   so this is a reporting difference, not a missing unit; `GKFX` is not
   changed.
+- `backcast_F2023`, `backcast_R2023` and the ablations were solved with
+  thermal ratings that counted some outages twice. The ENTSO-E outage
+  download has 10,495 exact duplicate rows out of 69,492 (same event, same
+  revision), and `thermal-availability` counted each one until 2026-11-09.
+  Summed over countries and averaged over the weeks, the rated capacity was
+  193.0 GW, against 198.8 GW since the fix (DE +3.2 GW, mostly hard coal and
+  gas). Their thermal output, prices and must-run floors are therefore not
+  comparable with runs made after the fix. Their must-run floors were also
+  capped at `GKFX` × the base `GKRATE`, not at the weekly thermal rating,
+  because the floors had been generated before the ratings reached the
+  input GDX. Regenerating them on 2026-11-10 changed 244 of 3,994 floors
+  but only 0.08 TWh of the 243.7 TWh they require. It dropped the 34 floors
+  that are now rated 0: CZ oil (18 weeks) and SK hard coal (3), where
+  ENTSO-E reports almost no installed capacity, and NL biomass (13), where
+  the reported outages cover all of it. ENTSO-E nevertheless shows output
+  in each of those weeks.
+- Thermal outages are averaged over the week, so a group's rated capacity
+  can be below its observed peak in that week. DE lignite is rated below its
+  observed weekly peak in 9 weeks, by up to 1.2 GW, and Balmorel can't reach
+  those hours.
+- The thermal capacity share derates a whole fuel group, not the units that
+  closed. Where ENTSO-E covers fewer plants than `GKFX`, typically small CHP
+  and industrial plants, it is too low: ES waste is rated 0.10 and PL
+  biomass 0.19. These plants also produce heat, so the derating reaches the
+  heat balance too.
 - The hydro inflow fallback is a stopgap. Once CorRES releases corrected and
   complete inflow series, every country should use them and the fallback
   should be removed. Latvia is in it because CorRES has the same series for
@@ -176,7 +202,8 @@ ablation removes. `ref` removes nothing and should reproduce
 
 1. `pixi run sync-up`, then on the cluster, from the repository root:
    `jobs/submit_backcast_ablations.sh` (default: `ref hydro nuclear demand
-   mustrun vre`; `thermal` also exists). Names can be given as arguments.
+   mustrun vre`). `thermal` also exists but has not been run. Names can be
+   given as arguments.
    `--no-submit` only builds the folders. An existing folder is skipped, so
    delete it to rebuild it.
 2. Each job runs `jobs/backcast_ablation.sh` from inside its folder and writes
