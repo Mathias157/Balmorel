@@ -136,10 +136,11 @@ _Avoid_: Demand (ambiguous), load
 **Demand level**:
 The annual exogenous electricity demand (`DE`) of a region in the backcast
 year: its ENTSO-E load over the backcast calendar, extrapolated to the 8760
-hours Balmorel spreads `DE` over, less the previous backcast run's
-transmission losses, net of Balmorel's distribution losses, less the
-electricity the previous run used for heat (`ENDOGENOUS_ELECT2HEAT`), which
-Balmorel adds back endogenously. Its electric heating and losses respond to
+hours Balmorel spreads `DE` over, less what the previous backcast run added
+on top of `DE`: its transmission losses, the electricity it used for heat
+(`ENDOGENOUS_ELECT2HEAT`), and its distribution losses on anything but
+exogenous demand (on that heating, and on wind and solar output); all net
+of Balmorel's distribution losses. Its electric heating and losses respond to
 the level, so the level is iterated over runs for as long as the user finds
 the previous run's residual worth closing. The first run of a new backcast
 year has no previous run and leaves out the electricity Eurostat reports for
