@@ -1,8 +1,7 @@
 * Must-run floor from ENTSO-E output in low-price weeks (see CONTEXT.md) - generated, do not hand-edit
 SET MUSTRUN_GROUP_FFF(MUSTRUN_GROUP,FFF) 'Fuels in each must-run fuel group'
 /
-LIGNITE.(LIGNITE)
-HARDCOAL.(COAL)
+COAL.(COAL,LIGNITE)
 GAS.(NATGAS,OTHERGAS,LNG,RETORTGAS)
 OIL.(FUELOIL,LIGHTOIL)
 OILSHALE_PEAT.(SHALE,PEAT)
