@@ -2500,7 +2500,13 @@ def collect_results(ctx, symbol: str):
     else:
         print("\nCollecting results to %s..\n" % file_path, flush=True)
         m = ctx.obj["Balmorel"]
-        m.collect_results(suffix_naming_only=True)
+        # Reuse results already collected in this process: every
+        # collect_results() opens one GAMS database (and one file handle) per
+        # MainResults*.gdx, and the old set stays open until the new one is
+        # built - two symbols in one command (e.g. `cap`'s generation +
+        # storage) doubled that and hit the 1024 open-file limit.
+        if getattr(m, "results", None) is None:
+            m.collect_results(suffix_naming_only=True)
 
         df = m.results.get_result(symbol)
 
