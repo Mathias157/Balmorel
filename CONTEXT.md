@@ -92,6 +92,24 @@ validation metric. Written as weekly `GKRATE` overrides to
 _Avoid_: Capacity factor (that describes output); Nuclear availability (that
 is taken from observed output)
 
+**Transmission availability**:
+The share of one direction's Observed Flow Limit that could be used in a
+given week of the backcast year: the mean over the week's hours of the
+capacity that ENTSO-E's transmission outage reports leave in service after
+planned and forced outages, capped at the Observed Flow Limit, as a share of
+that limit. It is rated per week, not per hour, because a weekly outage rate
+is something a future scenario could also be given, while the hours of a
+specific outage are not. Only directions whose reports describe the whole
+border are rated: the largest reported capacity is at least half the
+Observed Flow Limit, the border is not flow-based, and observed flow did not
+exceed the reported capacity in a fifth or more of the outage hours. Every
+other direction is rated 1. The ratings never come from observed flows,
+which are a validation metric; flows only decide, once per direction,
+whether its reports are credible. Written as weekly `XKRATE` overrides to
+`XKRATE_ENTSOE.inc`. A calibration input.
+_Avoid_: NTC, offered capacity (a TSO's market allocation, which also cuts
+for internal congestion); weekly limit (collides with Observed Flow Limit)
+
 **Must-run floor**:
 The lowest electricity output a zone's fossil, biomass or waste fuel group
 kept in a week of the backcast year when it would have paid to stop: the
