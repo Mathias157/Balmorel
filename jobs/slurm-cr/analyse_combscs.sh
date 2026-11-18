@@ -30,7 +30,17 @@ cd "$SLURM_SUBMIT_DIR"
 # Get scenario choice and run name from jobs/scenario_choice.sh
 # source jobs/scenario_choice.sh
 
-# snakemake -s rules/postprocess.smk
+pixi run python scripts/postprocessing/categorize_countries.py --output-dir build_postprocess
+
+pixi run python scripts/postprocessing/aggregate_category_costs.py --output-dir build_postprocess
+
+# Plot only if the estimate succeeded - otherwise it redraws the previous run's CSVs
+pixi run python scripts/postprocessing/estimate_flexibility_needs.py --output-dir build_postprocess --overwrite-cache \
+    && pixi run python scripts/postprocessing/plot_flexibility_needs.py --output-dir build_postprocess
+
+# Combination-scenario heatmaps of every metric in config/scenario_metrics.yaml (GREAT ADR 0104)
+pixi run python -u scripts/postprocessing/extract_scenario_metrics.py --output-dir build_postprocess \
+    && pixi run python scripts/postprocessing/plot_scenario_heatmap.py
 
 pixi run analyse --overwrite --filters 'Scenario.str.contains("INV") and Year == "2030"' production --filename "production_investment_runs_2030"
 pixi run analyse --filters 'Scenario.str.contains("INV") and Year == "2040"' production --filename "production_investment_runs_2040"

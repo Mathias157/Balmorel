@@ -42,7 +42,9 @@ def combine_capex_opex(
 ) -> tuple[pd.DataFrame, list]:
     """Splice each R20YY-suffixed scenario's operational OBJ_YCR rows with
     its matching _INV scenario's capex rows (``capex_categories`` - generation
-    and transmission capital/fixed costs).
+    and transmission capital/fixed costs) for that same year 20YY. The _INV
+    run optimises every target year at once, so its OBJ_YCR holds capex for
+    all of them; only the rolling run's own year belongs to it.
 
     Returns (combined, missing): combined is the row-level (not pivoted)
     spliced OBJ_YCR data for every scenario that had both an operational and
@@ -59,7 +61,11 @@ def combine_capex_opex(
             missing.append(sc)
             continue
 
-        capacity = df[(df["Scenario"] == inv_scenario) & is_capex].assign(Scenario=sc)
+        capacity = df[(df["Scenario"] == inv_scenario) & is_capex]
+        rolling_year = re.search(r"R(20(30|40|50))$", sc)
+        if rolling_year:
+            capacity = capacity[capacity["Year"].astype(str) == rolling_year.group(1)]
+        capacity = capacity.assign(Scenario=sc)
         operational = df[(df["Scenario"] == sc) & ~is_capex]
         parts.append(pd.concat([capacity, operational]))
 
