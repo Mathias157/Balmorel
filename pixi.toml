@@ -5,6 +5,10 @@ name = "BALMOREL"
 platforms = ["linux-64"]
 version = "0.1.0"
 
+[activation]
+# GAMS_SYSTEM_DIR comes from the untracked scripts/Balmorel/.env
+scripts = ["activate.sh"]
+
 [tasks]
 analyse = "python analysis/analyse.py "
 verify = "python analysis/verify.py "
