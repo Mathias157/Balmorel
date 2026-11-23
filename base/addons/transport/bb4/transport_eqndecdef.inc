@@ -25,6 +25,9 @@ SUM(IR,
 )
 =E=
 SUM(IR,TRANSDEMAND_Y(IY411,IR))
+* WeekDecoupled: only the solved week's share of the year, in proportion to hours (docs/adr/0006).
+* Written as a subtraction: a $ifi line whose statement starts with * is a comment.
+$ifi %WeekDecoupled%==yes - SUM(IR,TRANSDEMAND_Y(IY411,IR)) * (1 - SUM((IS3,T), IHOURSINST(IS3,T)) / SUM((S,T), IHOURSINST(S,T)))
 ;
 
 EQUATION  QTRANSDEMAND_YR(Y,RRR)    'Annual transport demand has to be met in each region (MWh)';
@@ -34,13 +37,19 @@ QTRANSDEMAND_YR(IY411,IR)$TRANSDEMAND_Y(IY411,IR)..
       VTRANSDEMAND_T(IY411,IR,IS3,T)*IHOURSINST(IS3,T))
 =E=
 TRANSDEMAND_Y(IY411,IR)
+* WeekDecoupled: only the solved week's share of the year, in proportion to hours (docs/adr/0006).
+* Written as a subtraction: a $ifi line whose statement starts with * is a comment.
+$ifi %WeekDecoupled%==yes - TRANSDEMAND_Y(IY411,IR) * (1 - SUM((IS3,T), IHOURSINST(IS3,T)) / SUM((S,T), IHOURSINST(S,T)))
 ;
 
 EQUATION  QTRANSPEAKDEMANDLIMIT(Y,RRR)    'Peak demand limited(MW)';
 
 QTRANSPEAKDEMANDLIMIT(IY411,IR)$((TRANS_PEAKAVG_RATIO GT 0) AND (TRANSDEMAND_Y(IY411,IR)
 $ifi %TRANSPORT_DEMAND_AGGREGATED%==yes OR SUM(IRI,TRANSDEMAND_Y(IY411,IRI))
-))..
+)
+* WeekDecoupled solves once with no week (wd_beforeloop.inc), where the average below is 0/0
+$ifi %WeekDecoupled%==yes AND SUM((IS3,T),1)
+)..
 SUM((IS3,T),VTRANSDEMAND_T(IY411,IR,IS3,T))/SUM((IS3,T),1)*TRANS_PEAKAVG_RATIO
  =G=
 VTRANSDEMAND_T_MAX(IY411,IR)

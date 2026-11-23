@@ -6,5 +6,6 @@ $ifi %vqdebug%==yes   $include   "../../base/addons/vqdebug/bb4/vqdebug_equation
 
 
 $ifi %import_results%==yes  $include   "../../base/addons/import_results/import_results_qhyrsseq.inc";
+$ifi %WeekDecoupled%==yes  $include   "../../base/addons/weekdecoupled/wd_qhyrsseq.inc";
 
 $label endoffile

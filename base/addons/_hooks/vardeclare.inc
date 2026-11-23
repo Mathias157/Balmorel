@@ -34,6 +34,7 @@ $ifi %INDIVUSERS%==yes       $include   "../../base/addons/indivusers/bb4/indivu
 $ifi %BalancingMarket%==yes       $include   "../../base/addons/balancing_market/balancing_market_vardeclare.inc";
 $ifi %OPTIFLOW%==yes      $include   "../../base/addons/optiflow/bb4/optiflow_vardeclare.inc";
 $ifi %import_results%==yes  $include   "../../base/addons/import_results/import_results_vardeclare.inc";
+$ifi %WeekDecoupled%==yes  $include   "../../base/addons/weekdecoupled/wd_vardeclare.inc";
 
 $ifi %vqdebug%==yes       $include   "../../base/addons/vqdebug/bb4/vqdebug_declare.inc";
 

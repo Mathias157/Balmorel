@@ -249,6 +249,11 @@ $ifi %RollingSeasons%==yes * Redefinition of IHOURSINT for the current set of se
 $ifi %RollingSeasons%==yes IWEIGHSUMS=SUM(IS3, WEIGHT_S(IS3));
 $ifi %RollingSeasons%==yes IHOURSINST(IS3,T)=IOF8760*WEIGHT_S(IS3)*WEIGHT_T(T)/(IWEIGHSUMS*SUM(ITALIAS, WEIGHT_T(ITALIAS)))/IHOURFRAC;
 
+* WeekDecoupled: one LP per week, each storage cycling within its week (addons/weekdecoupled, docs/adr/0006)
+$ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_beforeloop.inc"
+$ifi %WeekDecoupled%==yes LOOP(IS3LOOPSET,
+$ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_weekstart.inc"
+
 *-------------------------------------------------------------------------------
 * SOLVE
 *-------------------------------------------------------------------------------
@@ -272,6 +277,10 @@ $ifi %RollingSeasons%==yes   $include "../../base/addons/_hooks/sim_rollingseaso
 
 $ifi %RollingSeasons%==yes * End of loop over seasons:
 $ifi %RollingSeasons%==yes   );
+
+$ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_weekend.inc"
+$ifi %WeekDecoupled%==yes );
+$ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_afterloop.inc"
 
 
 $include "../../base/addons/_hooks/solveend.inc"

@@ -96,6 +96,14 @@ ROLLINGSEASONSNUMBER= 1;
 
 *-------- END: Seasonal rolling horizon  ---------
 
+*-------- Week-decoupled operation  ---------
+* Solve each week as its own LP, every storage ending the week at its starting level, with the
+* annual limits as prices from the investment run (simex/WDLAMBDA.gdx). Operation only: needs
+* import_results and no RollingSeasons. See addons/weekdecoupled and docs/adr/0006.
+$setglobal WeekDecoupled
+*!option yes
+*-------- END: Week-decoupled operation  ---------
+
 *--------   QDENET  ---------
 * Introduces the calculation of the net demand of different users (e.g. households, industry, etc). Relevant for taxes, grid tariffs, demand response, etc.
 $setglobal NETDEMAND yes

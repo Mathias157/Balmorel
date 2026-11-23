@@ -37,5 +37,6 @@ $ifi %BalancingMarket%==yes       $include   "../../base/addons/balancing_market
 $ifi %INDIVUSERS%==yes       $include   "../../base/addons/indivusers/bb4/indivusers_eqndecdef.inc";
 $ifi %OPTIFLOW%==yes $include "../../base/addons/optiflow/bb4/optiflow_eqndecdef.inc";
 $ifi %CCS%==yes $include "../../base/addons/CCS/bb4/CCS_eqndecdef.inc";
+$ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_eqndecdef.inc"
 
 $label endoffile

@@ -2444,32 +2444,33 @@ $ifi %TransInvest%==yes         QXINVSYMMETRY
 $ifi %TransInvest%==yes         QXK_UP
 
 *--- Electricity generation restrictions by fuel -------------------------------
-$ifi not %RollingSeasons%==yes QGMINFUELC
-$ifi not %RollingSeasons%==yes QGMAXFUELC
-$ifi not %RollingSeasons%==yes QGMINFUELR
-$ifi not %RollingSeasons%==yes QGMAXFUELR
-$ifi not %RollingSeasons%==yes QGMINFUELA
-$ifi not %RollingSeasons%==yes QGMAXFUELA
+* Annual rows: WeekDecoupled leaves them out (QGMAX*F as prices, the others are checked empty; addons/weekdecoupled)
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes QGMINFUELC
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes QGMAXFUELC
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes QGMINFUELR
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes QGMAXFUELR
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes QGMINFUELA
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes QGMAXFUELA
 *--- Fuel consumption restrictions ---------------------------------------------
-$ifi not %RollingSeasons%==yes  QGMINCF
-$ifi not %RollingSeasons%==yes  QGMAXCF
-$ifi not %RollingSeasons%==yes  QGEQCF
-$ifi not %RollingSeasons%==yes  QGMINRF
-$ifi not %RollingSeasons%==yes  QGMAXRF
-$ifi not %RollingSeasons%==yes  QGEQRF
-$ifi not %RollingSeasons%==yes  QGMINAF
-$ifi not %RollingSeasons%==yes  QGMAXAF
-$ifi not %RollingSeasons%==yes  QGEQAF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGMINCF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGMAXCF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGEQCF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGMINRF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGMAXRF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGEQRF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGMINAF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGMAXAF
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QGEQAF
 
                                 QGMAXCFS
                                 QGMAXRFS
                                 QGMAXAFS
 
 *--- Emissions restrictions ----------------------------------------------------
-$ifi not %RollingSeasons%==yes  QLIMCO2C
-$ifi not %RollingSeasons%==yes  QLIMSO2C
-$ifi not %RollingSeasons%==yes  QLIMNOXC
-$ifi not %RollingSeasons%==yes  QLIMCO2NA
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QLIMCO2C
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QLIMSO2C
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QLIMNOXC
+$ifi not %RollingSeasons%==yes $ifi not %WeekDecoupled%==yes  QLIMCO2NA
 
 $ifi %RollingSeasons%==yes  QLIMCO2ROLLS
 
@@ -2611,6 +2612,9 @@ $ifi not %export_results%==yes $goto result_export
 *------------------------------------------------------------------------------
 *                GENERATE INPUT FILES FOR FUTURE RUNS FROM RESULTS OF THIS RUN
 *------------------------------------------------------------------------------
+* Shadow prices of the annual limits, for a WeekDecoupled run (addons/weekdecoupled, docs/adr/0006)
+$include "../../base/addons/weekdecoupled/wd_export.inc"
+
 * For hydro with reservoir save the following, to be used in future runs by addon "import_results":
 
 HYRSG(Y,IA,S)$SUM(IGHYRS,IAGK_HASORPOT(Y,IA,IGHYRS)) = SUM(IGHYRS$IAGK_HASORPOT(Y,IA,IGHYRS),SUM(T, IHYRST(S,T)*VGE_T.L(Y,IA,IGHYRS,S,T)));

@@ -1,0 +1,2 @@
+* WeekDecoupled add-on (docs/adr/0006): the last time step links to the week's own first time step
+   + (SUM(ITALIAS$(ORD(ITALIAS) EQ 1),VHYDROGEN_STOVOL_T(IY411,IA,IHYDROGEN_GH2STO,S,ITALIAS)) - SUM(ITALIAS$(ORD(ITALIAS) EQ 1),VHYDROGEN_STOVOL_T(IY411,IA,IHYDROGEN_GH2STO,S++1,ITALIAS)))$(CARD(T) EQ ORD(T))

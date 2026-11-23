@@ -33,6 +33,7 @@ $ifi %EV%==yes      $include        "../../base/addons/EV/bb4/EV_qobj.inc";
 $ifi %CCS%==yes  $include   "../../base/addons/CCS/bb4/CCS_qobj.inc";
 $ifi %BalancingMarket%==yes       $include   "../../base/addons/balancing_market/balancing_market_qobj.inc";
 $ifi %OPTIFLOW%==yes   $include   "../../base/addons/optiflow/bb4/optiflow_qobj.inc";
+$ifi %WeekDecoupled%==yes   $include   "../../base/addons/weekdecoupled/wd_qobj.inc";
 
 
 $ifi %vqdebug%==yes   $setglobal equation qobj
