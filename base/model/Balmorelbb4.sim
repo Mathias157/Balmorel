@@ -184,6 +184,16 @@ $ifi %VRESHUTDOWN%==yes     VGE_T.UP(IY411,IA,IGWAVE,S,T)$(GKFX(IY411,IA,IGWAVE)
 $ifi %GWAVE_DOL%==AAA   ((WAVEFLH(IA) * GKFX(IY411,IA,IGWAVE) * (1$(NOT IGKRATE(IA,IGWAVE,S,T)) + IGKRATE(IA,IGWAVE,S,T)) * WAVE_VAR_T(IA,S,T)) / IWAVESUMST(IA))$IWAVESUMST(IA);
 $ifi %GWAVE_DOL%==AAA_GGG   ((WAVEFLH(IA,IGWAVE) * GKFX(IY411,IA,IGWAVE) * (1$(NOT IGKRATE(IA,IGWAVE,S,T)) + IGKRATE(IA,IGWAVE,S,T)) * WAVE_VAR_T(IA,S,T)) / IWAVESUMST(IA))$IWAVESUMST(IA);
 
+* Windpower, hydro-run-of-river, solarpower, solarheat and wavepower, new or existing, can not generate in an area
+* whose production profile sums to 0 over the time steps in use (e.g. only night steps with usedtimesteps_timseries_scaling).
+* The $-conditions complement those on QWNDDISPATCH, QHYRRDISPATCH, QSOLEDISPATCH, QSOLHDISPATCH and QWAVEDISPATCH:
+* these equations are not generated there, so new capacity would otherwise generate without limit (cf. bb123.sim).
+VGE_T.FX(IY411,IA,IGWND,S,T)$(IAGK_HASORPOT(IY411,IA,IGWND)   AND (NOT IWND_SUMST(IA))) = 0;
+VGE_T.FX(IY411,IA,IGHYRR,S,T)$(IAGK_HASORPOT(IY411,IA,IGHYRR) AND (NOT IWTRRRSUM(IA)))  = 0;
+VGE_T.FX(IY411,IA,IGSOLE,S,T)$(IAGK_HASORPOT(IY411,IA,IGSOLE) AND (NOT ISOLESUMST(IA))) = 0;
+VGH_T.FX(IY411,IA,IGSOLH,S,T)$(IAGK_HASORPOT(IY411,IA,IGSOLH) AND (NOT ISOLHSUMST(IA))) = 0;
+VGE_T.FX(IY411,IA,IGWAVE,S,T)$(IAGK_HASORPOT(IY411,IA,IGWAVE) AND (NOT IWAVESUMST(IA))) = 0;
+
 $ifi %testbb1234%==yes  IBB1234_VGE_T.UP(IY411,IA,G,S,T)     = VGE_T.UP(IY411,ia,g,s,t);
 $ifi %testbb1234%==yes  IBB1234_VGH_T.UP(IY411,IA,G,S,T)     = VGH_T.UP(IY411,ia,g,s,t);
 $ifi %testbb1234%==yes  execute_unload "..\simex\VGx_up_bb4_5.gdx" IBB1234_VGE_T , IBB1234_VGH_T ;
