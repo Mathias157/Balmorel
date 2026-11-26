@@ -1,7 +1,8 @@
 * WeekDecoupled add-on (docs/adr/0006): after the loop over the weeks.
 * GAMS merges each solve into the variables, so every week keeps its own solution values
 * and the results written after this file cover the whole year. Variables without a season
-* index hold the last week's values.
+* index hold the last week's values. Weeks outside WDSOLVE keep the levels they had before
+* the loop, so a run that solves only some weeks reports only those weeks' costs reliably.
 
 IS3(S) = YES;
 IS3_NEXT(S) = YES;

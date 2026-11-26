@@ -261,7 +261,7 @@ $ifi %RollingSeasons%==yes IHOURSINST(IS3,T)=IOF8760*WEIGHT_S(IS3)*WEIGHT_T(T)/(
 
 * WeekDecoupled: one LP per week, each storage cycling within its week (addons/weekdecoupled, docs/adr/0006)
 $ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_beforeloop.inc"
-$ifi %WeekDecoupled%==yes LOOP(IS3LOOPSET,
+$ifi %WeekDecoupled%==yes LOOP(IS3LOOPSET$WDSOLVE(IS3LOOPSET),
 $ifi %WeekDecoupled%==yes $include "../../base/addons/weekdecoupled/wd_weekstart.inc"
 
 *-------------------------------------------------------------------------------

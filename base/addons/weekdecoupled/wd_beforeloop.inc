@@ -4,6 +4,10 @@
 * WDWEEK and the per-week outputs have no year index
 abort$(CARD(Y) GT 1) "WeekDecoupled solves one model year only (docs/adr/0006)";
 
+* WDSOLVE (wd_ipardecdef.inc) picks the weeks of S that this run solves
+abort$(SUM(S$WDSOLVE(S), 1) EQ 0) "WeekDecoupled: WDSOLVE holds no week of S";
+abort$SUM(SSS$(WDSOLVE(SSS) AND NOT S(SSS)), 1) "WeekDecoupled: WDSOLVE holds a week that is not in S";
+
 * The annual rows WeekDecoupled leaves out without a price must have no data (Balmorelbb4.inc model list).
 * The conditions are those of the rows.
 abort$SUM((IY411,CCCRRRAAA,FFF)$(IGMINF(IY411,CCCRRRAAA,FFF) OR IGEQF(IY411,CCCRRRAAA,FFF)), 1)

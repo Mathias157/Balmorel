@@ -43,3 +43,12 @@ PARAMETER WDCCS_S(YYY,SSS)                        "CO2 stored under QCCS_STORAGE
 PARAMETER WDGMAXF_S(YYY,CCCRRRAAA,FFF,SSS)        "Fuel use under QGMAXCF, QGMAXRF and QGMAXAF per week (GJ)";
 SCALAR    WDC0                                    "VOBJ with no week in the LP: the week-independent part of every week's VOBJ (money, discounted as VOBJ)" /0/;
 SCALAR    WDC0MODELSTAT                           "Model status of the LP with no week" /0/;
+
+*-- The weeks this run solves -------------------------------------------------------------
+* Every week in S, unless the run's data folder lists them, e.g.
+*    SET WDSOLVE(SSS) 'Weeks this run solves' / S01, S11, S21 /;
+* Several runs with disjoint lists can share the weeks of one simulation. Each repeats the
+* C0 solve and the costs that belong to no week; whoever merges them counts those once.
+$if     exist '../data/WDSOLVE.inc' $include '../data/WDSOLVE.inc';
+$if not exist '../data/WDSOLVE.inc' SET WDSOLVE(SSS) "Weeks this run solves: every week in S";
+$if not exist '../data/WDSOLVE.inc' WDSOLVE(S) = YES;

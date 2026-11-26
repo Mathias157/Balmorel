@@ -45,7 +45,7 @@ Options and data that link the weeks or need the year in one LP stop the run:
 - **Season-indexed results cover the whole year.** GAMS keeps each solve's levels, so `MainResults` and `all_endofmodel.gdx` hold every week's dispatch. Variables without a season index hold the last week's values. The marginals of the annual rows are not meaningful, and `balbase4.mss` shows only the last solve, so the run's statuses are in `WDWEEK`.
 - **λ is only as good as the run that exported it.** With `vqdebug` and `VQCO2PRICE`, a CO2 limit the exporting run overshoots gives λ = `VQCO2PRICE`, the slack's price, not the limit's value. Barrier without crossover leaves λ of about 1e-9 on limits that do not bind. Such λ cost nothing.
 - **`QWD_*` copy the left-hand sides of the annual rows**, so a change to `QLIMCO2NA`, `QCCS_STORAGE` or `QGMAX*F` must be made in `wd_eqndecdef.inc` too.
-- **Weeks can run in parallel** by giving each GAMS process a subset of `S`. The fixed setup is then paid once per process.
+- **Weeks can run in parallel** by giving each GAMS process its own weeks to solve (`WDSOLVE`, see the amendment below). The fixed setup is then paid once per process.
 
 ## Considered Options
 
@@ -53,3 +53,19 @@ Options and data that link the weeks or need the year in one LP stop the run:
 - **One LP with the annual limits kept exact**: rejected because it is the 6 h LP, and the limits are the only thing linking the weeks once storage cycles.
 - **One GAMS process per week**: rejected as the default, because it pays the fixed setup once per week rather than once.
 - **Splitting each limit over the weeks** (quotas by hours, or by the investment run's use per season): rejected. A quota that is wrong for a week makes that week's dispatch worse, with no way to trade between weeks. A price lets each week use what it is worth.
+
+## Amendment, 2026-11-26: `WDSOLVE` picks the weeks a run solves
+
+A run solves only the weeks in `WDSOLVE(SSS)`, read from `../data/WDSOLVE.inc` when the run's data folder has it. Without the file, `WDSOLVE` holds every week of `S`, so existing runs are unchanged. The loop is `LOOP(IS3LOOPSET$WDSOLVE(IS3LOOPSET), ...)`. The run stops if `WDSOLVE` holds no week of `S`, or a week outside `S`.
+
+`S` itself stays the whole year. Everything computed before the loop is then the same as in a run that solves every week: the season weights, the split of annual transport demand by hours, and the EV preprocessing over the seasons. So a week gives the same LP whichever run solves it. Several runs with disjoint `WDSOLVE` can therefore share the weeks of one simulation, and the DGSS black box spreads the weeks over k processes this way (parent repository, `docs/adr/0004`).
+
+Whoever merges such runs must handle three things:
+
+- **Costs that belong to no week appear in every run.** Every run solves C0, and its `VOBJ.L` is `WDC0` plus the opex of its own weeks. C0 must be counted once, and so must the `OBJ_YCR` categories that belong to no week (the `*_CAPITAL_COSTS` and `*_FIXED_COSTS` ones).
+- **Weekly costs and limit use add up.** Weekly categories and each week's use of the annual limits (`WDCO2NA_S`, `WDCCS_S`, `WDGMAXF_S`) are summed over the runs, and recourse is charged on the sums.
+- **Some categories cannot be merged.** `TAXES` and `GRID_TARIFFS` mix weekly costs with costs that belong to no week, so a run's share of them cannot be told apart.
+
+Weeks outside `WDSOLVE` keep the levels they had before the loop, so a run's season-indexed results are meaningful only for its own weeks.
+
+Considered option: **giving each run a subset of `S`**. Rejected, because the annual transport demand would be split over that run's weeks alone, and the season weights and EV preprocessing would change too. A week's LP would then depend on which other weeks shared its run.
